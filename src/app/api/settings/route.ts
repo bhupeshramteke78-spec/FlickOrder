@@ -111,7 +111,8 @@ export async function PATCH(request: Request) {
 
   const { error: settingsError } = await supabase
     .from("restaurant_settings")
-    .update({
+    .upsert({
+      restaurant_id: membership.restaurant_id,
       brand_color: input.settings.brandColor,
       upi_id: input.settings.upiId,
       upi_display_name: input.settings.upiDisplayName,
@@ -119,8 +120,9 @@ export async function PATCH(request: Request) {
       qr_ordering_enabled: input.settings.qrOrderingEnabled,
       opening_hours: input.settings.openingHours as Json,
       menu_preferences: input.settings.menuPreferences as Json,
+    }, {
+      onConflict: "restaurant_id",
     })
-    .eq("restaurant_id", membership.restaurant_id);
 
   if (settingsError) {
     return NextResponse.json({ error: settingsError.message }, { status: 400 });

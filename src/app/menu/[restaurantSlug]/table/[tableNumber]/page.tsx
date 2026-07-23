@@ -1,5 +1,6 @@
 import { MobileMenuShell } from "@/components/customer/mobile-menu-shell";
 import { CustomerMenuRealtimeRefresh } from "@/components/realtime/customer-menu-realtime-refresh";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -68,7 +69,7 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
     return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, categories: [], menuItems: [] };
   }
 
-  const [{ data: categoryRows }, { data: itemRows }, { data: settings }] = await Promise.all([
+  const [{ data: categoryRows }, { data: itemRows }] = await Promise.all([
     supabase
       .from("categories")
       .select("id,name,sort_order,is_active")
@@ -81,12 +82,8 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
       .select("id,category_id,name,description,image_url,price,offer_price,preparation_time_minutes,food_type,is_available,is_sold_out,is_popular,created_at")
       .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("restaurant_settings")
-      .select("upi_id,upi_display_name")
-      .eq("restaurant_id", restaurant.id)
-      .maybeSingle(),
   ]);
+  const settings = await getPublicMenuPaymentSettings(restaurant.id);
 
   const categoryById = new Map((categoryRows ?? []).map((category) => [category.id, category.name]));
   const categoryOrder = new Map((categoryRows ?? []).map((category, index) => [category.name, index]));
@@ -132,6 +129,21 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
     categories,
     menuItems,
   };
+}
+
+async function getPublicMenuPaymentSettings(restaurantId: string) {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("restaurant_settings")
+      .select("upi_id,upi_display_name")
+      .eq("restaurant_id", restaurantId)
+      .maybeSingle();
+
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 function sanitizeRestaurantName(name: string) {
