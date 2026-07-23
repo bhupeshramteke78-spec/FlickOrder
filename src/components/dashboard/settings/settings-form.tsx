@@ -1,0 +1,371 @@
+"use client";
+
+import { Loader2, Palette, Pencil, Save, Settings2, Store, WalletCards } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+type DefaultFoodTypeFilter = "ALL" | "VEG" | "NON_VEG" | "EGG";
+
+export type SettingsFormState = {
+  restaurant: {
+    name: string;
+    slug: string;
+    type: string;
+    cuisineText: string;
+    email: string;
+    phone: string;
+    city: string;
+    state: string;
+    address: string;
+    logoUrl: string;
+    coverUrl: string;
+    isOpen: boolean;
+  };
+  settings: {
+    brandColor: string;
+    upiId: string;
+    upiDisplayName: string;
+    taxRate: string;
+    qrOrderingEnabled: boolean;
+    openingOpen: string;
+    openingClose: string;
+    showPopularFirst: boolean;
+    showUnavailableItems: boolean;
+    defaultFoodTypeFilter: DefaultFoodTypeFilter;
+  };
+};
+
+export function SettingsForm({ initialState, canEdit }: { initialState: SettingsFormState; canEdit: boolean }) {
+  const router = useRouter();
+  const [form, setForm] = useState(initialState);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  function updateRestaurant<T extends keyof SettingsFormState["restaurant"]>(
+    key: T,
+    value: SettingsFormState["restaurant"][T],
+  ) {
+    setForm((current) => ({ ...current, restaurant: { ...current.restaurant, [key]: value } }));
+  }
+
+  function updateSettings<T extends keyof SettingsFormState["settings"]>(
+    key: T,
+    value: SettingsFormState["settings"][T],
+  ) {
+    setForm((current) => ({ ...current, settings: { ...current.settings, [key]: value } }));
+  }
+
+  async function submitSettings(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!isEditing) {
+      toast.info("Click edit settings before making changes.");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const payload = {
+      restaurant: {
+        name: form.restaurant.name,
+        type: form.restaurant.type,
+        cuisine: form.restaurant.cuisineText
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+        email: form.restaurant.email,
+        phone: form.restaurant.phone,
+        city: form.restaurant.city,
+        state: form.restaurant.state,
+        address: form.restaurant.address,
+        logoUrl: form.restaurant.logoUrl || null,
+        coverUrl: form.restaurant.coverUrl || null,
+        isOpen: form.restaurant.isOpen,
+      },
+      settings: {
+        brandColor: form.settings.brandColor,
+        upiId: form.settings.upiId,
+        upiDisplayName: form.settings.upiDisplayName,
+        taxRate: Number(form.settings.taxRate),
+        qrOrderingEnabled: form.settings.qrOrderingEnabled,
+        openingHours: {
+          open: form.settings.openingOpen,
+          close: form.settings.openingClose,
+        },
+        menuPreferences: {
+          showPopularFirst: form.settings.showPopularFirst,
+          showUnavailableItems: form.settings.showUnavailableItems,
+          defaultFoodTypeFilter: form.settings.defaultFoodTypeFilter,
+        },
+      },
+    };
+
+    const response = await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    setIsSaving(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      toast.error(body?.error ?? "Unable to save settings.");
+      return;
+    }
+
+    toast.success("Settings saved.");
+    setIsEditing(false);
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={submitSettings} className="grid gap-5">
+      <Card className="overflow-hidden p-0">
+        <div
+          className="p-6 text-white"
+          style={{ background: `linear-gradient(135deg, #071117 0%, ${form.settings.brandColor} 160%)` }}
+        >
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-100">Restaurant Control</p>
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-3xl font-semibold">{form.restaurant.name || "Restaurant Name"}</h2>
+              <p className="mt-2 text-sm text-white/70">Guest-facing restaurant details stay connected to this profile.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="glass"
+                disabled={!canEdit}
+                onClick={() => setIsEditing((current) => !current)}
+              >
+                <Pencil className="h-4 w-4" />
+                {isEditing ? "Lock editing" : "Edit settings"}
+              </Button>
+              <Button type="submit" disabled={!isEditing || isSaving} variant="glass">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <SettingsSection
+          icon={Store}
+          title="Restaurant profile"
+            description="Control what guests see on discovery pages, QR menus, and restaurant detail screens."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Restaurant name">
+              <Input disabled={!isEditing} required value={form.restaurant.name} onChange={(event) => updateRestaurant("name", event.target.value)} />
+            </Field>
+            <Field label="Restaurant type">
+              <Input disabled={!isEditing} required value={form.restaurant.type} onChange={(event) => updateRestaurant("type", event.target.value)} placeholder="Cafe, Fine Dining, Family Restaurant" />
+            </Field>
+            <Field label="Cuisine">
+              <Input disabled={!isEditing} required value={form.restaurant.cuisineText} onChange={(event) => updateRestaurant("cuisineText", event.target.value)} placeholder="Indian, Italian, Chinese" />
+            </Field>
+            <Field label="Phone">
+              <Input disabled={!isEditing} required value={form.restaurant.phone} onChange={(event) => updateRestaurant("phone", event.target.value)} />
+            </Field>
+            <Field label="Email">
+              <Input disabled={!isEditing} required type="email" value={form.restaurant.email} onChange={(event) => updateRestaurant("email", event.target.value)} />
+            </Field>
+            <Field label="City">
+              <Input disabled={!isEditing} required value={form.restaurant.city} onChange={(event) => updateRestaurant("city", event.target.value)} />
+            </Field>
+            <Field label="State">
+              <Input disabled={!isEditing} required value={form.restaurant.state} onChange={(event) => updateRestaurant("state", event.target.value)} />
+            </Field>
+            <Field label="Open status">
+              <ToggleLabel
+                disabled={!isEditing}
+                checked={form.restaurant.isOpen}
+                label={form.restaurant.isOpen ? "Open now" : "Closed"}
+                onChange={(checked) => updateRestaurant("isOpen", checked)}
+              />
+            </Field>
+            <Field label="Address" className="md:col-span-2">
+              <textarea
+                disabled={!isEditing}
+                required
+                className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
+                value={form.restaurant.address}
+                onChange={(event) => updateRestaurant("address", event.target.value)}
+              />
+            </Field>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={WalletCards}
+          title="Payments and taxes"
+          description="UPI details are used to generate customer payment links. Payment status still needs restaurant verification."
+        >
+          <div className="grid gap-4">
+            <Field label="UPI ID">
+              <Input disabled={!isEditing} required value={form.settings.upiId} onChange={(event) => updateSettings("upiId", event.target.value)} placeholder="restaurant@oksbi" />
+            </Field>
+            <Field label="UPI display name">
+              <Input disabled={!isEditing} required value={form.settings.upiDisplayName} onChange={(event) => updateSettings("upiDisplayName", event.target.value)} />
+            </Field>
+            <Field label="Tax rate (%)">
+              <Input disabled={!isEditing} required min={0} max={50} step="0.01" type="number" value={form.settings.taxRate} onChange={(event) => updateSettings("taxRate", event.target.value)} />
+            </Field>
+          </div>
+        </SettingsSection>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <SettingsSection
+          icon={Palette}
+          title="Brand and media"
+          description="Use hosted image URLs from Supabase Storage or your CDN for logo and cover media."
+        >
+          <div className="grid gap-4">
+            <Field label="Brand color">
+              <div className="grid grid-cols-[56px_1fr] gap-3">
+                <input
+                  disabled={!isEditing}
+                  type="color"
+                  value={form.settings.brandColor}
+                  onChange={(event) => updateSettings("brandColor", event.target.value)}
+                  className="h-11 w-14 rounded-lg border border-zinc-200 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Brand color"
+                />
+                <Input disabled={!isEditing} required value={form.settings.brandColor} onChange={(event) => updateSettings("brandColor", event.target.value)} />
+              </div>
+            </Field>
+            <Field label="Logo URL">
+              <Input disabled={!isEditing} value={form.restaurant.logoUrl} onChange={(event) => updateRestaurant("logoUrl", event.target.value)} placeholder="https://..." />
+            </Field>
+            <Field label="Cover URL">
+              <Input disabled={!isEditing} value={form.restaurant.coverUrl} onChange={(event) => updateRestaurant("coverUrl", event.target.value)} placeholder="https://..." />
+            </Field>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={Settings2}
+          title="QR ordering and menu"
+          description="Set operating hours and how the customer menu should behave."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Opening time">
+              <Input disabled={!isEditing} required type="time" value={form.settings.openingOpen} onChange={(event) => updateSettings("openingOpen", event.target.value)} />
+            </Field>
+            <Field label="Closing time">
+              <Input disabled={!isEditing} required type="time" value={form.settings.openingClose} onChange={(event) => updateSettings("openingClose", event.target.value)} />
+            </Field>
+            <Field label="QR ordering" className="md:col-span-2">
+              <ToggleLabel
+                disabled={!isEditing}
+                checked={form.settings.qrOrderingEnabled}
+                label={form.settings.qrOrderingEnabled ? "Enabled" : "Disabled"}
+                onChange={(checked) => updateSettings("qrOrderingEnabled", checked)}
+              />
+            </Field>
+            <Field label="Default food filter">
+              <select
+                disabled={!isEditing}
+                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
+                value={form.settings.defaultFoodTypeFilter}
+                onChange={(event) => updateSettings("defaultFoodTypeFilter", event.target.value as DefaultFoodTypeFilter)}
+              >
+                <option value="ALL">All</option>
+                <option value="VEG">Veg</option>
+                <option value="NON_VEG">Non-veg</option>
+                <option value="EGG">Egg</option>
+              </select>
+            </Field>
+            <Field label="Menu display">
+              <div className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <ToggleLabel
+                  disabled={!isEditing}
+                  checked={form.settings.showPopularFirst}
+                  label="Show popular first"
+                  onChange={(checked) => updateSettings("showPopularFirst", checked)}
+                />
+                <ToggleLabel
+                  disabled={!isEditing}
+                  checked={form.settings.showUnavailableItems}
+                  label="Show unavailable items"
+                  onChange={(checked) => updateSettings("showUnavailableItems", checked)}
+                />
+              </div>
+            </Field>
+          </div>
+        </SettingsSection>
+      </div>
+    </form>
+  );
+}
+
+function SettingsSection({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: typeof Store;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+          <Icon className="h-5 w-5" />
+        </div>
+      </CardHeader>
+      {children}
+    </Card>
+  );
+}
+
+function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={className}>
+      <span className="mb-2 block text-sm font-medium text-zinc-700">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function ToggleLabel({
+  checked,
+  disabled = false,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="inline-flex h-11 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500 disabled:hover:border-zinc-200"
+      aria-pressed={checked}
+    >
+      <span>{label}</span>
+      <span className={`relative h-6 w-11 rounded-full transition ${checked ? "bg-emerald-500" : "bg-zinc-300"}`}>
+        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${checked ? "left-6" : "left-1"}`} />
+      </span>
+    </button>
+  );
+}

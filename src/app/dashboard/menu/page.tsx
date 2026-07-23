@@ -1,0 +1,86 @@
+import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { MenuManagementClient, type MenuItemRow } from "@/components/dashboard/menu/menu-management-client";
+import { PermissionLock } from "@/components/dashboard/permission-lock";
+import { SubscriptionLock } from "@/components/dashboard/subscription-lock";
+import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
+import { hasPermission } from "@/lib/permissions";
+import { getSubscriptionAccessForCurrentUser, getSubscriptionAccessForRestaurantId, hasPlanFeature } from "@/lib/subscription-access";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
+
+export default async function MenuManagementPage() {
+  const { access, role } = await getMenuAccess();
+  const canViewMenu = hasPermission(role, "viewMenu");
+  const { items, canManage } = canViewMenu ? await getMenuItems() : { items: [], canManage: false };
+
+  return (
+    <DashboardShell title="Menu management" eyebrow="Professional item controls" showClock>
+      {!canViewMenu ? (
+        <PermissionLock description="Only owners and managers can view menu management." />
+      ) : (
+      <>
+      <SubscriptionLock access={access} feature="menuManagement" />
+      <MenuManagementClient items={items} canManage={canManage} />
+      </>
+      )}
+    </DashboardShell>
+  );
+}
+
+async function getMenuAccess() {
+  if (!isSupabaseConfigured()) {
+    return { access: null, role: null };
+  }
+
+  const supabase = await createClient();
+  const { access, membership } = await getSubscriptionAccessForCurrentUser(supabase);
+
+  return { access, role: membership?.role ?? null };
+}
+
+async function getMenuItems(): Promise<{ items: MenuItemRow[]; canManage: boolean }> {
+  if (!isSupabaseConfigured()) {
+    return { items: [], canManage: false };
+  }
+
+  const supabase = await createClient();
+  const context = await getSelectedDashboardRestaurant(supabase);
+
+  if (!context) {
+    return { items: [], canManage: false };
+  }
+
+  const access = await getSubscriptionAccessForRestaurantId(supabase, context.selected.restaurantId);
+  const canManage = hasPlanFeature(access, "menuManagement") && hasPermission(context.selected.memberRole, "manageMenu");
+
+  const { data: menuItems } = await supabase
+    .from("menu_items")
+    .select("id,name,description,price,offer_price,preparation_time_minutes,food_type,is_available,is_sold_out,is_popular,category_id,created_at")
+    .eq("restaurant_id", context.selected.restaurantId)
+    .order("created_at", { ascending: false });
+
+  if (!menuItems || menuItems.length === 0) {
+    return { items: [], canManage };
+  }
+
+  const categoryIds = Array.from(new Set(menuItems.map((item) => item.category_id)));
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("id,name")
+    .in("id", categoryIds);
+  const categoriesById = new Map((categories ?? []).map((category) => [category.id, category.name]));
+
+  return { items: menuItems.map((item) => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    category: categoriesById.get(item.category_id) ?? "Uncategorized",
+    price: Number(item.price),
+    offerPrice: item.offer_price === null ? null : Number(item.offer_price),
+    preparationTimeMinutes: item.preparation_time_minutes,
+    foodType: item.food_type,
+    isAvailable: item.is_available,
+    isSoldOut: item.is_sold_out,
+    isPopular: item.is_popular,
+  })), canManage };
+}
