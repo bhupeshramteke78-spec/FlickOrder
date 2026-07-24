@@ -33,10 +33,10 @@ const footerColumns = [
   {
     title: "Legal",
     links: [
-      { label: "Terms and Conditions", href: "#" },
-      { label: "Privacy Policy", href: "#" },
-      { label: "Refund Policy", href: "#" },
-      { label: "Disclaimer", href: "#" },
+      { label: "Terms and Conditions", href: "/legal/terms" },
+      { label: "Privacy Policy", href: "/legal/privacy" },
+      { label: "Refund Policy", href: "/legal/refund" },
+      { label: "Disclaimer", href: "/legal/disclaimer" },
     ],
   },
 ];

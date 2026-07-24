@@ -5,8 +5,33 @@ import { emptyAvailability, getRestaurantAvailabilityMap } from "@/lib/table-ava
 
 export default async function Page() {
   const restaurants = await getRegisteredRestaurants();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://flick-order.vercel.app";
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "FlickOrder",
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: siteUrl,
+    description:
+      "In-restaurant QR ordering, menu management, live order operations, UPI payment verification, and restaurant analytics for modern restaurants.",
+    offers: [
+      { "@type": "Offer", name: "Basic", price: "299", priceCurrency: "INR" },
+      { "@type": "Offer", name: "Growth", price: "799", priceCurrency: "INR" },
+      { "@type": "Offer", name: "Pro", price: "1499", priceCurrency: "INR" },
+    ],
+  };
 
-  return <HomePage restaurants={restaurants} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <HomePage restaurants={restaurants} />
+    </>
+  );
 }
 
 async function getRegisteredRestaurants() {
