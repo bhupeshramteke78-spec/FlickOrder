@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
 
 export function MarketingNav() {
   const router = useRouter();
+  const pathname = usePathname();
   const [transition, setTransition] = useState<{ label: string; x: number; y: number } | null>(null);
 
   function prefersReducedMotion() {
@@ -32,12 +33,22 @@ export function MarketingNav() {
     event.preventDefault();
 
     if (item.mode === "scroll-top") {
+      if (pathname !== "/") {
+        router.push("/");
+        return;
+      }
+
       window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
       history.replaceState(null, "", "/");
       return;
     }
 
     if (item.mode === "anchor") {
+      if (pathname !== "/") {
+        router.push(`/${item.href}`);
+        return;
+      }
+
       document.querySelector(item.href)?.scrollIntoView({
         behavior: prefersReducedMotion() ? "auto" : "smooth",
         block: "start",
