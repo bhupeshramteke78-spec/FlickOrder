@@ -3,6 +3,8 @@
 import {
   ArrowUpRight,
   Check,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   History,
   Landmark,
@@ -109,6 +111,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [isRecordsOpen, setIsRecordsOpen] = useState(false);
   const [restaurantDrafts, setRestaurantDrafts] = useState<Record<string, RestaurantDraft>>(() =>
     Object.fromEntries(
       data.restaurants.map((restaurant) => [
@@ -491,42 +494,65 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
 
         <section id="records">
           <Panel>
-            <div className="grid gap-5 lg:grid-cols-[0.65fr_1fr] lg:items-end">
+            <div className="grid gap-5 lg:grid-cols-[0.65fr_1fr_auto] lg:items-end">
               <PanelHeading
                 icon={Search}
                 eyebrow="Search"
                 title="Customers and orders"
                 description="Search by customer, order number, restaurant, table, item, status, or amount."
               />
-              <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                <Search className="h-4 w-4 text-zinc-400" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search platform records"
-                  className="w-full bg-transparent text-sm outline-none"
-                />
+              <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                <UserRound className="h-4 w-4 text-emerald-600" />
+                <span>{data.customers.length} customers</span>
+                <span className="h-1 w-1 rounded-full bg-zinc-300" />
+                <Clock3 className="h-4 w-4 text-emerald-600" />
+                <span>{data.orders.length} orders</span>
               </div>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-12 justify-center gap-2 rounded-2xl border-zinc-300 bg-white px-5 font-semibold"
+                aria-expanded={isRecordsOpen}
+                aria-controls="admin-records-panel"
+                onClick={() => setIsRecordsOpen((current) => !current)}
+              >
+                {isRecordsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {isRecordsOpen ? "Minimize" : "Maximize"}
+              </Button>
             </div>
 
-            <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              <RecordColumn title="Customers" count={filteredCustomers.length} icon={UserRound}>
-                {filteredCustomers.length > 0 ? filteredCustomers.slice(0, 10).map((customer) => (
-                  <RecordLine key={customer.id} title={customer.name} detail={customer.phone ?? "No phone"} meta={formatDate(customer.createdAt)} />
-                )) : <EmptyState title="No customers found" description="Try a different search." />}
-              </RecordColumn>
-
-              <RecordColumn title="Orders" count={filteredOrders.length} icon={Clock3}>
-                {filteredOrders.length > 0 ? filteredOrders.slice(0, 10).map((order) => (
-                  <RecordLine
-                    key={order.id}
-                    title={`#${order.orderNumber} | ${order.customerName}`}
-                    detail={`${order.restaurantName} | Table ${order.tableNumber} | ${order.itemSummary}`}
-                    meta={`${formatCurrency(order.total)} | ${order.paymentStatus}`}
+            {isRecordsOpen ? (
+              <div id="admin-records-panel">
+                <div className="mt-5 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <Search className="h-4 w-4 text-zinc-400" />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search platform records"
+                    className="w-full bg-transparent text-sm outline-none"
                   />
-                )) : <EmptyState title="No orders found" description="Try another name, order ID, item, or amount." />}
-              </RecordColumn>
-            </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  <RecordColumn title="Customers" count={filteredCustomers.length} icon={UserRound}>
+                    {filteredCustomers.length > 0 ? filteredCustomers.slice(0, 10).map((customer) => (
+                      <RecordLine key={customer.id} title={customer.name} detail={customer.phone ?? "No phone"} meta={formatDate(customer.createdAt)} />
+                    )) : <EmptyState title="No customers found" description="Try a different search." />}
+                  </RecordColumn>
+
+                  <RecordColumn title="Orders" count={filteredOrders.length} icon={Clock3}>
+                    {filteredOrders.length > 0 ? filteredOrders.slice(0, 10).map((order) => (
+                      <RecordLine
+                        key={order.id}
+                        title={`#${order.orderNumber} | ${order.customerName}`}
+                        detail={`${order.restaurantName} | Table ${order.tableNumber} | ${order.itemSummary}`}
+                        meta={`${formatCurrency(order.total)} | ${order.paymentStatus}`}
+                      />
+                    )) : <EmptyState title="No orders found" description="Try another name, order ID, item, or amount." />}
+                  </RecordColumn>
+                </div>
+              </div>
+            ) : null}
           </Panel>
         </section>
 
