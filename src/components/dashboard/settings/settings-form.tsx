@@ -353,7 +353,7 @@ export function SettingsForm({
       <Card className="border-rose-200 bg-rose-50/60">
         <CardHeader>
           <div>
-            <CardTitle>Danger zone</CardTitle>
+            <CardTitle>Account Delete</CardTitle>
             <CardDescription>
               Request restaurant account deletion. FlickOrder hides the restaurant and pauses QR ordering immediately, then super admin reviews the request.
             </CardDescription>
