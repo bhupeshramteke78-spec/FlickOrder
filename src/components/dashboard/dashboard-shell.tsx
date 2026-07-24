@@ -3,6 +3,7 @@ import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, Lis
 import type { LucideIcon } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
 import { DashboardClock } from "@/components/dashboard/dashboard-clock";
+import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import { DashboardRealtimeRefresh } from "@/components/realtime/dashboard-realtime-refresh";
@@ -97,6 +98,11 @@ export async function DashboardShell({
               selectedRestaurantId={identity.restaurantId}
               className="mt-3"
             />
+            {hasPermission(identity.memberRole, "viewOrders") ? (
+              <div className="mt-3">
+                <DeviceNotificationToggle restaurantId={identity.restaurantId} />
+              </div>
+            ) : null}
           </div>
           <nav className="grid gap-1">
             {visibleNavItems.map((item) => (

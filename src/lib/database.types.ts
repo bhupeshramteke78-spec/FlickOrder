@@ -253,6 +253,35 @@ export type Database = {
           opening_hours: Json;
         }>
       >;
+      push_subscriptions: DbTable<
+        {
+          id: string;
+          restaurant_id: string;
+          profile_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          restaurant_id: string;
+          profile_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+        },
+        Partial<{
+          restaurant_id: string;
+          profile_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+        }>
+      >;
       categories: DbTable<
         Timestamped<{ restaurant_id: string; name: string; sort_order: number; is_active: boolean }>,
         { restaurant_id: string; name: string; sort_order?: number; is_active?: boolean },

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import type { DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
 import { cn } from "@/lib/utils";
@@ -163,6 +164,11 @@ export function MobileDashboardNav({
                 selectedRestaurantId={selectedRestaurantId}
                 className="mt-3"
               />
+              {navItems.some((item) => item.iconKey === "orders") ? (
+                <div className="mt-3">
+                  <DeviceNotificationToggle restaurantId={selectedRestaurantId} />
+                </div>
+              ) : null}
             </div>
 
             <nav className="grid gap-1">
