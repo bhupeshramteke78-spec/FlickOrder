@@ -17,12 +17,7 @@ const notifiedOrderStorageKey = "flickorder_notified_order_ids";
 type RealtimeOrderRow = {
   id: string;
   order_number: string | null;
-  table_id: string | null;
   total: number | null;
-};
-
-type TableLookupRow = {
-  table_number: string | number | null;
 };
 
 export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefreshProps) {
@@ -54,7 +49,7 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
 
       refreshTimer.current = window.setTimeout(() => {
         router.refresh();
-      }, 350);
+      }, 700);
     };
 
     const channel = supabase.channel(`dashboard:${restaurantId}`);
@@ -77,13 +72,11 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
 
         rememberNotifiedOrder(order.id);
 
-        const tableNumber = order.table_id ? await getTableNumber(order.table_id) : null;
         const orderLabel = order.order_number ? `#${order.order_number}` : "New order";
-        const tableLabel = tableNumber ? `Table ${tableNumber}` : "Table order";
         const totalLabel = formatCurrency(Number(order.total ?? 0));
 
         toast.success("New order received", {
-          description: `${orderLabel} - ${tableLabel} - ${totalLabel}`,
+          description: `${orderLabel} - ${totalLabel}`,
           action: {
             label: "Open",
             onClick: () => router.push("/dashboard/orders"),
@@ -108,16 +101,6 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
       );
     }
 
-    channel.on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "order_items",
-      },
-      scheduleRefresh,
-    );
-
     channel.subscribe();
 
     return () => {
@@ -132,18 +115,6 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
   }, [restaurantId, router]);
 
   return null;
-}
-
-async function getTableNumber(tableId: string) {
-  const supabase = createClient();
-  const { data } = await supabase
-    .from("tables")
-    .select("table_number")
-    .eq("id", tableId)
-    .returns<TableLookupRow[]>()
-    .maybeSingle();
-
-  return data?.table_number ? String(data.table_number) : null;
 }
 
 async function playNewOrderSound(audio: HTMLAudioElement | null) {

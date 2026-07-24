@@ -54,10 +54,7 @@ const emptyMetrics: DashboardMetrics = {
 };
 
 export default async function DashboardPage() {
-  const role = await getDashboardRole();
-  const [metrics, liveOrders] = hasPermission(role, "viewOverview")
-    ? await Promise.all([getDashboardMetrics(), getLiveOrders()])
-    : [emptyMetrics, []];
+  const { metrics, liveOrders, role } = await getOverviewData();
   const trial = getTrialStatus(metrics.trialEndsAt);
   const shouldShowTrialBadge = metrics.subscriptionPlan === "trial" || metrics.subscriptionStatus === "TRIALING";
 
@@ -100,17 +97,6 @@ export default async function DashboardPage() {
       )}
     </DashboardShell>
   );
-}
-
-async function getDashboardRole() {
-  if (!isSupabaseConfigured()) {
-    return null;
-  }
-
-  const supabase = await createClient();
-  const context = await getSelectedDashboardRestaurant(supabase);
-
-  return context?.selected.memberRole ?? null;
 }
 
 function LiveOrdersPanel({ orders }: { orders: LiveOrder[] }) {
@@ -182,16 +168,22 @@ function LiveOrdersPanel({ orders }: { orders: LiveOrder[] }) {
   );
 }
 
-async function getDashboardMetrics(): Promise<DashboardMetrics> {
+async function getOverviewData(): Promise<{ metrics: DashboardMetrics; liveOrders: LiveOrder[]; role: string | null }> {
   if (!isSupabaseConfigured()) {
-    return emptyMetrics;
+    return { metrics: emptyMetrics, liveOrders: [], role: null };
   }
 
   const supabase = await createClient();
   const context = await getSelectedDashboardRestaurant(supabase);
 
   if (!context) {
-    return emptyMetrics;
+    return { metrics: emptyMetrics, liveOrders: [], role: null };
+  }
+
+  const role = context.selected.memberRole;
+
+  if (!hasPermission(role, "viewOverview")) {
+    return { metrics: emptyMetrics, liveOrders: [], role };
   }
 
   const restaurantId = context.selected.restaurantId;
@@ -206,6 +198,7 @@ async function getDashboardMetrics(): Promise<DashboardMetrics> {
     availableTables,
     occupiedTables,
     subscription,
+    liveOrders,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -243,37 +236,34 @@ async function getDashboardMetrics(): Promise<DashboardMetrics> {
       .select("plan,status,trial_ends_at")
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
+    getLiveOrdersForRestaurant(supabase, restaurantId),
   ]);
 
   return {
-    todaysRevenue: paidOrders.data?.reduce((sum, order) => sum + Number(order.total), 0) ?? 0,
-    todaysOrders: todaysOrders.count ?? 0,
-    preparingOrders: preparingOrders.count ?? 0,
-    unpaidOrders: unpaidOrders.count ?? 0,
-    availableTables: availableTables.count ?? 0,
-    occupiedTables: occupiedTables.count ?? 0,
-    subscriptionPlan: subscription.data?.plan ?? null,
-    subscriptionStatus: subscription.data?.status ?? null,
-    trialEndsAt: subscription.data?.trial_ends_at ?? null,
+    role,
+    liveOrders,
+    metrics: {
+      todaysRevenue: paidOrders.data?.reduce((sum, order) => sum + Number(order.total), 0) ?? 0,
+      todaysOrders: todaysOrders.count ?? 0,
+      preparingOrders: preparingOrders.count ?? 0,
+      unpaidOrders: unpaidOrders.count ?? 0,
+      availableTables: availableTables.count ?? 0,
+      occupiedTables: occupiedTables.count ?? 0,
+      subscriptionPlan: subscription.data?.plan ?? null,
+      subscriptionStatus: subscription.data?.status ?? null,
+      trialEndsAt: subscription.data?.trial_ends_at ?? null,
+    },
   };
 }
 
-async function getLiveOrders(): Promise<LiveOrder[]> {
-  if (!isSupabaseConfigured()) {
-    return [];
-  }
-
-  const supabase = await createClient();
-  const context = await getSelectedDashboardRestaurant(supabase);
-
-  if (!context) {
-    return [];
-  }
-
+async function getLiveOrdersForRestaurant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+): Promise<LiveOrder[]> {
   const { data: orders } = await supabase
     .from("orders")
     .select("id,order_number,table_id,status,payment_status,total,created_at")
-    .eq("restaurant_id", context.selected.restaurantId)
+    .eq("restaurant_id", restaurantId)
     .neq("payment_status", "PAID")
     .in("status", ["PENDING", "ACCEPTED", "SERVED"])
     .order("created_at", { ascending: false })

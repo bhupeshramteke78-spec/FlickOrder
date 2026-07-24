@@ -1,8 +1,8 @@
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, QrCode, Settings, Utensils } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
-import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import { DashboardRealtimeRefresh } from "@/components/realtime/dashboard-realtime-refresh";
@@ -11,6 +11,11 @@ import { hasPermission, type Permission } from "@/lib/permissions";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
+
+const DeviceNotificationToggle = dynamic(
+  () => import("@/components/dashboard/device-notification-toggle").then((mod) => mod.DeviceNotificationToggle),
+  { loading: () => null },
+);
 
 type DashboardNavIconKey =
   | "overview"

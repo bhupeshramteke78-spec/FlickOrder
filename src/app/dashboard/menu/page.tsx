@@ -2,16 +2,14 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { MenuManagementClient, type MenuItemRow } from "@/components/dashboard/menu/menu-management-client";
 import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { SubscriptionLock } from "@/components/dashboard/subscription-lock";
-import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import { hasPermission } from "@/lib/permissions";
-import { getSubscriptionAccessForCurrentUser, getSubscriptionAccessForRestaurantId, hasPlanFeature } from "@/lib/subscription-access";
+import { getSubscriptionAccessForCurrentUser, hasPlanFeature } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function MenuManagementPage() {
-  const { access, role } = await getMenuAccess();
+  const { access, role, items, canManage } = await getMenuData();
   const canViewMenu = hasPermission(role, "viewMenu");
-  const { items, canManage } = canViewMenu ? await getMenuItems() : { items: [], canManage: false };
 
   return (
     <DashboardShell title="Menu management" eyebrow="Professional item controls" showClock>
@@ -27,40 +25,33 @@ export default async function MenuManagementPage() {
   );
 }
 
-async function getMenuAccess() {
+async function getMenuData(): Promise<{
+  access: Awaited<ReturnType<typeof getSubscriptionAccessForCurrentUser>>["access"];
+  role: string | null;
+  items: MenuItemRow[];
+  canManage: boolean;
+}> {
   if (!isSupabaseConfigured()) {
-    return { access: null, role: null };
+    return { access: null, role: null, items: [], canManage: false };
   }
 
   const supabase = await createClient();
   const { access, membership } = await getSubscriptionAccessForCurrentUser(supabase);
+  const role = membership?.role ?? null;
+  const canManage = hasPlanFeature(access, "menuManagement") && hasPermission(role, "manageMenu");
 
-  return { access, role: membership?.role ?? null };
-}
-
-async function getMenuItems(): Promise<{ items: MenuItemRow[]; canManage: boolean }> {
-  if (!isSupabaseConfigured()) {
-    return { items: [], canManage: false };
+  if (!membership || !hasPermission(role, "viewMenu")) {
+    return { access, role, items: [], canManage: false };
   }
-
-  const supabase = await createClient();
-  const context = await getSelectedDashboardRestaurant(supabase);
-
-  if (!context) {
-    return { items: [], canManage: false };
-  }
-
-  const access = await getSubscriptionAccessForRestaurantId(supabase, context.selected.restaurantId);
-  const canManage = hasPlanFeature(access, "menuManagement") && hasPermission(context.selected.memberRole, "manageMenu");
 
   const { data: menuItems } = await supabase
     .from("menu_items")
     .select("id,name,description,price,offer_price,preparation_time_minutes,food_type,is_available,is_sold_out,is_popular,category_id,created_at")
-    .eq("restaurant_id", context.selected.restaurantId)
+    .eq("restaurant_id", membership.restaurant_id)
     .order("created_at", { ascending: false });
 
   if (!menuItems || menuItems.length === 0) {
-    return { items: [], canManage };
+    return { access, role, items: [], canManage };
   }
 
   const categoryIds = Array.from(new Set(menuItems.map((item) => item.category_id)));
@@ -70,7 +61,7 @@ async function getMenuItems(): Promise<{ items: MenuItemRow[]; canManage: boolea
     .in("id", categoryIds);
   const categoriesById = new Map((categories ?? []).map((category) => [category.id, category.name]));
 
-  return { items: menuItems.map((item) => ({
+  return { access, role, items: menuItems.map((item) => ({
     id: item.id,
     name: item.name,
     description: item.description,

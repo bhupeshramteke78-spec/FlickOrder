@@ -3,7 +3,6 @@ import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { SubscriptionLock } from "@/components/dashboard/subscription-lock";
 import { TableManagementClient, type TableRow } from "@/components/dashboard/tables/table-management-client";
 import { appUrl } from "@/lib/constants";
-import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import { hasPermission } from "@/lib/permissions";
 import { getSubscriptionAccessForCurrentUser, hasPlanFeature } from "@/lib/subscription-access";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -42,28 +41,28 @@ async function getTables(): Promise<{
   const accessResult = await getSubscriptionAccessForCurrentUser(supabase);
   const access = accessResult.access;
   const role = accessResult.membership?.role ?? null;
-  const context = await getSelectedDashboardRestaurant(supabase);
   const canManage = hasPlanFeature(access, "tableManagement") && hasPermission(role, "manageTables");
 
-  if (!context) {
+  if (!accessResult.membership) {
     return { tables: [], access, role, canManage };
   }
 
-  if (!hasPermission(context.selected.memberRole, "viewTables")) {
-    return { tables: [], access, role: context.selected.memberRole, canManage: false };
+  if (!hasPermission(role, "viewTables")) {
+    return { tables: [], access, role, canManage: false };
   }
 
+  const restaurantId = accessResult.membership.restaurant_id;
   const [{ data: restaurant }, { data: tables }, { data: activeOrders }] = await Promise.all([
-    supabase.from("restaurants").select("slug").eq("id", context.selected.restaurantId).single(),
+    supabase.from("restaurants").select("slug").eq("id", restaurantId).single(),
     supabase
       .from("tables")
       .select("id,table_number,seats,status")
-      .eq("restaurant_id", context.selected.restaurantId)
+      .eq("restaurant_id", restaurantId)
       .order("table_number", { ascending: true }),
     supabase
       .from("orders")
       .select("table_id")
-      .eq("restaurant_id", context.selected.restaurantId)
+      .eq("restaurant_id", restaurantId)
       .neq("payment_status", "PAID")
       .in("status", ["PENDING", "ACCEPTED", "PREPARING", "READY", "SERVED"]),
   ]);
@@ -86,7 +85,7 @@ async function getTables(): Promise<{
         .from("tables")
         .update({ status: table.status })
         .eq("id", table.id)
-        .eq("restaurant_id", context.selected.restaurantId)
+        .eq("restaurant_id", restaurantId)
     )),
   );
 

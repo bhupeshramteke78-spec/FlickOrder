@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -17,7 +18,7 @@ export type SelectedDashboardRestaurant = {
   restaurants: DashboardRestaurantOption[];
 };
 
-export async function getSelectedDashboardRestaurant(
+export const getSelectedDashboardRestaurant = cache(async function getSelectedDashboardRestaurant(
   supabase: SupabaseClient<Database>,
 ): Promise<SelectedDashboardRestaurant | null> {
   const { data: userResult } = await supabase.auth.getUser();
@@ -63,7 +64,7 @@ export async function getSelectedDashboardRestaurant(
     selected,
     restaurants: options,
   };
-}
+});
 
 export function getInitials(name: string) {
   const words = name
