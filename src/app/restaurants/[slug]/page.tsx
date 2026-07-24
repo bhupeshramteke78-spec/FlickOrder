@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, MapPin, Star, Table2, Utensils } from "lucide-react";
+import { ArrowLeft, Clock, ExternalLink, MapPin, Star, Table2, Utensils } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Json } from "@/lib/database.types";
+import { buildDirectionsUrl } from "@/lib/maps";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { emptyAvailability, getRestaurantAvailabilityMap, type RestaurantAvailability } from "@/lib/table-availability";
@@ -19,9 +20,12 @@ type RestaurantDetail = {
   name: string;
   city: string;
   state: string;
+  address: string;
+  googleMapsUrl: string | null;
   isOpen: boolean;
   openingHours: OpeningHours | null;
   availability: RestaurantAvailability;
+  directionsUrl: string;
 };
 
 export default async function RestaurantDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -60,9 +64,17 @@ export default async function RestaurantDetailsPage({ params }: { params: Promis
                   </div>
                 </div>
               </div>
-              <Link href={`/menu/${slug}/table/1?preview=true`}>
-                <Button variant="glass" className="border-emerald-300/30 bg-emerald-800/70">View menu</Button>
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <a href={restaurant.directionsUrl} target="_blank" rel="noreferrer">
+                  <Button variant="secondary" className="border border-zinc-200">
+                    <ExternalLink className="h-4 w-4" />
+                    Directions
+                  </Button>
+                </a>
+                <Link href={`/menu/${slug}/table/1?preview=true`}>
+                  <Button variant="glass" className="border-emerald-300/30 bg-emerald-800/70">View menu</Button>
+                </Link>
+              </div>
             </div>
             <div className="mt-5 grid gap-3">
               <div className={`rounded-lg border p-4 ${restaurant.isOpen ? "border-emerald-100 bg-emerald-50" : "border-zinc-200 bg-zinc-50"}`}>
@@ -123,7 +135,7 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id,name,city,state,is_open")
+    .select("id,name,city,state,address,google_maps_url,is_open")
     .eq("slug", slug)
     .eq("verification_status", "APPROVED")
     .is("deletion_requested_at", null)
@@ -145,9 +157,18 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
     name: data.name,
     city: data.city,
     state: data.state,
+    address: data.address,
+    googleMapsUrl: data.google_maps_url,
     isOpen: data.is_open,
     openingHours: normalizeOpeningHours(settings?.opening_hours ?? null),
     availability: availabilityByRestaurantId.get(data.id) ?? emptyAvailability(),
+    directionsUrl: buildDirectionsUrl({
+      googleMapsUrl: data.google_maps_url,
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+    }),
   };
 }
 

@@ -21,6 +21,7 @@ export type SettingsFormState = {
     city: string;
     state: string;
     address: string;
+    googleMapsUrl: string;
     logoUrl: string;
     coverUrl: string;
     isOpen: boolean;
@@ -98,6 +99,7 @@ export function SettingsForm({
         city: form.restaurant.city,
         state: form.restaurant.state,
         address: form.restaurant.address,
+        googleMapsUrl: form.restaurant.googleMapsUrl || null,
         logoUrl: form.restaurant.logoUrl || null,
         coverUrl: form.restaurant.coverUrl || null,
         isOpen: form.restaurant.isOpen,
@@ -246,6 +248,17 @@ export function SettingsForm({
                 value={form.restaurant.address}
                 onChange={(event) => updateRestaurant("address", event.target.value)}
               />
+            </Field>
+            <Field label="Google Maps location link" className="md:col-span-2">
+              <Input
+                disabled={!isEditing}
+                value={form.restaurant.googleMapsUrl}
+                onChange={(event) => updateRestaurant("googleMapsUrl", event.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+              />
+              <span className="mt-1 block text-xs text-zinc-500">
+                Customers use this for directions, and FlickOrder uses it during restaurant verification.
+              </span>
             </Field>
           </div>
         </SettingsSection>

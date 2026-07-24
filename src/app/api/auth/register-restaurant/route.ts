@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeGoogleMapsUrl } from "@/lib/maps";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { restaurantRegistrationSchema } from "@/lib/validations/auth";
@@ -88,7 +89,7 @@ export async function POST(request: Request) {
       address: input.address,
       verification_status: "PENDING",
       fssai_number: input.fssaiNumber,
-      google_maps_url: input.googleMapsUrl || null,
+      google_maps_url: normalizeGoogleMapsUrl(input.googleMapsUrl),
     })
     .select("id,slug")
     .single();

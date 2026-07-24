@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Table2 } from "lucide-react";
+import { MapPin, Search, Table2 } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,6 +15,8 @@ type SearchRestaurant = {
   type: string;
   cuisine: string[];
   city: string;
+  state: string;
+  address: string;
   is_open: boolean;
   availability: RestaurantAvailability;
 };
@@ -58,7 +60,10 @@ export default async function RestaurantSearchPage({
                     <p className="mt-1 truncate text-sm text-zinc-500">
                       {restaurant.cuisine.length > 0 ? restaurant.cuisine.join(", ") : restaurant.type}
                     </p>
-                    <p className="mt-3 text-sm text-zinc-500">{restaurant.city}</p>
+                    <p className="mt-3 inline-flex items-center gap-1 text-sm text-zinc-500">
+                      <MapPin className="h-4 w-4" />
+                      {restaurant.city}, {restaurant.state}
+                    </p>
                     <p className={`mt-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                       restaurant.availability.isFull
                         ? "bg-rose-50 text-rose-700"
@@ -97,7 +102,7 @@ async function getRestaurants(query: string): Promise<SearchRestaurant[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id,name,slug,type,cuisine,city,is_open")
+    .select("id,name,slug,type,cuisine,city,state,address,is_open")
     .eq("verification_status", "APPROVED")
     .is("deletion_requested_at", null)
     .is("deleted_at", null)
@@ -117,6 +122,8 @@ async function getRestaurants(query: string): Promise<SearchRestaurant[]> {
     type: restaurant.type,
     cuisine: restaurant.cuisine,
     city: restaurant.city,
+    state: restaurant.state,
+    address: restaurant.address,
     is_open: restaurant.is_open,
     availability: availabilityByRestaurantId.get(restaurant.id) ?? emptyAvailability(),
   }));
@@ -130,6 +137,8 @@ async function getRestaurants(query: string): Promise<SearchRestaurant[]> {
       restaurant.name,
       restaurant.type,
       restaurant.city,
+      restaurant.state,
+      restaurant.address,
       ...restaurant.cuisine,
     ].join(" ").toLowerCase();
 

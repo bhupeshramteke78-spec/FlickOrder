@@ -5,8 +5,15 @@ import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { Json } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
 import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
+import { isGoogleMapsUrl, normalizeGoogleMapsUrl } from "@/lib/maps";
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm time format.");
+const optionalUrlSchema = z.string().url().optional().nullable().or(z.literal(""));
+const optionalGoogleMapsUrlSchema = optionalUrlSchema.refine((value) => {
+  const normalized = normalizeGoogleMapsUrl(value);
+
+  return !normalized || isGoogleMapsUrl(normalized);
+}, "Use a valid Google Maps link.");
 
 const settingsSchema = z.object({
   restaurant: z.object({
@@ -18,8 +25,9 @@ const settingsSchema = z.object({
     city: z.string().min(2).max(80),
     state: z.string().min(2).max(80),
     address: z.string().min(5).max(300),
-    logoUrl: z.string().url().optional().nullable().or(z.literal("")),
-    coverUrl: z.string().url().optional().nullable().or(z.literal("")),
+    googleMapsUrl: optionalGoogleMapsUrlSchema,
+    logoUrl: optionalUrlSchema,
+    coverUrl: optionalUrlSchema,
     isOpen: z.boolean(),
   }),
   settings: z.object({
@@ -99,6 +107,7 @@ export async function PATCH(request: Request) {
       city: input.restaurant.city,
       state: input.restaurant.state,
       address: input.restaurant.address,
+      google_maps_url: normalizeGoogleMapsUrl(input.restaurant.googleMapsUrl),
       logo_url: input.restaurant.logoUrl || null,
       cover_url: input.restaurant.coverUrl || null,
       is_open: input.restaurant.isOpen,

@@ -1,4 +1,12 @@
 import { z } from "zod";
+import { isGoogleMapsUrl, normalizeGoogleMapsUrl } from "@/lib/maps";
+
+const optionalUrlSchema = z.string().url().optional().or(z.literal(""));
+const optionalGoogleMapsUrlSchema = optionalUrlSchema.refine((value) => {
+  const normalized = normalizeGoogleMapsUrl(value);
+
+  return !normalized || isGoogleMapsUrl(normalized);
+}, "Use a valid Google Maps link.");
 
 export const restaurantRegistrationSchema = z.object({
   ownerName: z.string().min(2).max(120),
@@ -14,9 +22,9 @@ export const restaurantRegistrationSchema = z.object({
   upiId: z.string().min(3).max(120),
   upiDisplayName: z.string().min(2).max(120),
   fssaiNumber: z.string().min(6).max(30),
-  googleMapsUrl: z.string().url().optional().or(z.literal("")),
-  storefrontPhotoUrl: z.string().url().optional().or(z.literal("")),
-  businessProofUrl: z.string().url().optional().or(z.literal("")),
+  googleMapsUrl: optionalGoogleMapsUrlSchema,
+  storefrontPhotoUrl: optionalUrlSchema,
+  businessProofUrl: optionalUrlSchema,
 });
 
 export const loginSchema = z.object({

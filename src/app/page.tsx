@@ -17,7 +17,7 @@ async function getRegisteredRestaurants() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id,name,slug,type,cuisine,city,is_open")
+    .select("id,name,slug,type,cuisine,city,state,address,is_open")
     .eq("verification_status", "APPROVED")
     .is("deletion_requested_at", null)
     .is("deleted_at", null)
@@ -36,6 +36,8 @@ async function getRegisteredRestaurants() {
     type: restaurant.type,
     cuisine: restaurant.cuisine,
     city: restaurant.city,
+    state: restaurant.state,
+    address: restaurant.address,
     is_open: restaurant.is_open,
     availability: availabilityByRestaurantId.get(restaurant.id) ?? emptyAvailability(),
   }));

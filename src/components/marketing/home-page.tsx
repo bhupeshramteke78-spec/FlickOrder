@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Clock, Search, Star, Table2 } from "lucide-react";
+import { MapPin, Search, Star, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,6 +22,8 @@ export type HomeRestaurant = {
   type: string;
   cuisine: string[];
   city: string;
+  state: string;
+  address: string;
   is_open: boolean;
   availability: RestaurantAvailability;
 };
@@ -39,6 +41,8 @@ export function HomePage({ restaurants }: { restaurants: HomeRestaurant[] }) {
         restaurant.name,
         restaurant.type,
         restaurant.city,
+        restaurant.state,
+        restaurant.address,
         ...restaurant.cuisine,
       ].join(" ").toLowerCase();
       const matchesSearch = !normalizedQuery || searchableText.includes(normalizedQuery);
@@ -150,8 +154,8 @@ function RestaurantCard({ restaurant }: { restaurant: HomeRestaurant }) {
             {restaurant.cuisine.length > 0 ? restaurant.cuisine.join(", ") : restaurant.type || restaurant.city}
           </p>
           <p className="mt-3 inline-flex items-center gap-1 text-xs text-zinc-500">
-            <Clock className="h-3 w-3" />
-            {restaurant.city}
+            <MapPin className="h-3 w-3" />
+            {restaurant.city}, {restaurant.state}
           </p>
           <p className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
             restaurant.availability.isFull
