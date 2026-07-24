@@ -130,7 +130,15 @@ export async function DashboardShell({
               {eyebrow ? <p className="text-sm font-medium text-emerald-700">{eyebrow}</p> : null}
               <h1 className="text-2xl font-semibold tracking-tight text-zinc-950">{title}</h1>
             </div>
-            {showClock ? <DashboardClock /> : null}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              {hasPermission(identity.memberRole, "viewOrders") ? (
+                <DeviceNotificationToggle
+                  restaurantId={identity.restaurantId}
+                  className="justify-start border border-zinc-200 bg-white text-zinc-900 hover:-translate-y-0.5 hover:bg-zinc-50"
+                />
+              ) : null}
+              {showClock ? <DashboardClock /> : null}
+            </div>
           </header>
           {children}
         </main>

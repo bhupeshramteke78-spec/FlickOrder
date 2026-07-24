@@ -12,9 +12,10 @@ type PushConfigResponse = {
 
 type DeviceNotificationToggleProps = {
   restaurantId: string | null;
+  className?: string;
 };
 
-export function DeviceNotificationToggle({ restaurantId }: DeviceNotificationToggleProps) {
+export function DeviceNotificationToggle({ restaurantId, className }: DeviceNotificationToggleProps) {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [isEnabled, setIsEnabled] = useState(false);
@@ -141,7 +142,7 @@ export function DeviceNotificationToggle({ restaurantId }: DeviceNotificationTog
       size="sm"
       disabled={!isSupported || !isConfigured || permission === "denied" || isBusy}
       onClick={enableDeviceAlerts}
-      className={isEnabled ? "w-full justify-start border-emerald-300/20 bg-emerald-500/15 text-emerald-100" : "w-full justify-start"}
+      className={className ?? (isEnabled ? "w-full justify-start border-emerald-300/20 bg-emerald-500/15 text-emerald-100" : "w-full justify-start")}
       title={permission === "denied" ? "Enable notifications from browser site settings first." : undefined}
     >
       {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BellRing className="h-4 w-4" />}
