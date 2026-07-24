@@ -57,6 +57,7 @@ export function SettingsForm({
   const [isSaving, setIsSaving] = useState(false);
   const [deleteName, setDeleteName] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
+  const [isDeletePanelOpen, setIsDeletePanelOpen] = useState(false);
   const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
   const hasDeletionRequest = Boolean(form.restaurant.deletionRequestedAt);
 
@@ -371,7 +372,7 @@ export function SettingsForm({
             </p>
             {form.restaurant.deletionReason ? <p className="mt-2 text-zinc-500">Reason: {form.restaurant.deletionReason}</p> : null}
           </div>
-        ) : (
+        ) : isDeletePanelOpen ? (
           <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <Field label="Type restaurant name">
               <Input
@@ -397,6 +398,33 @@ export function SettingsForm({
             >
               {isRequestingDeletion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Request deletion
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isRequestingDeletion}
+              onClick={() => {
+                setIsDeletePanelOpen(false);
+                setDeleteName("");
+                setDeleteReason("");
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 rounded-lg border border-rose-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-zinc-600">
+              Open this only if the restaurant wants FlickOrder to review account deletion.
+            </p>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={!canRequestDeletion}
+              onClick={() => setIsDeletePanelOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
             </Button>
           </div>
         )}
