@@ -147,7 +147,7 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
   const [{ data: restaurants }, { data: subscriptions }] = await Promise.all([
     admin
       .from("restaurants")
-      .select("id,owner_id,name,email,phone,city,state,address,fssai_number,google_maps_url,verification_status,verification_note,created_at")
+      .select("id,owner_id,name,email,phone,city,state,address,fssai_number,google_maps_url,verification_status,verification_note,deletion_requested_at,deletion_reason,deleted_at,created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     admin
@@ -192,6 +192,9 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
       googleMapsUrl: restaurant.google_maps_url,
       verificationStatus: restaurant.verification_status,
       verificationNote: restaurant.verification_note,
+      deletionRequestedAt: restaurant.deletion_requested_at,
+      deletionReason: restaurant.deletion_reason,
+      deletedAt: restaurant.deleted_at,
       documents: documentsByRestaurantId.get(restaurant.id) ?? [],
       plan: subscription?.plan ?? "trial",
       status: subscription?.status ?? "TRIALING",

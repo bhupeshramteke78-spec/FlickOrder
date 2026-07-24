@@ -36,7 +36,11 @@ export default async function SettingsPage() {
       <>
       <SubscriptionLock access={access} />
       {initialState ? (
-        <SettingsForm initialState={initialState} canEdit={(access?.canManageRestaurant ?? false) && canEditSettings} />
+        <SettingsForm
+          initialState={initialState}
+          canEdit={(access?.canManageRestaurant ?? false) && canEditSettings}
+          canRequestDeletion={role === "OWNER" && !initialState.restaurant.deletedAt}
+        />
       ) : (
         <EmptyState
           icon={Settings}
@@ -76,7 +80,7 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
   const [{ data: restaurant }, { data: settings }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name,slug,type,cuisine,email,phone,city,state,address,logo_url,cover_url,is_open")
+      .select("name,slug,type,cuisine,email,phone,city,state,address,logo_url,cover_url,is_open,deletion_requested_at,deletion_reason,deleted_at")
       .eq("id", context.selected.restaurantId)
       .single(),
     supabase
@@ -107,6 +111,9 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
       logoUrl: restaurant.logo_url ?? "",
       coverUrl: restaurant.cover_url ?? "",
       isOpen: restaurant.is_open,
+      deletionRequestedAt: restaurant.deletion_requested_at,
+      deletionReason: restaurant.deletion_reason,
+      deletedAt: restaurant.deleted_at,
     },
     settings: {
       brandColor: settings.brand_color,

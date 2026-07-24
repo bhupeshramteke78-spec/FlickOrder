@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Palette, Pencil, Save, Settings2, Store, WalletCards } from "lucide-react";
+import { AlertTriangle, Loader2, Palette, Pencil, Save, Settings2, Store, Trash2, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -24,6 +24,9 @@ export type SettingsFormState = {
     logoUrl: string;
     coverUrl: string;
     isOpen: boolean;
+    deletionRequestedAt: string | null;
+    deletionReason: string | null;
+    deletedAt: string | null;
   };
   settings: {
     brandColor: string;
@@ -39,11 +42,23 @@ export type SettingsFormState = {
   };
 };
 
-export function SettingsForm({ initialState, canEdit }: { initialState: SettingsFormState; canEdit: boolean }) {
+export function SettingsForm({
+  initialState,
+  canEdit,
+  canRequestDeletion,
+}: {
+  initialState: SettingsFormState;
+  canEdit: boolean;
+  canRequestDeletion: boolean;
+}) {
   const router = useRouter();
   const [form, setForm] = useState(initialState);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteName, setDeleteName] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [isRequestingDeletion, setIsRequestingDeletion] = useState(false);
+  const hasDeletionRequest = Boolean(form.restaurant.deletionRequestedAt);
 
   function updateRestaurant<T extends keyof SettingsFormState["restaurant"]>(
     key: T,
@@ -120,6 +135,37 @@ export function SettingsForm({ initialState, canEdit }: { initialState: Settings
 
     toast.success("Settings saved.");
     setIsEditing(false);
+    router.refresh();
+  }
+
+  async function requestDeletion() {
+    if (deleteName.trim() !== form.restaurant.name) {
+      toast.error("Type the restaurant name exactly before requesting deletion.");
+      return;
+    }
+
+    setIsRequestingDeletion(true);
+
+    const response = await fetch("/api/settings/delete-restaurant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurantName: deleteName.trim(),
+        reason: deleteReason.trim() || undefined,
+      }),
+    });
+
+    setIsRequestingDeletion(false);
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      toast.error(body?.error ?? "Unable to request account deletion.");
+      return;
+    }
+
+    toast.success("Deletion request sent to FlickOrder super admin.");
+    setDeleteName("");
+    setDeleteReason("");
     router.refresh();
   }
 
@@ -303,8 +349,71 @@ export function SettingsForm({ initialState, canEdit }: { initialState: Settings
           </div>
         </SettingsSection>
       </div>
+
+      <Card className="border-rose-200 bg-rose-50/60">
+        <CardHeader>
+          <div>
+            <CardTitle>Danger zone</CardTitle>
+            <CardDescription>
+              Request restaurant account deletion. FlickOrder hides the restaurant and pauses QR ordering immediately, then super admin reviews the request.
+            </CardDescription>
+          </div>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+        </CardHeader>
+
+        {hasDeletionRequest ? (
+          <div className="rounded-lg border border-rose-200 bg-white p-4 text-sm">
+            <p className="font-semibold text-rose-700">Deletion requested</p>
+            <p className="mt-1 text-zinc-600">
+              Requested on {formatDate(form.restaurant.deletionRequestedAt)}. Customer discovery, QR menus, and operations are paused until super admin review.
+            </p>
+            {form.restaurant.deletionReason ? <p className="mt-2 text-zinc-500">Reason: {form.restaurant.deletionReason}</p> : null}
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+            <Field label="Type restaurant name">
+              <Input
+                disabled={!canRequestDeletion || isRequestingDeletion}
+                value={deleteName}
+                onChange={(event) => setDeleteName(event.target.value)}
+                placeholder={form.restaurant.name}
+              />
+            </Field>
+            <Field label="Reason (optional)">
+              <Input
+                disabled={!canRequestDeletion || isRequestingDeletion}
+                value={deleteReason}
+                onChange={(event) => setDeleteReason(event.target.value)}
+                placeholder="Closing, switching system, duplicate account..."
+              />
+            </Field>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={!canRequestDeletion || isRequestingDeletion || deleteName.trim() !== form.restaurant.name}
+              onClick={requestDeletion}
+            >
+              {isRequestingDeletion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Request deletion
+            </Button>
+          </div>
+        )}
+      </Card>
     </form>
   );
+}
+
+function formatDate(value: string | null) {
+  if (!value) {
+    return "now";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function SettingsSection({

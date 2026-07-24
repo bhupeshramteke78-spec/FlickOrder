@@ -126,6 +126,8 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
     .select("id,name,city,state,is_open")
     .eq("slug", slug)
     .eq("verification_status", "APPROVED")
+    .is("deletion_requested_at", null)
+    .is("deleted_at", null)
     .single();
 
   if (error || !data) {

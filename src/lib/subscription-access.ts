@@ -15,6 +15,8 @@ export type SubscriptionAccess = {
   canUseQrOrdering: boolean;
   verificationStatus: "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
   isRestaurantVerified: boolean;
+  deletionRequestedAt: string | null;
+  deletedAt: string | null;
   message: string | null;
 };
 
@@ -95,11 +97,13 @@ export async function getSubscriptionAccessForRestaurantId(
       .maybeSingle(),
     supabase
       .from("restaurants")
-      .select("verification_status")
+      .select("verification_status,deletion_requested_at,deleted_at")
       .eq("id", restaurantId)
       .maybeSingle(),
   ]);
   const verificationStatus = restaurant?.verification_status ?? "PENDING";
+  const deletionRequestedAt = restaurant?.deletion_requested_at ?? null;
+  const deletedAt = restaurant?.deleted_at ?? null;
 
   if (!subscription) {
     return buildAccess({
@@ -110,6 +114,8 @@ export async function getSubscriptionAccessForRestaurantId(
       currentPeriodEndsAt: null,
       qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
       verificationStatus,
+      deletionRequestedAt,
+      deletedAt,
       message: "Subscription not found. Please choose a plan to continue.",
     });
   }
@@ -124,8 +130,14 @@ export async function getSubscriptionAccessForRestaurantId(
     currentPeriodEndsAt: subscription.current_period_ends_at,
     qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
     verificationStatus,
+    deletionRequestedAt,
+    deletedAt,
     message: computedStatus === "EXPIRED" || computedStatus === "CANCELLED"
       ? "Your trial or subscription has ended. Choose a plan to continue restaurant operations."
+      : deletedAt
+        ? "This restaurant account has been deleted and is no longer available."
+      : deletionRequestedAt
+        ? "Restaurant deletion is requested. Customer discovery, QR ordering, and operations are paused until super admin review."
       : verificationStatus !== "APPROVED"
         ? getVerificationMessage(verificationStatus)
       : null,
@@ -148,6 +160,8 @@ function buildAccess({
   currentPeriodEndsAt,
   qrOrderingEnabled,
   verificationStatus,
+  deletionRequestedAt,
+  deletedAt,
   message,
 }: {
   restaurantId: string;
@@ -157,10 +171,13 @@ function buildAccess({
   currentPeriodEndsAt: string | null;
   qrOrderingEnabled: boolean;
   verificationStatus: SubscriptionAccess["verificationStatus"];
+  deletionRequestedAt: string | null;
+  deletedAt: string | null;
   message: string | null;
 }): SubscriptionAccess {
   const canUseSubscription = status === "ACTIVE" || status === "TRIALING";
   const isRestaurantVerified = verificationStatus === "APPROVED";
+  const isDeletionLocked = Boolean(deletionRequestedAt || deletedAt);
   const features = canUseSubscription ? getPlanRules(plan) : getPlanRules("none");
 
   return {
@@ -173,8 +190,10 @@ function buildAccess({
     features,
     verificationStatus,
     isRestaurantVerified,
-    canManageRestaurant: canUseSubscription && isRestaurantVerified,
-    canUseQrOrdering: canUseSubscription && isRestaurantVerified && qrOrderingEnabled && features.qrOrdering,
+    deletionRequestedAt,
+    deletedAt,
+    canManageRestaurant: canUseSubscription && isRestaurantVerified && !isDeletionLocked,
+    canUseQrOrdering: canUseSubscription && isRestaurantVerified && !isDeletionLocked && qrOrderingEnabled && features.qrOrdering,
     message,
   };
 }

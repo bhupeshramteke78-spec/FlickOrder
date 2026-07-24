@@ -67,6 +67,11 @@ export type Database = {
           verification_note: string | null;
           verified_at: string | null;
           verified_by: string | null;
+          deletion_requested_at: string | null;
+          deletion_requested_by: string | null;
+          deletion_reason: string | null;
+          deleted_at: string | null;
+          deleted_by: string | null;
         }>,
         {
           owner_id: string;
@@ -85,6 +90,11 @@ export type Database = {
           verification_note?: string | null;
           verified_at?: string | null;
           verified_by?: string | null;
+          deletion_requested_at?: string | null;
+          deletion_requested_by?: string | null;
+          deletion_reason?: string | null;
+          deleted_at?: string | null;
+          deleted_by?: string | null;
         },
         Partial<{
           owner_id: string;
@@ -107,6 +117,11 @@ export type Database = {
           verification_note: string | null;
           verified_at: string | null;
           verified_by: string | null;
+          deletion_requested_at: string | null;
+          deletion_requested_by: string | null;
+          deletion_reason: string | null;
+          deleted_at: string | null;
+          deleted_by: string | null;
         }>
       >;
       restaurant_verification_documents: DbTable<

@@ -19,6 +19,8 @@ async function getRegisteredRestaurants() {
     .from("restaurants")
     .select("id,name,slug,type,cuisine,city,is_open")
     .eq("verification_status", "APPROVED")
+    .is("deletion_requested_at", null)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
 

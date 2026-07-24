@@ -12,6 +12,7 @@ import {
   Search,
   ShieldCheck,
   Store,
+  Trash2,
   UserRound,
   X,
   type LucideIcon,
@@ -47,6 +48,9 @@ export type SuperAdminRestaurant = {
   googleMapsUrl: string | null;
   verificationStatus: "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
   verificationNote: string | null;
+  deletionRequestedAt: string | null;
+  deletionReason: string | null;
+  deletedAt: string | null;
   documents: Array<{ id: string; type: string; url: string }>;
   plan: "trial" | "basic" | "growth" | "pro";
   status: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
@@ -128,6 +132,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
     .reduce((total, order) => total + order.total, 0);
   const todayOrders = data.orders.filter((order) => isToday(order.createdAt)).length;
   const verificationQueue = data.restaurants.filter((restaurant) => restaurant.verificationStatus === "PENDING" || restaurant.verificationStatus === "MORE_INFO_REQUIRED");
+  const deletionQueue = data.restaurants.filter((restaurant) => restaurant.deletionRequestedAt && !restaurant.deletedAt);
 
   const filteredOrders = useMemo(() => {
     if (!normalizedSearch) {
@@ -228,6 +233,25 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
     router.refresh();
   }
 
+  async function reviewDeletion(restaurant: SuperAdminRestaurant, action: "APPROVE" | "CANCEL") {
+    setLoadingId(`${restaurant.id}-deletion-${action}`);
+    const response = await fetch(`/api/admin/restaurants/${restaurant.id}/deletion`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    setLoadingId(null);
+
+    if (!response.ok) {
+      toast.error(body?.error ?? "Unable to update deletion request.");
+      return;
+    }
+
+    toast.success(action === "APPROVE" ? `${restaurant.name} was deleted safely.` : `${restaurant.name} deletion request was cancelled.`);
+    router.refresh();
+  }
+
   return (
     <div className="min-h-screen bg-[#eef2f4] text-zinc-950">
       <header className="relative overflow-hidden bg-[#071117] text-white">
@@ -246,7 +270,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
             </p>
             <div className="mt-7 grid gap-3 sm:grid-cols-4">
               <CommandMetric label="Active accounts" value={String(activeRestaurants)} tone="emerald" />
-              <CommandMetric label="Needs attention" value={String(data.requests.length + lockedRestaurants + verificationQueue.length)} tone="orange" />
+              <CommandMetric label="Needs attention" value={String(data.requests.length + lockedRestaurants + verificationQueue.length + deletionQueue.length)} tone="orange" />
               <CommandMetric label="Today orders" value={String(todayOrders)} tone="zinc" />
               <CommandMetric label="Paid revenue" value={formatCurrency(paidRevenue)} tone="emerald" />
             </div>
@@ -291,10 +315,46 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
             <div className="mt-6 grid grid-cols-2 gap-3">
               <MiniStat label="Restaurants" value={String(verificationQueue.length)} />
               <MiniStat label="Payments" value={String(data.requests.length)} />
+              <MiniStat label="Deletion" value={String(deletionQueue.length)} />
             </div>
           </Panel>
 
           <Panel>
+            {deletionQueue.length > 0 ? (
+              <div className="mb-6 grid gap-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-rose-700">Deletion requests</p>
+                {deletionQueue.map((restaurant) => (
+                  <article key={restaurant.id} className="rounded-2xl border border-rose-100 bg-rose-50/70 p-4">
+                    <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-start">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold">{restaurant.name}</h3>
+                          <StatusPill value="DELETION_REQUESTED" />
+                        </div>
+                        <div className="mt-3 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+                          <span>Owner: <b className="text-zinc-950">{restaurant.ownerName}</b></span>
+                          <span>Requested: <b className="text-zinc-950">{formatDate(restaurant.deletionRequestedAt ?? restaurant.createdAt)}</b></span>
+                          <span>Phone: <b className="text-zinc-950">{restaurant.phone}</b></span>
+                          <span>Location: <b className="text-zinc-950">{restaurant.city}, {restaurant.state}</b></span>
+                        </div>
+                        <p className="mt-3 rounded-xl bg-white px-3 py-2 text-sm text-zinc-600">
+                          Reason: {restaurant.deletionReason ?? "No reason provided."}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+                        <Button type="button" variant="danger" disabled={loadingId !== null} onClick={() => reviewDeletion(restaurant, "APPROVE")}>
+                          {loadingId === `${restaurant.id}-deletion-APPROVE` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          Delete safely
+                        </Button>
+                        <Button type="button" variant="secondary" disabled={loadingId !== null} onClick={() => reviewDeletion(restaurant, "CANCEL")}>
+                          Keep account
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
             {verificationQueue.length > 0 ? (
               <div className="mb-6 grid gap-3">
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">Restaurant approvals</p>
@@ -370,7 +430,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                   </article>
                 ))}
               </div>
-            ) : verificationQueue.length === 0 ? (
+            ) : verificationQueue.length === 0 && deletionQueue.length === 0 ? (
               <EmptyState title="The queue is clear" description="New restaurant and subscription verification requests will appear here." />
             ) : null}
           </Panel>
@@ -408,6 +468,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                     <th className="py-3 pr-4">Owner</th>
                     <th className="py-3 pr-4">Location</th>
                     <th className="py-3 pr-4">Verification</th>
+                    <th className="py-3 pr-4">Deletion</th>
                     <th className="py-3 pr-4">Plan</th>
                     <th className="py-3 pr-4">Status</th>
                     <th className="py-3">Action</th>
@@ -426,6 +487,15 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                         <td className="py-4 pr-4 text-zinc-600">{restaurant.ownerName}</td>
                         <td className="py-4 pr-4 text-zinc-600">{restaurant.city}, {restaurant.state}</td>
                         <td className="py-4 pr-4"><StatusPill value={restaurant.verificationStatus} /></td>
+                        <td className="py-4 pr-4">
+                          {restaurant.deletedAt ? (
+                            <StatusPill value="DELETED" />
+                          ) : restaurant.deletionRequestedAt ? (
+                            <StatusPill value="REQUESTED" />
+                          ) : (
+                            <span className="text-xs font-semibold text-zinc-400">None</span>
+                          )}
+                        </td>
                         <td className="py-4 pr-4">
                           <Select
                             value={draft.plan}
