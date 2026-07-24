@@ -4,7 +4,9 @@ import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
 
 export const SUPER_ADMIN_UNLOCK_COOKIE = "flickorder_super_admin_unlock";
+export const SUPER_ADMIN_DISPLAY_NAME = "Bhupesh Ramteke";
 const unlockMaxAgeSeconds = 30 * 60;
+const fallbackSuperAdminEmail = "bhupeshramteke78@gmail.com";
 
 export type SuperAdminContext =
   | {
@@ -30,10 +32,20 @@ export async function getSuperAdminContext(supabase: SupabaseClient<Database>): 
     return null;
   }
 
+  if (!isAllowedSuperAdminEmail(userResult.user.email)) {
+    return null;
+  }
+
   return {
     userId: userResult.user.id,
-    fullName: profile.full_name,
+    fullName: SUPER_ADMIN_DISPLAY_NAME,
   };
+}
+
+function isAllowedSuperAdminEmail(email: string | undefined) {
+  const allowedEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase() || fallbackSuperAdminEmail;
+
+  return Boolean(email && email.toLowerCase() === allowedEmail);
 }
 
 export function getSuperAdminPassword() {
