@@ -79,11 +79,11 @@ export async function DashboardShell({
         navItems={visibleMobileNavItems}
       />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[244px_1fr]">
-        <aside className="hidden bg-[#071117] p-4 text-white lg:sticky lg:top-0 lg:block lg:h-screen">
-          <Link href="/" className="mb-7 inline-flex px-2" aria-label="Go to FlickOrder homepage">
+        <aside className="hidden bg-[#071117] p-4 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
+          <Link href="/" className="mb-7 inline-flex shrink-0 px-2" aria-label="Go to FlickOrder homepage">
             <FlickOrderLogo className="h-10 w-10 rounded-xl" priority />
           </Link>
-          <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+          <div className="mb-5 shrink-0 rounded-lg border border-white/10 bg-white/[0.04] p-3">
             <div className="flex items-center gap-3">
               <div className="grid h-9 w-9 place-items-center rounded-full bg-white text-xs font-bold text-emerald-900">
                 {identity.initials}
@@ -104,7 +104,7 @@ export async function DashboardShell({
               </div>
             ) : null}
           </div>
-          <nav className="grid gap-1">
+          <nav className="grid flex-1 content-start gap-1 overflow-y-auto pr-1">
             {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
@@ -118,7 +118,7 @@ export async function DashboardShell({
               </Link>
             ))}
           </nav>
-          <div className="mt-8 grid gap-1 border-t border-white/10 pt-4">
+          <div className="mt-auto grid shrink-0 gap-1 border-t border-white/10 pt-4">
             <Link href="/" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm text-zinc-300 transition hover:bg-red-500/10 hover:text-red-400">
               <LogOut className="h-4 w-4" /> Logout
             </Link>
