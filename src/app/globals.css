@@ -555,3 +555,26 @@ html {
     transform: translateY(0);
   }
 }
+
+@media (max-width: 640px) {
+  .hero-restaurant-art {
+    filter: saturate(1.08) contrast(1.02);
+    opacity: 0.54;
+    transform: none;
+  }
+
+  .live-order-card {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

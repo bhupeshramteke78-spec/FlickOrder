@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { emptyAvailability, getRestaurantAvailabilityMap } from "@/lib/table-availability";
 
+export const revalidate = 300;
+
 export default async function Page() {
   const restaurants = await getRegisteredRestaurants();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://flick-order.vercel.app";
@@ -47,7 +49,7 @@ async function getRegisteredRestaurants() {
     .is("deletion_requested_at", null)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(24);
 
   if (error || !data) {
     return [];
