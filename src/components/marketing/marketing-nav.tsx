@@ -71,7 +71,7 @@ export function MarketingNav() {
 
     window.setTimeout(() => {
       router.push(item.href);
-    }, 420);
+    }, 90);
   }
 
   return (
@@ -122,20 +122,20 @@ export function MarketingNav() {
               style={{ left: transition.x, top: transition.y }}
               initial={{ width: 10, height: 10, x: -5, y: -5, scale: 0.2, opacity: 0.85 }}
               animate={{ width: 2800, height: 2800, x: -1400, y: -1400, scale: 1, opacity: 0.22 }}
-              transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             />
             <motion.div
               className="absolute rounded-full border border-white/40"
               style={{ left: transition.x, top: transition.y }}
               initial={{ width: 18, height: 18, x: -9, y: -9, scale: 1, opacity: 0.9 }}
               animate={{ width: 92, height: 92, x: -46, y: -46, scale: 0.1, opacity: 0 }}
-              transition={{ duration: 0.32, ease: "easeOut" }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
             />
             <motion.div
               className="absolute inset-0 grid place-items-center text-sm font-semibold uppercase tracking-[0.2em] text-white"
               initial={{ scale: 1.08, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.05, duration: 0.2 }}
+              transition={{ delay: 0.02, duration: 0.12 }}
             >
               {transition.label}
             </motion.div>
