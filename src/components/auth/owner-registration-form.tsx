@@ -10,20 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { restaurantRegistrationSchema, type RestaurantRegistrationInput } from "@/lib/validations/auth";
 
-const fields: Array<{ name: keyof RestaurantRegistrationInput; label: string; type?: string; placeholder: string }> = [
-  { name: "ownerName", label: "Owner name", placeholder: "Aarav Mehta" },
-  { name: "restaurantName", label: "Restaurant name", placeholder: "The Copper Table" },
-  { name: "restaurantType", label: "Restaurant type", placeholder: "Family restaurant" },
-  { name: "cuisine", label: "Cuisine", placeholder: "North Indian, Chinese" },
-  { name: "email", label: "Email", type: "email", placeholder: "owner@restaurant.com" },
-  { name: "phone", label: "Phone", placeholder: "+91 98765 43210" },
-  { name: "password", label: "Password", type: "password", placeholder: "Minimum 8 characters" },
-  { name: "city", label: "City", placeholder: "Mumbai" },
-  { name: "state", label: "State", placeholder: "Maharashtra" },
-  { name: "address", label: "Address", placeholder: "Street, landmark, locality" },
-  { name: "upiId", label: "UPI ID", placeholder: "restaurant@oksbi" },
-  { name: "upiDisplayName", label: "UPI display name", placeholder: "The Copper Table" },
-  { name: "fssaiNumber", label: "FSSAI number", placeholder: "12345678901234" },
+const fields: Array<{ name: keyof RestaurantRegistrationInput; label: string; type?: string; placeholder: string; required?: boolean }> = [
+  { name: "ownerName", label: "Owner name", placeholder: "Aarav Mehta", required: true },
+  { name: "restaurantName", label: "Restaurant name", placeholder: "The Copper Table", required: true },
+  { name: "restaurantType", label: "Restaurant type", placeholder: "Family restaurant", required: true },
+  { name: "cuisine", label: "Cuisine", placeholder: "North Indian, Chinese", required: true },
+  { name: "email", label: "Email", type: "email", placeholder: "owner@restaurant.com", required: true },
+  { name: "phone", label: "Phone", placeholder: "+91 98765 43210", required: true },
+  { name: "password", label: "Password", type: "password", placeholder: "Minimum 8 characters", required: true },
+  { name: "city", label: "City", placeholder: "Mumbai", required: true },
+  { name: "state", label: "State", placeholder: "Maharashtra", required: true },
+  { name: "address", label: "Address", placeholder: "Street, landmark, locality", required: true },
+  { name: "upiId", label: "UPI ID", placeholder: "restaurant@oksbi", required: true },
+  { name: "upiDisplayName", label: "UPI display name", placeholder: "The Copper Table", required: true },
+  { name: "fssaiNumber", label: "FSSAI number", placeholder: "12345678901234", required: true },
   { name: "googleMapsUrl", label: "Google Maps URL", placeholder: "https://maps.google.com/..." },
   { name: "storefrontPhotoUrl", label: "Storefront photo URL", placeholder: "https://..." },
   { name: "businessProofUrl", label: "Business proof URL", placeholder: "https://..." },
@@ -76,7 +76,10 @@ export function OwnerRegistrationForm() {
       {fields.map((field) => (
         <label key={field.name} className={`floating-field ${field.name === "address" ? "sm:col-span-2" : ""}`}>
           <Input className="floating-input" type={field.type} placeholder=" " {...form.register(field.name)} />
-          <span className="floating-label">{field.label}</span>
+          <span className="floating-label">
+            {field.label}
+            {field.required ? <span className="ml-0.5 text-red-500">*</span> : null}
+          </span>
           {form.formState.errors[field.name]?.message ? (
             <span className="mt-1 block text-xs text-rose-300">{form.formState.errors[field.name]?.message}</span>
           ) : null}
