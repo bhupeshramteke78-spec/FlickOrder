@@ -2,7 +2,6 @@ import Link from "next/link";
 import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, QrCode, Settings, Utensils } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
-import { DashboardClock } from "@/components/dashboard/dashboard-clock";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
@@ -56,7 +55,6 @@ export async function DashboardShell({
   children,
   title,
   eyebrow,
-  showClock = false,
 }: {
   children: React.ReactNode;
   title: string;
@@ -98,11 +96,6 @@ export async function DashboardShell({
               selectedRestaurantId={identity.restaurantId}
               className="mt-3"
             />
-            {hasPermission(identity.memberRole, "viewOrders") ? (
-              <div className="mt-3">
-                <DeviceNotificationToggle restaurantId={identity.restaurantId} />
-              </div>
-            ) : null}
           </div>
           <nav className="grid flex-1 content-start gap-1 overflow-y-auto pr-1">
             {visibleNavItems.map((item) => (
@@ -137,7 +130,6 @@ export async function DashboardShell({
                   className="justify-start border border-zinc-200 bg-white text-zinc-900 hover:-translate-y-0.5 hover:bg-zinc-50"
                 />
               ) : null}
-              {showClock ? <DashboardClock /> : null}
             </div>
           </header>
           {children}

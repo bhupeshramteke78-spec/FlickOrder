@@ -221,10 +221,10 @@ export function SettingsForm({
               <Input disabled={!isEditing} required value={form.restaurant.cuisineText} onChange={(event) => updateRestaurant("cuisineText", event.target.value)} placeholder="Indian, Italian, Chinese" />
             </Field>
             <Field label="Phone">
-              <Input disabled={!isEditing} required value={form.restaurant.phone} onChange={(event) => updateRestaurant("phone", event.target.value)} />
+              <Input disabled={!isEditing} required value={isEditing ? form.restaurant.phone : maskPhone(form.restaurant.phone)} onChange={(event) => updateRestaurant("phone", event.target.value)} />
             </Field>
             <Field label="Email">
-              <Input disabled={!isEditing} required type="email" value={form.restaurant.email} onChange={(event) => updateRestaurant("email", event.target.value)} />
+              <Input disabled={!isEditing} required type={isEditing ? "email" : "text"} value={isEditing ? form.restaurant.email : maskEmail(form.restaurant.email)} onChange={(event) => updateRestaurant("email", event.target.value)} />
             </Field>
             <Field label="City">
               <Input disabled={!isEditing} required value={form.restaurant.city} onChange={(event) => updateRestaurant("city", event.target.value)} />
@@ -270,7 +270,7 @@ export function SettingsForm({
         >
           <div className="grid gap-4">
             <Field label="UPI ID">
-              <Input disabled={!isEditing} required value={form.settings.upiId} onChange={(event) => updateSettings("upiId", event.target.value)} placeholder="restaurant@oksbi" />
+              <Input disabled={!isEditing} required value={isEditing ? form.settings.upiId : maskUpi(form.settings.upiId)} onChange={(event) => updateSettings("upiId", event.target.value)} placeholder="restaurant@oksbi" />
             </Field>
             <Field label="UPI display name">
               <Input disabled={!isEditing} required value={form.settings.upiDisplayName} onChange={(event) => updateSettings("upiDisplayName", event.target.value)} />
@@ -455,6 +455,36 @@ function formatDate(value: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function maskEmail(value: string) {
+  const [name, domain] = value.split("@");
+
+  if (!name || !domain) {
+    return value ? "••••••" : "";
+  }
+
+  return `${name.slice(0, 2)}••••@${domain}`;
+}
+
+function maskPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+
+  if (digits.length <= 4) {
+    return value ? "••••" : "";
+  }
+
+  return `••••••${digits.slice(-4)}`;
+}
+
+function maskUpi(value: string) {
+  const [name, provider] = value.split("@");
+
+  if (!name || !provider) {
+    return value ? "••••••" : "";
+  }
+
+  return `${name.slice(0, 3)}••••@${provider}`;
 }
 
 function SettingsSection({

@@ -189,7 +189,9 @@ function ItemSalesCard({ title, icon: Icon, items }: { title: string; icon: type
         </div>
       ) : (
         <p className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-5 text-sm text-zinc-500">
-          Item sales appear after paid orders include menu items.
+          {title === "Least sold items"
+            ? "Not enough item variety yet to calculate least sold items."
+            : "Item sales appear after paid orders include menu items."}
         </p>
       )}
     </Card>
@@ -258,6 +260,11 @@ function buildAnalytics(orders: PaidOrderRow[], items: PaidOrderItemRow[], range
   }));
   const busyHours = buildBusyHours(orders);
   const itemSales = buildItemSales(items);
+  const topItems = itemSales.slice(0, 5);
+  const topItemNames = new Set(topItems.map((item) => item.name));
+  const leastSoldItems = itemSales.length > 1
+    ? [...itemSales].reverse().filter((item) => !topItemNames.has(item.name)).slice(0, 5)
+    : [];
 
   return {
     rangeDays,
@@ -265,8 +272,8 @@ function buildAnalytics(orders: PaidOrderRow[], items: PaidOrderItemRow[], range
     todayRevenue,
     paidOrders: orders.length,
     averageOrderValue,
-    topItems: itemSales.slice(0, 5),
-    leastSoldItems: [...itemSales].reverse().slice(0, 5),
+    topItems,
+    leastSoldItems,
     busiestHour: getBusiestHourLabel(busyHours),
     chartData: {
       revenueByDay: revenueByDay.map(({ label, revenue }) => ({ label, revenue })),

@@ -324,14 +324,17 @@ function MenuItemsTable({
                 type="button"
                 disabled={!canManage || togglingItemId === item.id || item.isSoldOut}
                 onClick={() => onToggleAvailability(item)}
-                className="menu-availability-toggle"
+                className="menu-switch"
                 data-state={item.isAvailable ? "available" : "unavailable"}
                 data-loading={togglingItemId === item.id ? "true" : "false"}
                 aria-pressed={item.isAvailable}
                 aria-label={`Mark ${item.name} ${item.isAvailable ? "unavailable" : "available"}`}
               >
-                <span className="menu-availability-track" />
-                <span className="menu-availability-knob" />
+                <span className="menu-switch-track">
+                  <span className="menu-switch-knob">
+                    {togglingItemId === item.id ? <Loader2 className="h-3 w-3 animate-spin text-zinc-500" /> : null}
+                  </span>
+                </span>
               </button>
               <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                   item.isSoldOut
