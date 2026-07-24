@@ -86,6 +86,9 @@ export async function POST(request: Request) {
       city: input.city,
       state: input.state,
       address: input.address,
+      verification_status: "PENDING",
+      fssai_number: input.fssaiNumber,
+      google_maps_url: input.googleMapsUrl || null,
     })
     .select("id,slug")
     .single();
@@ -115,7 +118,21 @@ export async function POST(request: Request) {
     upi_display_name: input.upiDisplayName,
   });
 
-  const setupError = memberError ?? subscriptionError ?? settingsError;
+  const verificationDocuments = [
+    input.storefrontPhotoUrl
+      ? { restaurant_id: restaurant.id, document_type: "STOREFRONT_PHOTO" as const, file_url: input.storefrontPhotoUrl }
+      : null,
+    input.businessProofUrl
+      ? { restaurant_id: restaurant.id, document_type: "OTHER" as const, file_url: input.businessProofUrl }
+      : null,
+  ].filter((document): document is NonNullable<typeof document> => Boolean(document));
+
+  const { error: documentsError } =
+    verificationDocuments.length > 0
+      ? await supabase.from("restaurant_verification_documents").insert(verificationDocuments)
+      : { error: null };
+
+  const setupError = memberError ?? subscriptionError ?? settingsError ?? documentsError;
 
   if (setupError) {
     return NextResponse.json({ error: setupError.message }, { status: 400 });

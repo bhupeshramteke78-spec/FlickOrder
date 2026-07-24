@@ -125,6 +125,7 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
     .from("restaurants")
     .select("id,name,city,state,is_open")
     .eq("slug", slug)
+    .eq("verification_status", "APPROVED")
     .single();
 
   if (error || !data) {

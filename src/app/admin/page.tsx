@@ -147,7 +147,7 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
   const [{ data: restaurants }, { data: subscriptions }] = await Promise.all([
     admin
       .from("restaurants")
-      .select("id,owner_id,name,city,state,created_at")
+      .select("id,owner_id,name,email,phone,city,state,address,fssai_number,google_maps_url,verification_status,verification_note,created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     admin
@@ -161,9 +161,20 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
   }
 
   const ownerIds = Array.from(new Set(restaurants.map((restaurant) => restaurant.owner_id)));
-  const { data: owners } = await admin.from("profiles").select("id,full_name").in("id", ownerIds);
+  const restaurantIds = restaurants.map((restaurant) => restaurant.id);
+  const [{ data: owners }, { data: documents }] = await Promise.all([
+    admin.from("profiles").select("id,full_name").in("id", ownerIds),
+    admin.from("restaurant_verification_documents").select("id,restaurant_id,document_type,file_url").in("restaurant_id", restaurantIds),
+  ]);
   const ownerById = new Map((owners ?? []).map((owner) => [owner.id, owner.full_name]));
   const subscriptionByRestaurantId = new Map((subscriptions ?? []).map((subscription) => [subscription.restaurant_id, subscription]));
+  const documentsByRestaurantId = new Map<string, Array<{ id: string; type: string; url: string }>>();
+
+  for (const document of documents ?? []) {
+    const list = documentsByRestaurantId.get(document.restaurant_id) ?? [];
+    list.push({ id: document.id, type: document.document_type, url: document.file_url });
+    documentsByRestaurantId.set(document.restaurant_id, list);
+  }
 
   return restaurants.map((restaurant) => {
     const subscription = subscriptionByRestaurantId.get(restaurant.id);
@@ -172,8 +183,16 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
       id: restaurant.id,
       name: restaurant.name,
       ownerName: ownerById.get(restaurant.owner_id) ?? "Owner",
+      email: restaurant.email,
+      phone: restaurant.phone,
       city: restaurant.city,
       state: restaurant.state,
+      address: restaurant.address,
+      fssaiNumber: restaurant.fssai_number,
+      googleMapsUrl: restaurant.google_maps_url,
+      verificationStatus: restaurant.verification_status,
+      verificationNote: restaurant.verification_note,
+      documents: documentsByRestaurantId.get(restaurant.id) ?? [],
       plan: subscription?.plan ?? "trial",
       status: subscription?.status ?? "TRIALING",
       createdAt: restaurant.created_at,

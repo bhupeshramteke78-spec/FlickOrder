@@ -13,6 +13,10 @@ export const restaurantRegistrationSchema = z.object({
   address: z.string().min(6).max(400),
   upiId: z.string().min(3).max(120),
   upiDisplayName: z.string().min(2).max(120),
+  fssaiNumber: z.string().min(6).max(30),
+  googleMapsUrl: z.string().url().optional().or(z.literal("")),
+  storefrontPhotoUrl: z.string().url().optional().or(z.literal("")),
+  businessProofUrl: z.string().url().optional().or(z.literal("")),
 });
 
 export const loginSchema = z.object({

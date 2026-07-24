@@ -23,6 +23,10 @@ const fields: Array<{ name: keyof RestaurantRegistrationInput; label: string; ty
   { name: "address", label: "Address", placeholder: "Street, landmark, locality" },
   { name: "upiId", label: "UPI ID", placeholder: "restaurant@oksbi" },
   { name: "upiDisplayName", label: "UPI display name", placeholder: "The Copper Table" },
+  { name: "fssaiNumber", label: "FSSAI number", placeholder: "12345678901234" },
+  { name: "googleMapsUrl", label: "Google Maps URL", placeholder: "https://maps.google.com/..." },
+  { name: "storefrontPhotoUrl", label: "Storefront photo URL", placeholder: "https://..." },
+  { name: "businessProofUrl", label: "Business proof URL", placeholder: "https://..." },
 ];
 
 async function readErrorMessage(response: Response) {
@@ -63,7 +67,7 @@ export function OwnerRegistrationForm() {
       return;
     }
 
-    toast.success("Restaurant created. Your 3-day trial is active.");
+    toast.success("Restaurant created. Verification is pending.");
     router.push("/dashboard");
   }
 

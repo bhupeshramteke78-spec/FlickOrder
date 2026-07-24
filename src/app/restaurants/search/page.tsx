@@ -98,6 +98,7 @@ async function getRestaurants(query: string): Promise<SearchRestaurant[]> {
   const { data, error } = await supabase
     .from("restaurants")
     .select("id,name,slug,type,cuisine,city,is_open")
+    .eq("verification_status", "APPROVED")
     .order("created_at", { ascending: false })
     .limit(100);
 

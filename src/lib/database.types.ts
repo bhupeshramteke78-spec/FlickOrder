@@ -14,6 +14,7 @@ export type FoodType = "VEG" | "NON_VEG" | "EGG";
 export type TableStatus = "AVAILABLE" | "OCCUPIED" | "RESERVED" | "CLEANING";
 export type ServiceRequestType = "WATER" | "TISSUE" | "SPOON" | "FORK" | "BILL" | "WAITER";
 export type ServiceRequestStatus = "OPEN" | "ACKNOWLEDGED" | "COMPLETED" | "CANCELLED";
+export type RestaurantVerificationStatus = "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
 export type SubscriptionUpgradeStatus =
   | "PENDING_PAYMENT"
   | "VERIFICATION_PENDING"
@@ -60,6 +61,12 @@ export type Database = {
           cover_url: string | null;
           rating: number | null;
           is_open: boolean;
+          verification_status: RestaurantVerificationStatus;
+          fssai_number: string | null;
+          google_maps_url: string | null;
+          verification_note: string | null;
+          verified_at: string | null;
+          verified_by: string | null;
         }>,
         {
           owner_id: string;
@@ -72,6 +79,12 @@ export type Database = {
           city: string;
           state: string;
           address: string;
+          verification_status?: RestaurantVerificationStatus;
+          fssai_number?: string | null;
+          google_maps_url?: string | null;
+          verification_note?: string | null;
+          verified_at?: string | null;
+          verified_by?: string | null;
         },
         Partial<{
           owner_id: string;
@@ -88,6 +101,31 @@ export type Database = {
           cover_url: string | null;
           rating: number | null;
           is_open: boolean;
+          verification_status: RestaurantVerificationStatus;
+          fssai_number: string | null;
+          google_maps_url: string | null;
+          verification_note: string | null;
+          verified_at: string | null;
+          verified_by: string | null;
+        }>
+      >;
+      restaurant_verification_documents: DbTable<
+        {
+          id: string;
+          restaurant_id: string;
+          document_type: "FSSAI_CERTIFICATE" | "STOREFRONT_PHOTO" | "OWNER_ID" | "GST_CERTIFICATE" | "OTHER";
+          file_url: string;
+          created_at: string;
+        },
+        {
+          restaurant_id: string;
+          document_type: "FSSAI_CERTIFICATE" | "STOREFRONT_PHOTO" | "OWNER_ID" | "GST_CERTIFICATE" | "OTHER";
+          file_url: string;
+        },
+        Partial<{
+          restaurant_id: string;
+          document_type: "FSSAI_CERTIFICATE" | "STOREFRONT_PHOTO" | "OWNER_ID" | "GST_CERTIFICATE" | "OTHER";
+          file_url: string;
         }>
       >;
       restaurant_members: DbTable<

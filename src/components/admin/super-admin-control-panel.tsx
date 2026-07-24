@@ -4,7 +4,6 @@ import {
   ArrowUpRight,
   Check,
   Clock3,
-  CreditCard,
   History,
   Landmark,
   Loader2,
@@ -37,8 +36,16 @@ export type SuperAdminRestaurant = {
   id: string;
   name: string;
   ownerName: string;
+  email: string;
+  phone: string;
   city: string;
   state: string;
+  address: string;
+  fssaiNumber: string | null;
+  googleMapsUrl: string | null;
+  verificationStatus: "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
+  verificationNote: string | null;
+  documents: Array<{ id: string; type: string; url: string }>;
   plan: "trial" | "basic" | "growth" | "pro";
   status: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
   createdAt: string;
@@ -87,6 +94,7 @@ const planOptions = ["trial", "basic", "growth", "pro"] as const;
 const statusOptions = ["TRIALING", "ACTIVE", "EXPIRED", "CANCELLED"] as const;
 const sections = [
   { id: "verify", label: "Verify" },
+  { id: "verification-status", label: "Trust" },
   { id: "restaurants", label: "Restaurants" },
   { id: "records", label: "Records" },
   { id: "audit", label: "Audit" },
@@ -116,6 +124,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
     .filter((order) => order.paymentStatus === "PAID")
     .reduce((total, order) => total + order.total, 0);
   const todayOrders = data.orders.filter((order) => isToday(order.createdAt)).length;
+  const verificationQueue = data.restaurants.filter((restaurant) => restaurant.verificationStatus === "PENDING" || restaurant.verificationStatus === "MORE_INFO_REQUIRED");
 
   const filteredOrders = useMemo(() => {
     if (!normalizedSearch) {
@@ -190,6 +199,32 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
     router.refresh();
   }
 
+  async function updateVerification(restaurant: SuperAdminRestaurant, status: "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED") {
+    const note =
+      status === "APPROVED"
+        ? "Verified by FlickOrder super admin."
+        : status === "REJECTED"
+          ? "Restaurant proof could not be verified."
+          : "More restaurant proof is required before approval.";
+
+    setLoadingId(`${restaurant.id}-${status}`);
+    const response = await fetch(`/api/admin/restaurants/${restaurant.id}/verification`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, note }),
+    });
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    setLoadingId(null);
+
+    if (!response.ok) {
+      toast.error(body?.error ?? "Unable to update restaurant verification.");
+      return;
+    }
+
+    toast.success(`${restaurant.name} verification updated.`);
+    router.refresh();
+  }
+
   return (
     <div className="min-h-screen bg-[#eef2f4] text-zinc-950">
       <header className="relative overflow-hidden bg-[#071117] text-white">
@@ -208,7 +243,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
             </p>
             <div className="mt-7 grid gap-3 sm:grid-cols-4">
               <CommandMetric label="Active accounts" value={String(activeRestaurants)} tone="emerald" />
-              <CommandMetric label="Needs attention" value={String(data.requests.length + lockedRestaurants)} tone="orange" />
+              <CommandMetric label="Needs attention" value={String(data.requests.length + lockedRestaurants + verificationQueue.length)} tone="orange" />
               <CommandMetric label="Today orders" value={String(todayOrders)} tone="zinc" />
               <CommandMetric label="Paid revenue" value={formatCurrency(paidRevenue)} tone="emerald" />
             </div>
@@ -244,21 +279,65 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
         <section id="verify" className="grid gap-4 lg:grid-cols-[0.74fr_1fr]">
           <Panel className="bg-[#0d1817] text-white">
             <PanelHeading
-              icon={CreditCard}
+              icon={ShieldCheck}
               eyebrow="Verification queue"
-              title="Payments that need a human decision"
-              description="Approve only after payment evidence is trusted. Every decision is written to the audit log."
+              title="Restaurants and payments that need review"
+              description="Approve restaurants only after business proof looks trustworthy. Every decision is written to the audit log."
               dark
             />
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <MiniStat label="Waiting" value={String(data.requests.length)} />
-              <MiniStat label="Queue amount" value={formatCurrency(data.requests.reduce((sum, request) => sum + request.amount, 0))} />
+              <MiniStat label="Restaurants" value={String(verificationQueue.length)} />
+              <MiniStat label="Payments" value={String(data.requests.length)} />
             </div>
           </Panel>
 
           <Panel>
+            {verificationQueue.length > 0 ? (
+              <div className="mb-6 grid gap-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">Restaurant approvals</p>
+                {verificationQueue.map((restaurant) => (
+                  <article key={restaurant.id} className="rounded-2xl border border-orange-100 bg-orange-50/60 p-4">
+                    <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-start">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold">{restaurant.name}</h3>
+                          <StatusPill value={restaurant.verificationStatus} />
+                        </div>
+                        <div className="mt-3 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+                          <span>Owner: <b className="text-zinc-950">{restaurant.ownerName}</b></span>
+                          <span>Phone: <b className="text-zinc-950">{restaurant.phone}</b></span>
+                          <span>FSSAI: <b className="text-zinc-950">{restaurant.fssaiNumber ?? "Not provided"}</b></span>
+                          <span>Location: <b className="text-zinc-950">{restaurant.city}, {restaurant.state}</b></span>
+                        </div>
+                        <p className="mt-3 text-sm text-zinc-600">{restaurant.address}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {restaurant.googleMapsUrl ? <ProofLink href={restaurant.googleMapsUrl} label="Google Maps" /> : null}
+                          {restaurant.documents.map((document) => (
+                            <ProofLink key={document.id} href={document.url} label={formatAction(document.type)} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+                        <Button type="button" disabled={loadingId !== null} onClick={() => updateVerification(restaurant, "APPROVED")}>
+                          {loadingId === `${restaurant.id}-APPROVED` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                          Approve
+                        </Button>
+                        <Button type="button" variant="secondary" disabled={loadingId !== null} onClick={() => updateVerification(restaurant, "MORE_INFO_REQUIRED")}>
+                          More info
+                        </Button>
+                        <Button type="button" variant="danger" disabled={loadingId !== null} onClick={() => updateVerification(restaurant, "REJECTED")}>
+                          <X className="h-4 w-4" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
             {data.requests.length > 0 ? (
               <div className="grid gap-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-emerald-700">Subscription payments</p>
                 {data.requests.map((request) => (
                   <article key={request.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                     <div className="grid gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
@@ -288,9 +367,25 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                   </article>
                 ))}
               </div>
-            ) : (
-              <EmptyState title="The queue is clear" description="New subscription payment verification requests will appear here." />
-            )}
+            ) : verificationQueue.length === 0 ? (
+              <EmptyState title="The queue is clear" description="New restaurant and subscription verification requests will appear here." />
+            ) : null}
+          </Panel>
+        </section>
+
+        <section id="verification-status">
+          <Panel>
+            <PanelHeading
+              icon={ShieldCheck}
+              eyebrow="Trust status"
+              title="Restaurant verification overview"
+              description="Only approved restaurants are visible to customers and allowed to run live QR operations."
+            />
+            <div className="mt-5 grid gap-3 md:grid-cols-4">
+              {(["PENDING", "MORE_INFO_REQUIRED", "APPROVED", "REJECTED"] as const).map((status) => (
+                <MiniStatus key={status} label={formatAction(status)} value={String(data.restaurants.filter((restaurant) => restaurant.verificationStatus === status).length)} />
+              ))}
+            </div>
           </Panel>
         </section>
 
@@ -309,6 +404,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                     <th className="py-3 pr-4">Restaurant</th>
                     <th className="py-3 pr-4">Owner</th>
                     <th className="py-3 pr-4">Location</th>
+                    <th className="py-3 pr-4">Verification</th>
                     <th className="py-3 pr-4">Plan</th>
                     <th className="py-3 pr-4">Status</th>
                     <th className="py-3">Action</th>
@@ -326,6 +422,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                         </td>
                         <td className="py-4 pr-4 text-zinc-600">{restaurant.ownerName}</td>
                         <td className="py-4 pr-4 text-zinc-600">{restaurant.city}, {restaurant.state}</td>
+                        <td className="py-4 pr-4"><StatusPill value={restaurant.verificationStatus} /></td>
                         <td className="py-4 pr-4">
                           <Select
                             value={draft.plan}
@@ -526,9 +623,32 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function MiniStatus({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+      <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-zinc-950">{value}</p>
+    </div>
+  );
+}
+
+function ProofLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-emerald-200 hover:text-emerald-700"
+    >
+      {label}
+      <ArrowUpRight className="h-3 w-3" />
+    </a>
+  );
+}
+
 function StatusPill({ value }: { value: string }) {
   const isGood = value === "ACTIVE" || value === "APPROVED" || value === "PAID";
-  const isWarning = value === "TRIALING" || value === "VERIFICATION_PENDING" || value === "PENDING_PAYMENT";
+  const isWarning = value === "TRIALING" || value === "VERIFICATION_PENDING" || value === "PENDING_PAYMENT" || value === "PENDING" || value === "MORE_INFO_REQUIRED";
 
   return (
     <span

@@ -13,6 +13,8 @@ export type SubscriptionAccess = {
   features: PlanRules;
   canManageRestaurant: boolean;
   canUseQrOrdering: boolean;
+  verificationStatus: "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
+  isRestaurantVerified: boolean;
   message: string | null;
 };
 
@@ -80,7 +82,7 @@ export async function getSubscriptionAccessForRestaurantId(
   supabase: SupabaseClient<Database>,
   restaurantId: string,
 ): Promise<SubscriptionAccess> {
-  const [{ data: subscription }, { data: settings }] = await Promise.all([
+  const [{ data: subscription }, { data: settings }, { data: restaurant }] = await Promise.all([
     supabase
       .from("subscriptions")
       .select("plan,status,trial_ends_at,current_period_ends_at")
@@ -91,7 +93,13 @@ export async function getSubscriptionAccessForRestaurantId(
       .select("qr_ordering_enabled")
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
+    supabase
+      .from("restaurants")
+      .select("verification_status")
+      .eq("id", restaurantId)
+      .maybeSingle(),
   ]);
+  const verificationStatus = restaurant?.verification_status ?? "PENDING";
 
   if (!subscription) {
     return buildAccess({
@@ -101,6 +109,7 @@ export async function getSubscriptionAccessForRestaurantId(
       trialEndsAt: null,
       currentPeriodEndsAt: null,
       qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
+      verificationStatus,
       message: "Subscription not found. Please choose a plan to continue.",
     });
   }
@@ -114,8 +123,11 @@ export async function getSubscriptionAccessForRestaurantId(
     trialEndsAt: subscription.trial_ends_at,
     currentPeriodEndsAt: subscription.current_period_ends_at,
     qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
+    verificationStatus,
     message: computedStatus === "EXPIRED" || computedStatus === "CANCELLED"
       ? "Your trial or subscription has ended. Choose a plan to continue restaurant operations."
+      : verificationStatus !== "APPROVED"
+        ? getVerificationMessage(verificationStatus)
       : null,
   });
 }
@@ -135,6 +147,7 @@ function buildAccess({
   trialEndsAt,
   currentPeriodEndsAt,
   qrOrderingEnabled,
+  verificationStatus,
   message,
 }: {
   restaurantId: string;
@@ -143,9 +156,11 @@ function buildAccess({
   trialEndsAt: string | null;
   currentPeriodEndsAt: string | null;
   qrOrderingEnabled: boolean;
+  verificationStatus: SubscriptionAccess["verificationStatus"];
   message: string | null;
 }): SubscriptionAccess {
   const canUseSubscription = status === "ACTIVE" || status === "TRIALING";
+  const isRestaurantVerified = verificationStatus === "APPROVED";
   const features = canUseSubscription ? getPlanRules(plan) : getPlanRules("none");
 
   return {
@@ -156,10 +171,24 @@ function buildAccess({
     trialEndsAt,
     currentPeriodEndsAt,
     features,
-    canManageRestaurant: canUseSubscription,
-    canUseQrOrdering: canUseSubscription && qrOrderingEnabled && features.qrOrdering,
+    verificationStatus,
+    isRestaurantVerified,
+    canManageRestaurant: canUseSubscription && isRestaurantVerified,
+    canUseQrOrdering: canUseSubscription && isRestaurantVerified && qrOrderingEnabled && features.qrOrdering,
     message,
   };
+}
+
+function getVerificationMessage(status: SubscriptionAccess["verificationStatus"]) {
+  if (status === "REJECTED") {
+    return "Restaurant verification was rejected. Contact FlickOrder support before using live operations.";
+  }
+
+  if (status === "MORE_INFO_REQUIRED") {
+    return "Restaurant verification needs more information. Update your proof details or contact FlickOrder support.";
+  }
+
+  return "Restaurant verification is pending. FlickOrder will review your business proof before enabling live operations.";
 }
 
 function getComputedStatus(

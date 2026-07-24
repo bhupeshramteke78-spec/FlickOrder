@@ -61,11 +61,11 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
   const supabase = await createClient();
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
-    .select("id,name")
+    .select("id,name,verification_status")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (restaurantError || !restaurant) {
+  if (restaurantError || !restaurant || restaurant.verification_status !== "APPROVED") {
     return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, categories: [], menuItems: [] };
   }
 
