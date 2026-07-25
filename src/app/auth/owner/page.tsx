@@ -30,28 +30,29 @@ export default async function OwnerAuthPage({
             </p>
           </div>
 
-          <div className="mx-auto mt-8 flex w-fit rounded-2xl border border-white/10 bg-white/[0.06] p-1">
+          <div className={`auth-mode-tabs mx-auto mt-8 ${isRegisterMode ? "is-register" : "is-login"}`}>
+            <span className="auth-mode-thumb" aria-hidden="true" />
             <Link
               href="/auth/owner?mode=login"
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
-                mode === "login" ? "bg-white text-zinc-950" : "text-zinc-300 hover:text-white"
+              className={`auth-mode-tab ${
+                mode === "login" ? "text-zinc-950" : "text-zinc-300 hover:text-white"
               }`}
             >
               Login
             </Link>
             <Link
               href="/auth/owner?mode=register"
-              className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
-                mode === "register" ? "bg-white text-zinc-950" : "text-zinc-300 hover:text-white"
+              className={`auth-mode-tab ${
+                mode === "register" ? "text-zinc-950" : "text-zinc-300 hover:text-white"
               }`}
             >
               Register
             </Link>
           </div>
 
-          <Card className="auth-form-card mx-auto mt-6 max-w-2xl">
+          <Card className={`auth-form-card auth-switch-card mx-auto mt-6 max-w-2xl ${isRegisterMode ? "is-register" : "is-login"}`}>
             {isRegisterMode ? (
-              <>
+              <div className="auth-panel-motion auth-panel-register">
                 <div className="mb-5">
                   <p className="auth-title-pulse text-2xl font-semibold text-emerald-700">Register</p>
                   <p className="mt-2 text-sm leading-6 text-zinc-500">
@@ -65,9 +66,9 @@ export default async function OwnerAuthPage({
                     Login
                   </Link>
                 </p>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="auth-panel-motion auth-panel-login">
                 <h2 className="auth-title-pulse text-2xl font-semibold text-emerald-700">Owner login</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
                   Use Supabase Auth credentials. Passwords are never stored in FlickOrder tables.
@@ -81,7 +82,7 @@ export default async function OwnerAuthPage({
                     Create account
                   </Link>
                 </p>
-              </>
+              </div>
             )}
           </Card>
         </section>
