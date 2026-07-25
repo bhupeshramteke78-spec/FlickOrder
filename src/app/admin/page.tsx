@@ -49,7 +49,7 @@ function SuperAdminRestricted() {
             This console is reserved for SUPER_ADMIN profiles. Sign in with the correct account before verifying
             subscription payments, managing plans, searching records, or inspecting audit logs.
           </p>
-          <Link href="/auth/owner" className="mt-7 inline-flex">
+          <Link href="/auth/owner?mode=login" className="mt-7 inline-flex">
             <Button type="button" variant="glass">Sign in securely</Button>
           </Link>
         </div>

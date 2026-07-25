@@ -32,7 +32,7 @@ export function TrialSection() {
           ) : null}
           <p className="mt-4 text-sm text-zinc-300">
             Already have an account?{" "}
-            <Link href="/auth/owner" className="font-semibold text-white underline underline-offset-4">
+            <Link href="/auth/owner?mode=login" className="font-semibold text-white underline underline-offset-4">
               Login
             </Link>
           </p>

@@ -43,7 +43,7 @@ export function HomePage({ restaurants }: { restaurants: HomeRestaurant[] }) {
               Discover restaurants near you. Scan, order, request service, and pay directly at your table.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/auth/owner">
+              <Link href="/auth/owner?mode=register">
                 <Button variant="glass" size="lg" className="border-orange-200/45 bg-orange-500/45 text-white">
                   Start 3-Day Free Trial
                   <ArrowRight className="h-4 w-4" />

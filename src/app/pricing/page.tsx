@@ -100,7 +100,7 @@ export default function PricingPage() {
               history, and operational visibility.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/auth/owner">
+              <Link href="/auth/owner?mode=register">
                 <Button variant="glass" className="border-orange-200/40 bg-orange-500/40">
                   Start free trial
                   <ArrowRight className="h-4 w-4" />
@@ -236,7 +236,7 @@ export default function PricingPage() {
               Start with the trial, process real orders, then choose a plan from the Subscription page when your data
               shows what the restaurant actually needs.
             </p>
-            <Link href="/auth/owner">
+            <Link href="/auth/owner?mode=register">
               <Button variant="glass" className="mt-6 w-full border-orange-200/40 bg-orange-500/40 sm:w-auto">
                 Create restaurant account
               </Button>
@@ -264,7 +264,7 @@ export default function PricingPage() {
                 Register the restaurant, set up tables and menu items, and let guests order directly from the table QR.
               </p>
             </div>
-            <Link href="/auth/owner">
+            <Link href="/auth/owner?mode=register">
               <Button variant="glass" className="w-full border-emerald-200/40 bg-emerald-700/40 lg:w-auto">
                 Start the trial
                 <ArrowRight className="h-4 w-4" />

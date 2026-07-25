@@ -9,16 +9,16 @@ const footerColumns = [
       { label: "Restaurants", href: "/restaurants/search" },
       { label: "Pricing", href: "/pricing" },
       { label: "About", href: "/#about" },
-      { label: "Owner login", href: "/auth/owner" },
+      { label: "Owner login", href: "/auth/owner?mode=login" },
     ],
   },
   {
     title: "Restaurant Tools",
     links: [
       { label: "QR ordering", href: "/#about" },
-      { label: "Menu management", href: "/auth/owner" },
-      { label: "Table management", href: "/auth/owner" },
-      { label: "Realtime orders", href: "/auth/owner" },
+      { label: "Menu management", href: "/auth/owner?mode=register" },
+      { label: "Table management", href: "/auth/owner?mode=register" },
+      { label: "Realtime orders", href: "/auth/owner?mode=register" },
     ],
   },
   {
@@ -26,8 +26,8 @@ const footerColumns = [
     links: [
       { label: "Support", href: "mailto:support@flickorder.in" },
       { label: "Contact", href: "mailto:hello@flickorder.in" },
-      { label: "Book a demo", href: "/auth/owner" },
-      { label: "Restaurant trial", href: "/auth/owner" },
+      { label: "Book a demo", href: "/auth/owner?mode=register" },
+      { label: "Restaurant trial", href: "/auth/owner?mode=register" },
     ],
   },
   {

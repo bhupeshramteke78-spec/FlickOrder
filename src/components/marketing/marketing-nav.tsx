@@ -102,7 +102,7 @@ export function MarketingNav() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
-          <Link href="/auth/owner">
+          <Link href="/auth/owner?mode=login">
             <Button variant="glass" size="sm">Login</Button>
           </Link>
         </div>
