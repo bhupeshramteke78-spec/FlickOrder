@@ -8,6 +8,7 @@ import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import { DashboardRealtimeRefresh } from "@/components/realtime/dashboard-realtime-refresh";
 import { getInitials, getSelectedDashboardRestaurant, type DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
 import { hasPermission, type Permission } from "@/lib/permissions";
+import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,7 @@ export async function DashboardShell({
   showClock?: boolean;
 }) {
   const identity = await getDashboardIdentity();
+  const subscriptionNotice = identity.restaurantId ? await getDashboardSubscriptionNotice(identity.restaurantId) : null;
   const visibleNavItems = navItems.filter((item) => hasPermission(identity.memberRole, item.permission));
   const visibleMobileNavItems = visibleNavItems.map(({ href, label, iconKey }) => ({ href, label, iconKey }));
 
@@ -137,11 +139,47 @@ export async function DashboardShell({
               ) : null}
             </div>
           </header>
+          {subscriptionNotice ? (
+            <div className={`mb-5 rounded-xl border px-4 py-3 text-sm ${subscriptionNotice.className}`}>
+              <p className="font-semibold">{subscriptionNotice.title}</p>
+              <p className="mt-1 leading-6">{subscriptionNotice.description}</p>
+              <Link href="/dashboard/billing" className="mt-2 inline-flex font-semibold underline underline-offset-4">
+                Open subscription
+              </Link>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>
     </div>
   );
+}
+
+async function getDashboardSubscriptionNotice(restaurantId: string) {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  const supabase = await createClient();
+  const access = await getSubscriptionAccessForRestaurantId(supabase, restaurantId);
+
+  if (access.deletedAt || access.isAbandonedTrialPastDeletionDate) {
+    return {
+      title: "Trial account deletion pending",
+      description: access.message ?? "This trial account is no longer available for restaurant operations.",
+      className: "border-rose-200 bg-rose-50 text-rose-900",
+    };
+  }
+
+  if (access.isInGracePeriod) {
+    return {
+      title: "Subscription grace access",
+      description: access.message ?? "Renew the subscription before grace access ends to avoid service lock.",
+      className: "border-amber-200 bg-amber-50 text-amber-950",
+    };
+  }
+
+  return null;
 }
 
 async function getDashboardIdentity(): Promise<DashboardIdentity> {

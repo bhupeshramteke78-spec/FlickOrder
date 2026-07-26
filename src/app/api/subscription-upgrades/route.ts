@@ -4,6 +4,7 @@ import { getPaidSubscriptionPlan, type PaidSubscriptionPlan } from "@/lib/billin
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import { hasPermission } from "@/lib/permissions";
 import { createRazorpayOrder, getRazorpayConfig } from "@/lib/razorpay";
+import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -64,6 +65,15 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
+  const access = await getSubscriptionAccessForRestaurantId(admin, membership.restaurantId);
+
+  if (access.deletedAt || access.isAbandonedTrialPastDeletionDate) {
+    return NextResponse.json(
+      { error: access.message ?? "This restaurant account is no longer eligible for subscription renewal." },
+      { status: 403 },
+    );
+  }
+
   const { data: existingRequest } = await admin
     .from("subscription_upgrade_requests")
     .select("id,plan,amount,status,transaction_note,razorpay_order_id,created_at")

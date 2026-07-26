@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { subscriptionPlans } from "@/lib/billing-plans";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import { hasPermission } from "@/lib/permissions";
+import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, getTrialStatus } from "@/lib/utils";
@@ -20,6 +21,11 @@ type SubscriptionDetails = {
   status: string;
   trialEndsAt: string | null;
   currentPeriodEndsAt: string | null;
+  graceEndsAt: string | null;
+  abandonedTrialDeletionAt: string | null;
+  isInGracePeriod: boolean;
+  isAbandonedTrialPastDeletionDate: boolean;
+  accessMessage: string | null;
   subscriptionCreatedAt: string;
   subscriptionUpdatedAt: string;
 };
@@ -110,6 +116,24 @@ function SubscriptionDetailsView({
         </div>
       </Card>
 
+      {subscription.isInGracePeriod ? (
+        <Card className="border-amber-200 bg-amber-50 text-amber-950">
+          <h3 className="text-base font-semibold">Subscription grace access is active</h3>
+          <p className="mt-2 text-sm leading-6">
+            {subscription.accessMessage ?? "Renew before grace access ends to avoid service lock."}
+          </p>
+        </Card>
+      ) : null}
+
+      {subscription.isAbandonedTrialPastDeletionDate ? (
+        <Card className="border-rose-200 bg-rose-50 text-rose-950">
+          <h3 className="text-base font-semibold">Trial account deletion pending</h3>
+          <p className="mt-2 text-sm leading-6">
+            {subscription.accessMessage ?? "This trial account was not upgraded within the allowed window."}
+          </p>
+        </Card>
+      ) : null}
+
       <div className="grid gap-5 lg:grid-cols-[1fr_0.72fr]">
         <Card>
           <h3 className="text-lg font-semibold text-zinc-950">Subscription Timeline</h3>
@@ -118,6 +142,8 @@ function SubscriptionDetailsView({
             <TimelineRow label="Last updated" value={formatDate(subscription.subscriptionUpdatedAt)} />
             <TimelineRow label="Trial ends" value={formatDate(subscription.trialEndsAt)} />
             <TimelineRow label="Current period ends" value={formatDate(subscription.currentPeriodEndsAt)} />
+            <TimelineRow label="Grace access ends" value={formatDate(subscription.graceEndsAt)} />
+            <TimelineRow label="Trial deletion date" value={formatDate(subscription.abandonedTrialDeletionAt)} />
           </div>
         </Card>
 
@@ -219,13 +245,20 @@ async function getCurrentSubscription(): Promise<SubscriptionDetails | null> {
     return null;
   }
 
+  const access = await getSubscriptionAccessForRestaurantId(supabase, context.selected.restaurantId);
+
   return {
     restaurantName: restaurant.name,
     memberRole: context.selected.memberRole,
     plan: subscription.plan,
-    status: subscription.status,
+    status: access.status,
     trialEndsAt: subscription.trial_ends_at,
     currentPeriodEndsAt: subscription.current_period_ends_at,
+    graceEndsAt: access.graceEndsAt,
+    abandonedTrialDeletionAt: access.abandonedTrialDeletionAt,
+    isInGracePeriod: access.isInGracePeriod,
+    isAbandonedTrialPastDeletionDate: access.isAbandonedTrialPastDeletionDate,
+    accessMessage: access.message,
     subscriptionCreatedAt: subscription.created_at,
     subscriptionUpdatedAt: subscription.updated_at,
   };

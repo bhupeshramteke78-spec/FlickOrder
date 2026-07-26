@@ -504,6 +504,10 @@ export type Database = {
           order_number: string;
         }>;
       };
+      run_subscription_lifecycle_maintenance: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
   };
 };
