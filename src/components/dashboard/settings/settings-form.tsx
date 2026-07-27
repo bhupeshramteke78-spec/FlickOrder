@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Loader2, Palette, Pencil, Save, Settings2, Store, Trash2, WalletCards } from "lucide-react";
+import { AlertTriangle, Loader2, MapPinned, Palette, Pencil, Save, Settings2, Store, Trash2, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +22,9 @@ export type SettingsFormState = {
     state: string;
     address: string;
     googleMapsUrl: string;
+    latitude: string;
+    longitude: string;
+    locationSource: "OWNER_MANUAL" | "GOOGLE_MAPS_LINK" | "GEOCODED_ADDRESS" | "PIN_PICKER" | null;
     logoUrl: string;
     coverUrl: string;
     isOpen: boolean;
@@ -100,6 +103,8 @@ export function SettingsForm({
         state: form.restaurant.state,
         address: form.restaurant.address,
         googleMapsUrl: form.restaurant.googleMapsUrl || null,
+        latitude: form.restaurant.latitude ? Number(form.restaurant.latitude) : null,
+        longitude: form.restaurant.longitude ? Number(form.restaurant.longitude) : null,
         logoUrl: form.restaurant.logoUrl || null,
         coverUrl: form.restaurant.coverUrl || null,
         isOpen: form.restaurant.isOpen,
@@ -260,6 +265,50 @@ export function SettingsForm({
                 Customers use this for directions, and FlickOrder uses it during restaurant verification.
               </span>
             </Field>
+            <div className="md:col-span-2">
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700">
+                    <MapPinned className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-zinc-950">Nearby search coordinates</p>
+                    <p className="mt-1 text-sm leading-6 text-zinc-600">
+                      Add the restaurant&apos;s real latitude and longitude so customers can find nearby restaurants accurately. Full Google Maps links with embedded coordinates are detected automatically, but short links may need manual values.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <Field label="Latitude">
+                    <Input
+                      disabled={!isEditing}
+                      type="number"
+                      min={-90}
+                      max={90}
+                      step="0.0000001"
+                      value={form.restaurant.latitude}
+                      onChange={(event) => updateRestaurant("latitude", event.target.value)}
+                      placeholder="21.1458000"
+                    />
+                  </Field>
+                  <Field label="Longitude">
+                    <Input
+                      disabled={!isEditing}
+                      type="number"
+                      min={-180}
+                      max={180}
+                      step="0.0000001"
+                      value={form.restaurant.longitude}
+                      onChange={(event) => updateRestaurant("longitude", event.target.value)}
+                      placeholder="79.0882000"
+                    />
+                  </Field>
+                </div>
+                <p className="mt-3 text-xs text-zinc-500">
+                  Location source: {formatLocationSource(form.restaurant.locationSource)}
+                </p>
+              </div>
+            </div>
           </div>
         </SettingsSection>
 
@@ -485,6 +534,26 @@ function maskUpi(value: string) {
   }
 
   return `${name.slice(0, 3)}••••@${provider}`;
+}
+
+function formatLocationSource(value: SettingsFormState["restaurant"]["locationSource"]) {
+  if (value === "GOOGLE_MAPS_LINK") {
+    return "Google Maps link";
+  }
+
+  if (value === "OWNER_MANUAL") {
+    return "Manual coordinates";
+  }
+
+  if (value === "PIN_PICKER") {
+    return "Map pin";
+  }
+
+  if (value === "GEOCODED_ADDRESS") {
+    return "Address geocoding";
+  }
+
+  return "Not set";
 }
 
 function SettingsSection({

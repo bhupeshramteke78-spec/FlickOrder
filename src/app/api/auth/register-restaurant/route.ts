@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { normalizeGoogleMapsUrl } from "@/lib/maps";
+import { extractCoordinatesFromGoogleMapsUrl, normalizeGoogleMapsUrl } from "@/lib/maps";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { restaurantRegistrationSchema } from "@/lib/validations/auth";
@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     .filter(Boolean);
   const slugBase = slugify(input.restaurantName);
   const slug = `${slugBase}-${ownerId.slice(0, 8)}`;
+  const coordinates = extractCoordinatesFromGoogleMapsUrl(input.googleMapsUrl);
 
   const { error: profileError } = await supabase.from("profiles").insert({
     id: ownerId,
@@ -90,6 +91,9 @@ export async function POST(request: Request) {
       verification_status: "PENDING",
       fssai_number: input.fssaiNumber,
       google_maps_url: normalizeGoogleMapsUrl(input.googleMapsUrl),
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
+      location_source: coordinates ? "GOOGLE_MAPS_LINK" : null,
     })
     .select("id,slug")
     .single();

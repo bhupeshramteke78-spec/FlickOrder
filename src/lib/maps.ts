@@ -30,6 +30,39 @@ export function normalizeGoogleMapsUrl(value: string | null | undefined) {
   return trimmed;
 }
 
+export function extractCoordinatesFromGoogleMapsUrl(value: string | null | undefined) {
+  const normalized = normalizeGoogleMapsUrl(value);
+
+  if (!normalized || !isGoogleMapsUrl(normalized)) {
+    return null;
+  }
+
+  const decoded = decodeURIComponent(normalized);
+  const patterns = [
+    /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]q=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /[?&]ll=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+    /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = decoded.match(pattern);
+
+    if (!match) {
+      continue;
+    }
+
+    const latitude = Number(match[1]);
+    const longitude = Number(match[2]);
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude };
+    }
+  }
+
+  return null;
+}
+
 export function buildDirectionsUrl({
   googleMapsUrl,
   name,

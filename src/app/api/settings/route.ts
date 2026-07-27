@@ -5,7 +5,7 @@ import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { Json } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
 import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
-import { isGoogleMapsUrl, normalizeGoogleMapsUrl } from "@/lib/maps";
+import { extractCoordinatesFromGoogleMapsUrl, isGoogleMapsUrl, normalizeGoogleMapsUrl } from "@/lib/maps";
 
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm time format.");
 const optionalUrlSchema = z.string().url().optional().nullable().or(z.literal(""));
@@ -14,6 +14,7 @@ const optionalGoogleMapsUrlSchema = optionalUrlSchema.refine((value) => {
 
   return !normalized || isGoogleMapsUrl(normalized);
 }, "Use a valid Google Maps link.");
+const optionalCoordinateSchema = z.number().finite().optional().nullable();
 
 const settingsSchema = z.object({
   restaurant: z.object({
@@ -26,6 +27,8 @@ const settingsSchema = z.object({
     state: z.string().min(2).max(80),
     address: z.string().min(5).max(300),
     googleMapsUrl: optionalGoogleMapsUrlSchema,
+    latitude: optionalCoordinateSchema.refine((value) => value == null || (value >= -90 && value <= 90), "Latitude must be between -90 and 90."),
+    longitude: optionalCoordinateSchema.refine((value) => value == null || (value >= -180 && value <= 180), "Longitude must be between -180 and 180."),
     logoUrl: optionalUrlSchema,
     coverUrl: optionalUrlSchema,
     isOpen: z.boolean(),
@@ -96,6 +99,16 @@ export async function PATCH(request: Request) {
   }
 
   const input = payload.data;
+  const googleMapsCoordinates = extractCoordinatesFromGoogleMapsUrl(input.restaurant.googleMapsUrl);
+  const latitude = input.restaurant.latitude ?? googleMapsCoordinates?.latitude ?? null;
+  const longitude = input.restaurant.longitude ?? googleMapsCoordinates?.longitude ?? null;
+  const locationSource =
+    input.restaurant.latitude != null && input.restaurant.longitude != null
+      ? "OWNER_MANUAL"
+      : googleMapsCoordinates
+        ? "GOOGLE_MAPS_LINK"
+        : null;
+
   const { error: restaurantError } = await supabase
     .from("restaurants")
     .update({
@@ -108,6 +121,9 @@ export async function PATCH(request: Request) {
       state: input.restaurant.state,
       address: input.restaurant.address,
       google_maps_url: normalizeGoogleMapsUrl(input.restaurant.googleMapsUrl),
+      latitude,
+      longitude,
+      location_source: latitude != null && longitude != null ? locationSource : null,
       logo_url: input.restaurant.logoUrl || null,
       cover_url: input.restaurant.coverUrl || null,
       is_open: input.restaurant.isOpen,

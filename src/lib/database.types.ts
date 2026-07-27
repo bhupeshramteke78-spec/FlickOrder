@@ -64,6 +64,9 @@ export type Database = {
           verification_status: RestaurantVerificationStatus;
           fssai_number: string | null;
           google_maps_url: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          location_source: "OWNER_MANUAL" | "GOOGLE_MAPS_LINK" | "GEOCODED_ADDRESS" | "PIN_PICKER" | null;
           verification_note: string | null;
           verified_at: string | null;
           verified_by: string | null;
@@ -87,6 +90,9 @@ export type Database = {
           verification_status?: RestaurantVerificationStatus;
           fssai_number?: string | null;
           google_maps_url?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          location_source?: "OWNER_MANUAL" | "GOOGLE_MAPS_LINK" | "GEOCODED_ADDRESS" | "PIN_PICKER" | null;
           verification_note?: string | null;
           verified_at?: string | null;
           verified_by?: string | null;
@@ -114,6 +120,9 @@ export type Database = {
           verification_status: RestaurantVerificationStatus;
           fssai_number: string | null;
           google_maps_url: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          location_source: "OWNER_MANUAL" | "GOOGLE_MAPS_LINK" | "GEOCODED_ADDRESS" | "PIN_PICKER" | null;
           verification_note: string | null;
           verified_at: string | null;
           verified_by: string | null;

@@ -15,6 +15,8 @@ export type HomeRestaurant = {
   city: string;
   state: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   is_open: boolean;
   availability: RestaurantAvailability;
 };

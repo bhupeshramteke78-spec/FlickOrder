@@ -80,7 +80,7 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
   const [{ data: restaurant }, { data: settings }] = await Promise.all([
     supabase
       .from("restaurants")
-      .select("name,slug,type,cuisine,email,phone,city,state,address,google_maps_url,logo_url,cover_url,is_open,deletion_requested_at,deletion_reason,deleted_at")
+      .select("name,slug,type,cuisine,email,phone,city,state,address,google_maps_url,latitude,longitude,location_source,logo_url,cover_url,is_open,deletion_requested_at,deletion_reason,deleted_at")
       .eq("id", context.selected.restaurantId)
       .single(),
     supabase
@@ -109,6 +109,9 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
       state: restaurant.state,
       address: restaurant.address,
       googleMapsUrl: restaurant.google_maps_url ?? "",
+      latitude: restaurant.latitude == null ? "" : String(restaurant.latitude),
+      longitude: restaurant.longitude == null ? "" : String(restaurant.longitude),
+      locationSource: restaurant.location_source,
       logoUrl: restaurant.logo_url ?? "",
       coverUrl: restaurant.cover_url ?? "",
       isOpen: restaurant.is_open,

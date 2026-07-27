@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
-import { MapPin, Search, Star, Table2 } from "lucide-react";
+import { LocateFixed, MapPin, Search, Star, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import type { HomeRestaurant } from "@/components/marketing/home-page";
+import { getBrowserLocation, getBrowserLocationMessage } from "@/lib/browser-location";
+import { formatDistance, getDistanceKm, hasCoordinates, type Coordinates } from "@/lib/geo";
 
 const filters = ["All", "Pure Veg", "Cafe", "Family", "Fine Dining", "Desserts"];
 
@@ -17,11 +19,14 @@ export function HomeRestaurantExplorer({ restaurants }: { restaurants: HomeResta
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "failed">("idle");
+  const [locationMessage, setLocationMessage] = useState("");
   const filteredRestaurants = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const normalizedFilter = activeFilter.toLowerCase();
 
-    return restaurants.filter((restaurant) => {
+    const filtered = restaurants.filter((restaurant) => {
       const searchableText = [
         restaurant.name,
         restaurant.type,
@@ -35,18 +40,70 @@ export function HomeRestaurantExplorer({ restaurants }: { restaurants: HomeResta
 
       return matchesSearch && matchesFilter;
     });
-  }, [activeFilter, query, restaurants]);
+
+    return filtered
+      .map((restaurant) => ({
+        ...restaurant,
+        distanceKm: userLocation && hasCoordinates(restaurant) ? getDistanceKm(userLocation, restaurant) : null,
+      }))
+      .sort((first, second) => {
+        if (!userLocation) {
+          return 0;
+        }
+
+        if (first.distanceKm == null && second.distanceKm == null) {
+          return 0;
+        }
+
+        if (first.distanceKm == null) {
+          return 1;
+        }
+
+        if (second.distanceKm == null) {
+          return -1;
+        }
+
+        return first.distanceKm - second.distanceKm;
+      });
+  }, [activeFilter, query, restaurants, userLocation]);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuery = query.trim();
 
-    router.push(trimmedQuery ? `/restaurants/search?q=${encodeURIComponent(trimmedQuery)}` : "/restaurants/search");
+    const params = new URLSearchParams();
+
+    if (trimmedQuery) {
+      params.set("q", trimmedQuery);
+    }
+
+    if (userLocation) {
+      params.set("lat", String(userLocation.latitude));
+      params.set("lng", String(userLocation.longitude));
+    }
+
+    router.push(`/restaurants/search${params.toString() ? `?${params.toString()}` : ""}`);
+  }
+
+  async function useCurrentLocation() {
+    setLocationMessage("");
+    setLocationStatus("loading");
+
+    const result = await getBrowserLocation();
+
+    if (!result.ok) {
+      setLocationMessage(getBrowserLocationMessage(result.reason));
+      setLocationStatus("failed");
+      return;
+    }
+
+    setUserLocation(result.coordinates);
+    setLocationStatus("idle");
   }
 
   return (
     <>
-      <form onSubmit={submitSearch} className="relative z-10 flex max-w-2xl gap-2 rounded-lg bg-white p-2 shadow-2xl shadow-black/30">
+      <form onSubmit={submitSearch} className="relative z-10 flex max-w-2xl flex-col gap-2 rounded-lg bg-white p-2 shadow-2xl shadow-black/30 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
           <Input
@@ -56,8 +113,17 @@ export function HomeRestaurantExplorer({ restaurants }: { restaurants: HomeResta
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
+        <Button type="button" variant="secondary" onClick={useCurrentLocation} disabled={locationStatus === "loading"}>
+          <LocateFixed className="h-4 w-4" />
+          {locationStatus === "loading" ? "Locating" : "Near me"}
+        </Button>
         <Button type="submit" variant="glass" className="border-orange-200/40 bg-orange-500/45 text-white">Search</Button>
       </form>
+      {locationStatus === "failed" && locationMessage ? (
+        <p className="relative z-10 mt-2 max-w-2xl text-sm leading-6 text-orange-100">
+          {locationMessage}
+        </p>
+      ) : null}
 
       <div className="relative z-10 mt-5 flex flex-wrap gap-2">
         {filters.map((filter) => (
@@ -80,7 +146,7 @@ export function HomeRestaurantExplorer({ restaurants }: { restaurants: HomeResta
         <>
           <div className="mt-10 flex items-center justify-between">
             <h2 className="text-xl font-semibold">{query.trim() || activeFilter !== "All" ? "Search results" : "Popular Restaurants"}</h2>
-            <Link href={query.trim() ? `/restaurants/search?q=${encodeURIComponent(query.trim())}` : "/restaurants/search"} className="text-sm text-zinc-300">View All</Link>
+            <Link href={buildSearchHref(query, userLocation)} className="text-sm text-zinc-300">View All</Link>
           </div>
           {filteredRestaurants.length > 0 ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -99,7 +165,9 @@ export function HomeRestaurantExplorer({ restaurants }: { restaurants: HomeResta
   );
 }
 
-function RestaurantCard({ restaurant }: { restaurant: HomeRestaurant }) {
+function RestaurantCard({ restaurant }: { restaurant: HomeRestaurant & { distanceKm?: number | null } }) {
+  const distanceLabel = formatDistance(restaurant.distanceKm);
+
   return (
     <Link href={`/restaurants/${restaurant.slug}`}>
       <Card className="overflow-hidden border-0 bg-white p-0 text-zinc-950 shadow-xl shadow-black/20">
@@ -117,7 +185,7 @@ function RestaurantCard({ restaurant }: { restaurant: HomeRestaurant }) {
           </p>
           <p className="mt-3 inline-flex items-center gap-1 text-xs text-zinc-500">
             <MapPin className="h-3 w-3" />
-            {restaurant.city}, {restaurant.state}
+            {distanceLabel ?? `${restaurant.city}, ${restaurant.state}`}
           </p>
           <p className={`mt-2 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
             restaurant.availability.isFull
@@ -133,4 +201,20 @@ function RestaurantCard({ restaurant }: { restaurant: HomeRestaurant }) {
       </Card>
     </Link>
   );
+}
+
+function buildSearchHref(query: string, userLocation: Coordinates | null) {
+  const params = new URLSearchParams();
+  const trimmedQuery = query.trim();
+
+  if (trimmedQuery) {
+    params.set("q", trimmedQuery);
+  }
+
+  if (userLocation) {
+    params.set("lat", String(userLocation.latitude));
+    params.set("lng", String(userLocation.longitude));
+  }
+
+  return `/restaurants/search${params.toString() ? `?${params.toString()}` : ""}`;
 }
