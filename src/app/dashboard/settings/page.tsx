@@ -85,7 +85,7 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
       .single(),
     supabase
       .from("restaurant_settings")
-      .select("brand_color,upi_id,upi_display_name,tax_rate,qr_ordering_enabled,opening_hours,menu_preferences")
+      .select("brand_color,upi_id,upi_display_name,tax_rate,qr_ordering_enabled,opening_hours,menu_preferences,booking_enabled,booking_slot_minutes,booking_duration_minutes,booking_advance_days,booking_min_notice_minutes,booking_max_party_size")
       .eq("restaurant_id", context.selected.restaurantId)
       .maybeSingle(),
   ]);
@@ -125,6 +125,12 @@ async function getSettingsState(): Promise<SettingsFormState | null> {
       upiDisplayName: settings.upi_display_name,
       taxRate: String(settings.tax_rate),
       qrOrderingEnabled: settings.qr_ordering_enabled,
+      bookingEnabled: settings.booking_enabled,
+      bookingSlotMinutes: String(settings.booking_slot_minutes),
+      bookingDurationMinutes: String(settings.booking_duration_minutes),
+      bookingAdvanceDays: String(settings.booking_advance_days),
+      bookingMinNoticeMinutes: String(settings.booking_min_notice_minutes),
+      bookingMaxPartySize: String(settings.booking_max_party_size),
       openingOpen: openingHours.open,
       openingClose: openingHours.close,
       showPopularFirst: menuPreferences.showPopularFirst,

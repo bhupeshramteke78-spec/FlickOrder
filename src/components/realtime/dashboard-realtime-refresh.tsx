@@ -10,7 +10,7 @@ type DashboardRealtimeRefreshProps = {
   restaurantId: string | null;
 };
 
-const restaurantScopedTables = ["orders", "payments", "tables", "menu_items", "service_requests", "notifications"] as const;
+const restaurantScopedTables = ["orders", "payments", "tables", "menu_items", "service_requests", "notifications", "restaurant_bookings"] as const;
 const newOrderSoundPath = "/sounds/new-order.mp3";
 const notifiedOrderStorageKey = "flickorder_notified_order_ids";
 
@@ -18,6 +18,13 @@ type RealtimeOrderRow = {
   id: string;
   order_number: string | null;
   total: number | null;
+};
+
+type RealtimeBookingRow = {
+  id: string;
+  customer_name: string | null;
+  party_size: number | null;
+  booking_time: string | null;
 };
 
 export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefreshProps) {
@@ -83,6 +90,25 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
           },
         });
 
+        await playNewOrderSound(audioRef.current);
+        scheduleRefresh();
+      },
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "restaurant_bookings",
+        filter: `restaurant_id=eq.${restaurantId}`,
+      },
+      async (payload) => {
+        const booking = payload.new as RealtimeBookingRow;
+        toast.success("New table booking", {
+          description: `${booking.customer_name ?? "Guest"} · ${booking.party_size ?? 1} guests${booking.booking_time ? ` · ${booking.booking_time.slice(0, 5)}` : ""}`,
+          action: { label: "Open", onClick: () => router.push("/dashboard/bookings") },
+        });
         await playNewOrderSound(audioRef.current);
         scheduleRefresh();
       },

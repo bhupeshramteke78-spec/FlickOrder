@@ -21,6 +21,13 @@ export type SubscriptionUpgradeStatus =
   | "APPROVED"
   | "REJECTED"
   | "CANCELLED";
+export type BookingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "DECLINED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "NO_SHOW";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -240,6 +247,12 @@ export type Database = {
           qr_ordering_enabled: boolean;
           menu_preferences: Json;
           opening_hours: Json;
+          booking_enabled: boolean;
+          booking_slot_minutes: number;
+          booking_duration_minutes: number;
+          booking_advance_days: number;
+          booking_min_notice_minutes: number;
+          booking_max_party_size: number;
         }>,
         {
           restaurant_id: string;
@@ -250,6 +263,12 @@ export type Database = {
           qr_ordering_enabled?: boolean;
           menu_preferences?: Json;
           opening_hours?: Json;
+          booking_enabled?: boolean;
+          booking_slot_minutes?: number;
+          booking_duration_minutes?: number;
+          booking_advance_days?: number;
+          booking_min_notice_minutes?: number;
+          booking_max_party_size?: number;
         },
         Partial<{
           restaurant_id: string;
@@ -260,6 +279,12 @@ export type Database = {
           qr_ordering_enabled: boolean;
           menu_preferences: Json;
           opening_hours: Json;
+          booking_enabled: boolean;
+          booking_slot_minutes: number;
+          booking_duration_minutes: number;
+          booking_advance_days: number;
+          booking_min_notice_minutes: number;
+          booking_max_party_size: number;
         }>
       >;
       push_subscriptions: DbTable<
@@ -344,6 +369,61 @@ export type Database = {
         Timestamped<{ restaurant_id: string; table_number: string; seats: number; status: TableStatus; qr_token: string }>,
         { restaurant_id: string; table_number: string; seats?: number; status?: TableStatus; qr_token?: string },
         Partial<{ restaurant_id: string; table_number: string; seats: number; status: TableStatus; qr_token: string }>
+      >;
+      restaurant_bookings: DbTable<
+        Timestamped<{
+          restaurant_id: string;
+          table_id: string | null;
+          customer_id: string | null;
+          customer_name: string;
+          customer_phone: string;
+          party_size: number;
+          booking_date: string;
+          booking_time: string;
+          duration_minutes: number;
+          special_request: string | null;
+          status: BookingStatus;
+          confirmation_code: string;
+          access_token_hash: string;
+          source: "WEB" | "STAFF";
+          accepted_by: string | null;
+          accepted_at: string | null;
+          decline_reason: string | null;
+        }>,
+        {
+          restaurant_id: string;
+          customer_name: string;
+          customer_phone: string;
+          party_size: number;
+          booking_date: string;
+          booking_time: string;
+          confirmation_code: string;
+          access_token_hash: string;
+          table_id?: string | null;
+          customer_id?: string | null;
+          duration_minutes?: number;
+          special_request?: string | null;
+          status?: BookingStatus;
+          source?: "WEB" | "STAFF";
+          accepted_by?: string | null;
+          accepted_at?: string | null;
+          decline_reason?: string | null;
+        },
+        Partial<{
+          table_id: string | null;
+          customer_id: string | null;
+          customer_name: string;
+          customer_phone: string;
+          party_size: number;
+          booking_date: string;
+          booking_time: string;
+          duration_minutes: number;
+          special_request: string | null;
+          status: BookingStatus;
+          accepted_by: string | null;
+          accepted_at: string | null;
+          decline_reason: string | null;
+        }>
       >;
       orders: DbTable<
         Timestamped<{
@@ -511,6 +591,24 @@ export type Database = {
         Returns: Array<{
           order_id: string;
           order_number: string;
+        }>;
+      };
+      create_restaurant_booking: {
+        Args: {
+          p_restaurant_id: string;
+          p_customer_id: string | null;
+          p_customer_name: string;
+          p_customer_phone: string;
+          p_party_size: number;
+          p_booking_date: string;
+          p_booking_time: string;
+          p_duration_minutes: number;
+          p_special_request: string | null;
+          p_access_token_hash: string;
+        };
+        Returns: Array<{
+          booking_id: string;
+          confirmation_code: string;
         }>;
       };
       run_subscription_lifecycle_maintenance: {

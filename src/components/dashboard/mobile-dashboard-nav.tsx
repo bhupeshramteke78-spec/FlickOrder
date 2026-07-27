@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
+import { BarChart3, BellRing, CalendarDays, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
@@ -20,6 +20,7 @@ type MobileNavItem = {
 type MobileNavIconKey =
   | "overview"
   | "orders"
+  | "bookings"
   | "history"
   | "menu"
   | "tables"
@@ -32,6 +33,7 @@ type MobileNavIconKey =
 const mobileNavIcons: Record<MobileNavIconKey, LucideIcon> = {
   overview: LayoutDashboard,
   orders: ListOrdered,
+  bookings: CalendarDays,
   history: History,
   menu: Utensils,
   tables: QrCode,

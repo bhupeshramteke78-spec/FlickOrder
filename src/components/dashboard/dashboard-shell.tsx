@@ -1,6 +1,6 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, QrCode, Settings, Utensils } from "lucide-react";
+import { BarChart3, BellRing, CalendarDays, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, QrCode, Settings, Utensils } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
@@ -21,6 +21,7 @@ const DeviceNotificationToggle = dynamic(
 type DashboardNavIconKey =
   | "overview"
   | "orders"
+  | "bookings"
   | "history"
   | "menu"
   | "tables"
@@ -39,6 +40,7 @@ const navItems: Array<{
 }> = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard, iconKey: "overview", permission: "viewOverview" },
   { href: "/dashboard/orders", label: "Orders", icon: ListOrdered, iconKey: "orders", permission: "viewOrders" },
+  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarDays, iconKey: "bookings", permission: "viewBookings" },
   { href: "/dashboard/order-history", label: "Order History", icon: History, iconKey: "history", permission: "viewOrderHistory" },
   { href: "/dashboard/menu", label: "Menu", icon: Utensils, iconKey: "menu", permission: "viewMenu" },
   { href: "/dashboard/tables", label: "Tables", icon: QrCode, iconKey: "tables", permission: "viewTables" },

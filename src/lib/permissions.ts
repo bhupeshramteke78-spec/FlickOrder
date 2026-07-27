@@ -17,7 +17,9 @@ export type Permission =
   | "viewBilling"
   | "manageBilling"
   | "viewKitchen"
-  | "viewWaiter";
+  | "viewWaiter"
+  | "viewBookings"
+  | "manageBookings";
 
 const rolePermissions: Record<MemberRole, Permission[]> = {
   OWNER: [
@@ -38,6 +40,8 @@ const rolePermissions: Record<MemberRole, Permission[]> = {
     "manageBilling",
     "viewKitchen",
     "viewWaiter",
+    "viewBookings",
+    "manageBookings",
   ],
   MANAGER: [
     "viewOverview",
@@ -55,9 +59,11 @@ const rolePermissions: Record<MemberRole, Permission[]> = {
     "manageSettings",
     "viewKitchen",
     "viewWaiter",
+    "viewBookings",
+    "manageBookings",
   ],
   KITCHEN: ["viewOrders", "acceptOrders", "viewKitchen"],
-  WAITER: ["viewOrders", "confirmPayments", "viewWaiter"],
+  WAITER: ["viewOrders", "confirmPayments", "viewWaiter", "viewBookings", "manageBookings"],
 };
 
 export function hasPermission(role: string | null | undefined, permission: Permission) {

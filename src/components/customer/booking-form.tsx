@@ -1,0 +1,150 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarDays, Clock3, Loader2, Phone, UserRound, Users } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatBookingTime, getBookingSlots, type BookingConfig } from "@/lib/bookings";
+
+type BookingFormProps = {
+  restaurantName: string;
+  restaurantSlug: string;
+  minDate: string;
+  maxDate: string;
+  maxPartySize: number;
+  bookingConfig: BookingConfig;
+};
+
+export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, maxPartySize, bookingConfig }: BookingFormProps) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [partySize, setPartySize] = useState(2);
+  const [bookingDate, setBookingDate] = useState(minDate);
+  const [bookingTime, setBookingTime] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [specialRequest, setSpecialRequest] = useState("");
+  const visiblePartySizes = useMemo(() => Array.from({ length: Math.min(maxPartySize, 10) }, (_, index) => index + 1), [maxPartySize]);
+  const slots = useMemo(() => getBookingSlots(bookingConfig, bookingDate), [bookingConfig, bookingDate]);
+
+  async function submitBooking(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!bookingTime) {
+      toast.error("Choose a booking time.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantSlug, customerName, customerPhone, partySize, bookingDate, bookingTime, specialRequest }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      bookingId?: string;
+      accessToken?: string;
+      statusUrl?: string;
+      confirmationCode?: string;
+    } | null;
+    setIsSubmitting(false);
+
+    if (!response.ok || !body?.bookingId || !body.accessToken || !body.statusUrl) {
+      toast.error(body?.error ?? "Unable to book the table.");
+      return;
+    }
+
+    saveBooking(body.bookingId, body.accessToken, restaurantName, body.confirmationCode ?? "");
+    toast.success("Booking request sent");
+    router.push(body.statusUrl);
+  }
+
+  return (
+    <form onSubmit={submitBooking} className="grid gap-6">
+      <section>
+        <p className="text-sm font-semibold text-zinc-950">How many guests?</p>
+        <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+          {visiblePartySizes.map((size) => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => setPartySize(size)}
+              className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border text-sm font-semibold transition ${
+                partySize === size ? "border-emerald-700 bg-emerald-700 text-white" : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
+              }`}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label>
+          <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><CalendarDays className="h-4 w-4 text-emerald-700" />Date</span>
+          <Input type="date" min={minDate} max={maxDate} required value={bookingDate} onChange={(event) => setBookingDate(event.target.value)} />
+        </label>
+        <div>
+          <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Clock3 className="h-4 w-4 text-emerald-700" />Time</span>
+          <div className="grid grid-cols-3 gap-2">
+            {slots.map((slot) => (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => setBookingTime(slot)}
+                className={`h-11 rounded-lg border px-2 text-sm font-semibold transition ${
+                  bookingTime === slot ? "border-emerald-700 bg-emerald-50 text-emerald-800" : "border-zinc-200 bg-white text-zinc-700 hover:border-emerald-300"
+                }`}
+              >
+                {formatBookingTime(slot)}
+              </button>
+            ))}
+          </div>
+          {slots.length === 0 ? <p className="mt-2 text-xs text-amber-700">No remaining slots on this date. Choose another day.</p> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label>
+          <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><UserRound className="h-4 w-4 text-emerald-700" />Your name</span>
+          <Input required minLength={2} value={customerName} onChange={(event) => setCustomerName(event.target.value)} placeholder="Name for the booking" />
+        </label>
+        <label>
+          <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Phone className="h-4 w-4 text-emerald-700" />Mobile number</span>
+          <Input required type="tel" minLength={7} value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Restaurant can contact you" />
+        </label>
+      </div>
+
+      <label>
+        <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Users className="h-4 w-4 text-emerald-700" />Special request <span className="font-normal text-zinc-400">(optional)</span></span>
+        <textarea
+          maxLength={500}
+          value={specialRequest}
+          onChange={(event) => setSpecialRequest(event.target.value)}
+          className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+          placeholder="High chair, accessibility, celebration, or seating preference"
+        />
+      </label>
+
+      <Button type="submit" className="h-12 w-full" disabled={isSubmitting}>
+        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+        Request this table
+      </Button>
+      <p className="text-center text-xs leading-5 text-zinc-500">The restaurant will confirm your request. No payment is collected for booking.</p>
+    </form>
+  );
+}
+
+function saveBooking(id: string, token: string, restaurantName: string, confirmationCode: string) {
+  try {
+    const key = "flickorder_guest_bookings";
+    const current = JSON.parse(window.localStorage.getItem(key) ?? "[]") as unknown;
+    const entries = Array.isArray(current) ? current : [];
+    window.localStorage.setItem(key, JSON.stringify([{ id, token, restaurantName, confirmationCode }, ...entries.filter((entry) => typeof entry !== "object" || entry === null || !("id" in entry) || entry.id !== id)].slice(0, 20)));
+  } catch {
+    // The booking link still works when storage is unavailable.
+  }
+}

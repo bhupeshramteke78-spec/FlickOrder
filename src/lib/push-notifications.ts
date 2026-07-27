@@ -16,6 +16,15 @@ type TableNotificationRow = {
   table_number: string | number | null;
 };
 
+type BookingNotification = {
+  id: string;
+  restaurantId: string;
+  customerName: string;
+  partySize: number;
+  bookingDate: string;
+  bookingTime: string;
+};
+
 let isConfigured = false;
 
 function configureWebPush() {
@@ -87,6 +96,55 @@ export async function notifyRestaurantNewOrder(
     body: `${orderNumber} - ${tableLabel} - ${customerName} - ${total}`,
     url: "/dashboard/orders",
     tag: `new-order-${order.id}`,
+  });
+
+  await Promise.allSettled(
+    subscriptions.map(async (subscription) => {
+      const pushSubscription: PushSubscription = {
+        endpoint: subscription.endpoint,
+        keys: {
+          p256dh: subscription.p256dh,
+          auth: subscription.auth,
+        },
+      };
+
+      try {
+        await webpush.sendNotification(pushSubscription, payload);
+      } catch (error) {
+        const statusCode = typeof error === "object" && error !== null && "statusCode" in error
+          ? Number((error as { statusCode?: number }).statusCode)
+          : null;
+
+        if (statusCode === 404 || statusCode === 410) {
+          await supabase.from("push_subscriptions").delete().eq("id", subscription.id);
+        }
+      }
+    }),
+  );
+}
+
+export async function notifyRestaurantNewBooking(
+  supabase: SupabaseClient<Database>,
+  booking: BookingNotification,
+) {
+  if (!configureWebPush()) {
+    return;
+  }
+
+  const { data: subscriptions } = await supabase
+    .from("push_subscriptions")
+    .select("id,endpoint,p256dh,auth")
+    .eq("restaurant_id", booking.restaurantId);
+
+  if (!subscriptions || subscriptions.length === 0) {
+    return;
+  }
+
+  const payload = JSON.stringify({
+    title: "New table booking",
+    body: `${booking.customerName} - ${booking.partySize} guests - ${booking.bookingDate} at ${booking.bookingTime}`,
+    url: "/dashboard/bookings",
+    tag: `new-booking-${booking.id}`,
   });
 
   await Promise.allSettled(

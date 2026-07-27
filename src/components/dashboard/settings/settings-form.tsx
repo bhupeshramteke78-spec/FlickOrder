@@ -38,6 +38,12 @@ export type SettingsFormState = {
     upiDisplayName: string;
     taxRate: string;
     qrOrderingEnabled: boolean;
+    bookingEnabled: boolean;
+    bookingSlotMinutes: string;
+    bookingDurationMinutes: string;
+    bookingAdvanceDays: string;
+    bookingMinNoticeMinutes: string;
+    bookingMaxPartySize: string;
     openingOpen: string;
     openingClose: string;
     showPopularFirst: boolean;
@@ -115,6 +121,12 @@ export function SettingsForm({
         upiDisplayName: form.settings.upiDisplayName,
         taxRate: Number(form.settings.taxRate),
         qrOrderingEnabled: form.settings.qrOrderingEnabled,
+        bookingEnabled: form.settings.bookingEnabled,
+        bookingSlotMinutes: Number(form.settings.bookingSlotMinutes),
+        bookingDurationMinutes: Number(form.settings.bookingDurationMinutes),
+        bookingAdvanceDays: Number(form.settings.bookingAdvanceDays),
+        bookingMinNoticeMinutes: Number(form.settings.bookingMinNoticeMinutes),
+        bookingMaxPartySize: Number(form.settings.bookingMaxPartySize),
         openingHours: {
           open: form.settings.openingOpen,
           close: form.settings.openingClose,
@@ -379,6 +391,38 @@ export function SettingsForm({
                 label={form.settings.qrOrderingEnabled ? "Enabled" : "Disabled"}
                 onChange={(checked) => updateSettings("qrOrderingEnabled", checked)}
               />
+            </Field>
+            <Field label="Online table booking" className="md:col-span-2">
+              <ToggleLabel
+                disabled={!isEditing}
+                checked={form.settings.bookingEnabled}
+                label={form.settings.bookingEnabled ? "Accepting online bookings" : "Online booking disabled"}
+                onChange={(checked) => updateSettings("bookingEnabled", checked)}
+              />
+            </Field>
+            <Field label="Booking slot interval">
+              <select
+                disabled={!isEditing}
+                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm disabled:bg-zinc-50"
+                value={form.settings.bookingSlotMinutes}
+                onChange={(event) => updateSettings("bookingSlotMinutes", event.target.value)}
+              >
+                <option value="15">Every 15 minutes</option>
+                <option value="30">Every 30 minutes</option>
+                <option value="60">Every 60 minutes</option>
+              </select>
+            </Field>
+            <Field label="Expected table duration">
+              <Input disabled={!isEditing} type="number" min={30} max={360} step={15} value={form.settings.bookingDurationMinutes} onChange={(event) => updateSettings("bookingDurationMinutes", event.target.value)} />
+            </Field>
+            <Field label="Advance booking window (days)">
+              <Input disabled={!isEditing} type="number" min={1} max={180} value={form.settings.bookingAdvanceDays} onChange={(event) => updateSettings("bookingAdvanceDays", event.target.value)} />
+            </Field>
+            <Field label="Minimum notice (minutes)">
+              <Input disabled={!isEditing} type="number" min={0} max={1440} step={15} value={form.settings.bookingMinNoticeMinutes} onChange={(event) => updateSettings("bookingMinNoticeMinutes", event.target.value)} />
+            </Field>
+            <Field label="Maximum online party size">
+              <Input disabled={!isEditing} type="number" min={1} max={100} value={form.settings.bookingMaxPartySize} onChange={(event) => updateSettings("bookingMaxPartySize", event.target.value)} />
             </Field>
             <Field label="Default food filter">
               <select
