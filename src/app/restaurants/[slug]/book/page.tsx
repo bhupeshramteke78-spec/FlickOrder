@@ -1,14 +1,27 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, MapPin, ShieldCheck, Table2 } from "lucide-react";
 import { BookingForm } from "@/components/customer/booking-form";
 import type { Json } from "@/lib/database.types";
 import { addDaysToDateString, defaultBookingConfig, getIndiaDateString, type BookingConfig } from "@/lib/bookings";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function BookRestaurantPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  if (!auth.user) {
+    redirect(`/auth/customer?mode=login&returnTo=${encodeURIComponent(`/restaurants/${slug}/book`)}`);
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name,phone")
+    .eq("id", auth.user.id)
+    .maybeSingle();
   const data = await getBookingRestaurant(slug);
   if (!data) notFound();
 
@@ -36,18 +49,20 @@ export default async function BookRestaurantPage({ params }: { params: Promise<{
         <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
           <p className="text-sm font-semibold text-emerald-700">Reserve your visit</p>
           <h2 className="mt-1 text-2xl font-semibold">Choose your table time</h2>
-          <p className="mt-2 text-sm leading-6 text-zinc-500">Send a real booking request to {data.name}. You can track confirmation from this device.</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-500">Send a real booking request to {data.name}. Confirmation and history stay connected to your account.</p>
           {!data.config.enabled ? (
             <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Online booking is not available for this restaurant right now.</div>
           ) : (
             <div className="mt-7">
               <BookingForm
-                restaurantName={data.name}
                 restaurantSlug={slug}
                 minDate={today}
                 maxDate={maxDate}
                 maxPartySize={Math.min(data.config.maxPartySize, data.maxTableSeats)}
                 bookingConfig={data.config}
+                initialCustomerName={profile?.full_name ?? ""}
+                initialCustomerPhone={profile?.phone ?? ""}
+                customerEmail={auth.user.email ?? ""}
               />
             </div>
           )}

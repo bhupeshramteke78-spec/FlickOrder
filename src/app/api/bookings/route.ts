@@ -46,7 +46,24 @@ export async function POST(request: Request) {
     );
   }
 
+  const serverClient = await createClient();
+  const { data: authData } = await serverClient.auth.getUser();
+
+  if (!authData.user) {
+    return NextResponse.json({ error: "Login or create a customer account to book a table." }, { status: 401 });
+  }
+
   const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", authData.user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    return NextResponse.json({ error: "Complete your customer account before booking." }, { status: 403 });
+  }
+
   const { data: restaurant, error: restaurantError } = await admin
     .from("restaurants")
     .select("id,name,slug,verification_status,deletion_requested_at,deleted_at")
@@ -75,15 +92,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: validationError }, { status: 422 });
   }
 
-  const serverClient = await createClient();
-  const { data: authData } = await serverClient.auth.getUser();
-  const customerId = authData.user?.id ?? null;
   const accessToken = randomBytes(32).toString("base64url");
   const accessTokenHash = hashAccessToken(accessToken);
 
   const { data: bookingResult, error: bookingError } = await admin.rpc("create_restaurant_booking", {
     p_restaurant_id: restaurant.id,
-    p_customer_id: customerId,
+    p_customer_id: authData.user.id,
     p_customer_name: payload.data.customerName,
     p_customer_phone: payload.data.customerPhone,
     p_party_size: payload.data.partySize,
@@ -135,8 +149,7 @@ export async function POST(request: Request) {
     {
       bookingId: booking.booking_id,
       confirmationCode: booking.confirmation_code,
-      accessToken,
-      statusUrl: `/bookings/${booking.booking_id}?token=${encodeURIComponent(accessToken)}`,
+      statusUrl: `/bookings/${booking.booking_id}`,
     },
     { status: 201 },
   );

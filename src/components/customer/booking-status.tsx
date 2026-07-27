@@ -29,12 +29,12 @@ type BookingResponse = {
   } | null;
 };
 
-export function BookingStatus({ bookingId, token }: { bookingId: string; token: string }) {
+export function BookingStatus({ bookingId }: { bookingId: string }) {
   const [data, setData] = useState<BookingResponse | null>(null);
   const [error, setError] = useState("");
 
   const loadBooking = useCallback(async () => {
-    const response = await fetch(`/api/bookings/${bookingId}?token=${encodeURIComponent(token)}`, { cache: "no-store" });
+    const response = await fetch(`/api/bookings/${bookingId}`, { cache: "no-store" });
     const body = (await response.json().catch(() => null)) as BookingResponse & { error?: string };
     if (!response.ok) {
       setError(body?.error ?? "Unable to load this booking.");
@@ -42,7 +42,7 @@ export function BookingStatus({ bookingId, token }: { bookingId: string; token: 
     }
     setData(body);
     setError("");
-  }, [bookingId, token]);
+  }, [bookingId]);
 
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void loadBooking(), 0);

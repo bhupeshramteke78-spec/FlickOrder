@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { hasPermission } from "@/lib/permissions";
@@ -12,12 +11,18 @@ const paramsSchema = z.object({
   bookingId: z.string().uuid(),
 });
 
-export async function GET(request: Request, { params }: { params: Promise<{ bookingId: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ bookingId: string }> }) {
   const parsedParams = paramsSchema.safeParse(await params);
-  const token = new URL(request.url).searchParams.get("token");
 
-  if (!parsedParams.success || !token) {
-    return NextResponse.json({ error: "A valid booking link is required." }, { status: 422 });
+  if (!parsedParams.success) {
+    return NextResponse.json({ error: "A valid booking id is required." }, { status: 422 });
+  }
+
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+
+  if (!auth.user) {
+    return NextResponse.json({ error: "Login to view this booking." }, { status: 401 });
   }
 
   const admin = createAdminClient();
@@ -27,7 +32,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ book
       "id,restaurant_id,table_id,customer_name,party_size,booking_date,booking_time,duration_minutes,special_request,status,confirmation_code,access_token_hash,decline_reason,created_at,updated_at",
     )
     .eq("id", parsedParams.data.bookingId)
-    .eq("access_token_hash", hashAccessToken(token))
+    .eq("customer_id", auth.user.id)
     .maybeSingle();
 
   if (error || !booking) {
@@ -146,8 +151,4 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ bo
   });
 
   return NextResponse.json({ ok: true });
-}
-
-function hashAccessToken(value: string) {
-  return createHash("sha256").update(value).digest("hex");
 }

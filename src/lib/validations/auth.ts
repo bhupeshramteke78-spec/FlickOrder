@@ -32,5 +32,13 @@ export const loginSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
+export const customerRegistrationSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  phone: z.string().trim().min(7).max(20),
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(128),
+});
+
 export type RestaurantRegistrationInput = z.infer<typeof restaurantRegistrationSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type CustomerRegistrationInput = z.infer<typeof customerRegistrationSchema>;

@@ -2,29 +2,40 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock3, Loader2, Phone, UserRound, Users } from "lucide-react";
+import { CalendarDays, Clock3, Loader2, Mail, Phone, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatBookingTime, getBookingSlots, type BookingConfig } from "@/lib/bookings";
 
 type BookingFormProps = {
-  restaurantName: string;
   restaurantSlug: string;
   minDate: string;
   maxDate: string;
   maxPartySize: number;
   bookingConfig: BookingConfig;
+  initialCustomerName: string;
+  initialCustomerPhone: string;
+  customerEmail: string;
 };
 
-export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, maxPartySize, bookingConfig }: BookingFormProps) {
+export function BookingForm({
+  restaurantSlug,
+  minDate,
+  maxDate,
+  maxPartySize,
+  bookingConfig,
+  initialCustomerName,
+  initialCustomerPhone,
+  customerEmail,
+}: BookingFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [partySize, setPartySize] = useState(2);
   const [bookingDate, setBookingDate] = useState(minDate);
   const [bookingTime, setBookingTime] = useState("");
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerName, setCustomerName] = useState(initialCustomerName);
+  const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
   const [specialRequest, setSpecialRequest] = useState("");
   const visiblePartySizes = useMemo(() => Array.from({ length: Math.min(maxPartySize, 10) }, (_, index) => index + 1), [maxPartySize]);
   const slots = useMemo(() => getBookingSlots(bookingConfig, bookingDate), [bookingConfig, bookingDate]);
@@ -38,28 +49,36 @@ export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, 
     }
 
     setIsSubmitting(true);
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restaurantSlug, customerName, customerPhone, partySize, bookingDate, bookingTime, specialRequest }),
-    });
-    const body = (await response.json().catch(() => null)) as {
-      error?: string;
-      bookingId?: string;
-      accessToken?: string;
-      statusUrl?: string;
-      confirmationCode?: string;
-    } | null;
-    setIsSubmitting(false);
 
-    if (!response.ok || !body?.bookingId || !body.accessToken || !body.statusUrl) {
-      toast.error(body?.error ?? "Unable to book the table.");
-      return;
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurantSlug, customerName, customerPhone, partySize, bookingDate, bookingTime, specialRequest }),
+      });
+      const body = (await response.json().catch(() => null)) as {
+        error?: string;
+        bookingId?: string;
+        statusUrl?: string;
+        confirmationCode?: string;
+      } | null;
+
+      if (!response.ok || !body?.bookingId || !body.statusUrl) {
+        if (response.status === 401) {
+          router.push(`/auth/customer?mode=login&returnTo=${encodeURIComponent(`/restaurants/${restaurantSlug}/book`)}`);
+          return;
+        }
+        toast.error(body?.error ?? "Unable to book the table.");
+        return;
+      }
+
+      toast.success("Your table reservation request has been submitted successfully.");
+      router.push(body.statusUrl);
+    } catch {
+      toast.error("Unable to reach FlickOrder. Check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    saveBooking(body.bookingId, body.accessToken, restaurantName, body.confirmationCode ?? "");
-    toast.success("Booking request sent");
-    router.push(body.statusUrl);
   }
 
   return (
@@ -85,7 +104,17 @@ export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, 
       <div className="grid gap-4 sm:grid-cols-2">
         <label>
           <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><CalendarDays className="h-4 w-4 text-emerald-700" />Date</span>
-          <Input type="date" min={minDate} max={maxDate} required value={bookingDate} onChange={(event) => setBookingDate(event.target.value)} />
+          <Input
+            type="date"
+            min={minDate}
+            max={maxDate}
+            required
+            value={bookingDate}
+            onChange={(event) => {
+              setBookingDate(event.target.value);
+              setBookingTime("");
+            }}
+          />
         </label>
         <div>
           <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Clock3 className="h-4 w-4 text-emerald-700" />Time</span>
@@ -119,6 +148,21 @@ export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, 
       </div>
 
       <label>
+        <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold">
+          <Mail className="h-4 w-4 text-emerald-700" />
+          Account email
+        </span>
+        <Input
+          type="email"
+          value={customerEmail}
+          readOnly
+          aria-readonly="true"
+          className="cursor-not-allowed bg-zinc-50 text-zinc-600"
+        />
+        <span className="mt-1.5 block text-xs text-zinc-500">This comes from your signed-in FlickOrder account.</span>
+      </label>
+
+      <label>
         <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Users className="h-4 w-4 text-emerald-700" />Special request <span className="font-normal text-zinc-400">(optional)</span></span>
         <textarea
           maxLength={500}
@@ -136,15 +180,4 @@ export function BookingForm({ restaurantName, restaurantSlug, minDate, maxDate, 
       <p className="text-center text-xs leading-5 text-zinc-500">The restaurant will confirm your request. No payment is collected for booking.</p>
     </form>
   );
-}
-
-function saveBooking(id: string, token: string, restaurantName: string, confirmationCode: string) {
-  try {
-    const key = "flickorder_guest_bookings";
-    const current = JSON.parse(window.localStorage.getItem(key) ?? "[]") as unknown;
-    const entries = Array.isArray(current) ? current : [];
-    window.localStorage.setItem(key, JSON.stringify([{ id, token, restaurantName, confirmationCode }, ...entries.filter((entry) => typeof entry !== "object" || entry === null || !("id" in entry) || entry.id !== id)].slice(0, 20)));
-  } catch {
-    // The booking link still works when storage is unavailable.
-  }
 }
