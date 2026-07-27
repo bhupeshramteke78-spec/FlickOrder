@@ -173,7 +173,7 @@ begin
     raise exception 'No table is available for this time and party size';
   end if;
 
-  generated_code := 'FOB-' || upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+  generated_code := 'FOB-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8));
 
   insert into public.restaurant_bookings (
     restaurant_id,
