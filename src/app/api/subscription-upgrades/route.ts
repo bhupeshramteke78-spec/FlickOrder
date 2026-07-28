@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getPaidSubscriptionPlan, type PaidSubscriptionPlan } from "@/lib/billing-plans";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
+import { createManualSubscriptionPayment } from "@/lib/manual-subscription-payment";
 import { hasPermission } from "@/lib/permissions";
-import { createRazorpayOrder, getRazorpayConfig } from "@/lib/razorpay";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -29,6 +30,16 @@ type MembershipResult =
     };
 
 export async function POST(request: Request) {
+  const rateLimitResponse = await enforceRateLimit(request, {
+    keyPrefix: "subscription-upgrade-create",
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   let body: unknown;
 
   try {
@@ -49,15 +60,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   }
 
-  const razorpay = getRazorpayConfig();
-
-  if (!razorpay) {
-    return NextResponse.json(
-      { error: "Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET on the server." },
-      { status: 500 },
-    );
-  }
-
   const membership = await getOwnerOrManagerMembership();
 
   if (membership.error) {
@@ -76,46 +78,42 @@ export async function POST(request: Request) {
 
   const { data: existingRequest } = await admin
     .from("subscription_upgrade_requests")
-    .select("id,plan,amount,status,transaction_note,razorpay_order_id,created_at")
+    .select("id,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .eq("restaurant_id", membership.restaurantId)
-    .eq("status", "PENDING_PAYMENT")
+    .in("status", ["PENDING_PAYMENT", "VERIFICATION_PENDING"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (existingRequest) {
+    const payment = createManualSubscriptionPayment({
+      amount: Number(existingRequest.amount),
+      transactionNote: existingRequest.transaction_note,
+    });
+
+    if (!payment) {
+      return NextResponse.json(
+        { error: "Manual UPI subscription payments are not configured." },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json({
       request: toUpgradeRequestView(existingRequest),
-      razorpay: existingRequest.razorpay_order_id
-        ? {
-            keyId: razorpay.keyId,
-            orderId: existingRequest.razorpay_order_id,
-            amount: Math.round(Number(existingRequest.amount) * 100),
-            currency: "INR",
-            name: "FlickOrder",
-            description: `${getPaidSubscriptionPlan(existingRequest.plan)?.name ?? "Restaurant"} subscription`,
-          }
-        : null,
+      payment,
     });
   }
 
-  const transactionNote = `FlickOrder ${plan.name} ${membership.restaurantName} ${Date.now()}`;
-  let razorpayOrder: Awaited<ReturnType<typeof createRazorpayOrder>>;
+  const transactionNote = `FO-SUB-${membership.restaurantId.slice(0, 8).toUpperCase()}-${Date.now()}`;
+  const payment = createManualSubscriptionPayment({
+    amount: plan.price,
+    transactionNote,
+  });
 
-  try {
-    razorpayOrder = await createRazorpayOrder({
-      amount: plan.price,
-      receipt: `fo_${membership.restaurantId.slice(0, 8)}_${Date.now()}`.slice(0, 40),
-      notes: {
-        restaurant_id: membership.restaurantId,
-        restaurant_name: membership.restaurantName,
-        plan: plan.id,
-      },
-    });
-  } catch (error) {
+  if (!payment) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to create Razorpay order." },
-      { status: 502 },
+      { error: "Manual UPI subscription payments are not configured." },
+      { status: 503 },
     );
   }
 
@@ -126,12 +124,11 @@ export async function POST(request: Request) {
       requested_by: membership.userId,
       plan: plan.id,
       amount: plan.price,
-      payment_method: "RAZORPAY",
-      gateway: "RAZORPAY",
-      razorpay_order_id: razorpayOrder.id,
+      payment_method: "UPI",
+      gateway: "MANUAL_UPI",
       transaction_note: transactionNote,
     })
-    .select("id,plan,amount,status,transaction_note,razorpay_order_id,created_at")
+    .select("id,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .single();
 
   if (error || !upgradeRequest) {
@@ -140,14 +137,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     request: toUpgradeRequestView(upgradeRequest),
-    razorpay: {
-      keyId: razorpay.keyId,
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      name: "FlickOrder",
-      description: `${plan.name} subscription`,
-    },
+    payment,
   }, { status: 201 });
 }
 
@@ -190,7 +180,8 @@ function toUpgradeRequestView(request: {
   amount: number;
   status: string;
   transaction_note: string;
-  razorpay_order_id?: string | null;
+  transaction_id?: string | null;
+  payment_submitted_at?: string | null;
   created_at: string;
 }) {
   return {
@@ -199,7 +190,8 @@ function toUpgradeRequestView(request: {
     amount: Number(request.amount),
     status: request.status,
     transactionNote: request.transaction_note,
-    razorpayOrderId: request.razorpay_order_id ?? null,
+    transactionId: request.transaction_id ?? null,
+    paymentSubmittedAt: request.payment_submitted_at ?? null,
     createdAt: request.created_at,
   };
 }

@@ -76,7 +76,7 @@ const faqs = [
   },
   {
     question: "How do subscription upgrades work?",
-    answer: "Restaurant subscriptions use Razorpay checkout. FlickOrder activates the plan only after server-side payment verification.",
+    answer: "Restaurant subscriptions use a prefilled UPI payment link. FlickOrder activates the selected plan only after the super admin verifies the submitted transaction ID.",
   },
 ];
 

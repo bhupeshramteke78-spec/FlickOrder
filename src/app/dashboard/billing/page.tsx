@@ -278,9 +278,9 @@ async function getPendingUpgradeRequest(): Promise<SubscriptionUpgradeRequestVie
 
   const { data: request } = await supabase
     .from("subscription_upgrade_requests")
-    .select("id,plan,amount,status,transaction_note,razorpay_order_id,created_at")
+    .select("id,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .eq("restaurant_id", context.selected.restaurantId)
-    .eq("status", "PENDING_PAYMENT")
+    .in("status", ["PENDING_PAYMENT", "VERIFICATION_PENDING"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -295,7 +295,8 @@ async function getPendingUpgradeRequest(): Promise<SubscriptionUpgradeRequestVie
     amount: Number(request.amount),
     status: request.status,
     transactionNote: request.transaction_note,
-    razorpayOrderId: request.razorpay_order_id ?? null,
+    transactionId: request.transaction_id ?? null,
+    paymentSubmittedAt: request.payment_submitted_at ?? null,
     createdAt: request.created_at,
   };
 }

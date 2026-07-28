@@ -130,7 +130,7 @@ const legalPages: Record<string, LegalPage> = {
         heading: "Payments",
         body: [
           "Customer payment flows may depend on UPI apps, banking networks, device support, and restaurant payment settings.",
-          "Restaurant subscription payments may depend on Razorpay, bank processing, and successful server-side verification.",
+          "Restaurant subscription payments use UPI and activate only after the submitted transaction is manually verified by FlickOrder.",
         ],
       },
       {

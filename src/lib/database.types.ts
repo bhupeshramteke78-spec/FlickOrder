@@ -200,6 +200,9 @@ export type Database = {
           razorpay_payment_id: string | null;
           razorpay_signature: string | null;
           paid_at: string | null;
+          payment_submitted_at: string | null;
+          rejection_reason: string | null;
+          transaction_id: string | null;
           transaction_note: string;
           verified_by: string | null;
           verified_at: string | null;
@@ -216,6 +219,9 @@ export type Database = {
           razorpay_payment_id?: string | null;
           razorpay_signature?: string | null;
           paid_at?: string | null;
+          payment_submitted_at?: string | null;
+          rejection_reason?: string | null;
+          transaction_id?: string | null;
           transaction_note: string;
           verified_by?: string | null;
           verified_at?: string | null;
@@ -232,6 +238,9 @@ export type Database = {
           razorpay_payment_id: string | null;
           razorpay_signature: string | null;
           paid_at: string | null;
+          payment_submitted_at: string | null;
+          rejection_reason: string | null;
+          transaction_id: string | null;
           transaction_note: string;
           verified_by: string | null;
           verified_at: string | null;

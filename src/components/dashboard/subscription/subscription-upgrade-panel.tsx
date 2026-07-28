@@ -1,38 +1,16 @@
-﻿"use client";
+"use client";
 
-import { Check, Loader2, ShieldCheck } from "lucide-react";
+import { Check, ExternalLink, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { PaidSubscriptionPlan, SubscriptionPlanDetails } from "@/lib/billing-plans";
-import { formatCurrency } from "@/lib/utils";
-
-type RazorpayCheckoutResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
-
-type RazorpayCheckoutOptions = {
-  key: string;
-  amount: number;
-  currency: "INR";
-  name: string;
-  description: string;
-  order_id: string;
-  handler: (response: RazorpayCheckoutResponse) => void;
-  theme?: { color?: string };
-  modal?: { ondismiss?: () => void };
-};
-
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayCheckoutOptions) => { open: () => void };
-  }
-}
+import { cn, formatCurrency } from "@/lib/utils";
 
 export type SubscriptionUpgradeRequestView = {
   id: string;
@@ -40,22 +18,21 @@ export type SubscriptionUpgradeRequestView = {
   amount: number;
   status: "PENDING_PAYMENT" | "VERIFICATION_PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
   transactionNote: string;
-  razorpayOrderId: string | null;
+  transactionId: string | null;
+  paymentSubmittedAt: string | null;
   createdAt: string;
 };
 
-type RazorpayOrderView = {
-  keyId: string;
-  orderId: string;
+type ManualPaymentView = {
+  upiUrl: string;
+  payeeName: string;
   amount: number;
-  currency: "INR";
-  name: string;
-  description: string;
+  transactionNote: string;
 };
 
 type UpgradeCreateResponse = {
   request?: SubscriptionUpgradeRequestView;
-  razorpay?: RazorpayOrderView | null;
+  payment?: ManualPaymentView;
   error?: string;
 };
 
@@ -68,8 +45,10 @@ type SubscriptionUpgradePanelProps = {
 export function SubscriptionUpgradePanel({ plans, currentPlan, pendingRequest }: SubscriptionUpgradePanelProps) {
   const router = useRouter();
   const [selectedRequest, setSelectedRequest] = useState(pendingRequest);
+  const [payment, setPayment] = useState<ManualPaymentView | null>(null);
+  const [transactionId, setTransactionId] = useState("");
   const [loadingPlan, setLoadingPlan] = useState<PaidSubscriptionPlan | null>(null);
-  const [verifyingRequestId, setVerifyingRequestId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const activeRequest = selectedRequest;
   const requestedPlan = useMemo(
     () => plans.find((plan) => plan.id === activeRequest?.plan) ?? null,
@@ -78,121 +57,158 @@ export function SubscriptionUpgradePanel({ plans, currentPlan, pendingRequest }:
 
   async function requestUpgrade(plan: PaidSubscriptionPlan) {
     setLoadingPlan(plan);
-
     const response = await fetch("/api/subscription-upgrades", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ plan }),
     });
     const body = (await response.json().catch(() => null)) as UpgradeCreateResponse | null;
-
     setLoadingPlan(null);
 
-    if (!response.ok || !body?.request || !body.razorpay) {
-      toast.error(body?.error ?? "Unable to start Razorpay payment.");
+    if (!response.ok || !body?.request || !body.payment) {
+      toast.error(body?.error ?? "Unable to create the UPI payment request.");
       return;
     }
 
     setSelectedRequest(body.request);
-    await openRazorpayCheckout(body.request, body.razorpay);
+    setPayment(body.payment);
   }
 
-  async function openRazorpayCheckout(request: SubscriptionUpgradeRequestView, razorpay: RazorpayOrderView) {
-    const scriptReady = await loadRazorpayScript();
-
-    if (!scriptReady || !window.Razorpay) {
-      toast.error("Razorpay checkout could not load. Please check your connection and try again.");
+  async function submitPayment() {
+    if (!activeRequest) {
       return;
     }
 
-    const checkout = new window.Razorpay({
-      key: razorpay.keyId,
-      amount: razorpay.amount,
-      currency: razorpay.currency,
-      name: razorpay.name,
-      description: razorpay.description,
-      order_id: razorpay.orderId,
-      theme: { color: "#059669" },
-      modal: {
-        ondismiss: () => {
-          toast.message("Payment paused. You can continue this payment anytime from Subscription.");
-        },
-      },
-      handler: (payment) => {
-        void verifyPayment(request.id, payment);
-      },
-    });
-
-    checkout.open();
-  }
-
-  async function verifyPayment(requestId: string, payment: RazorpayCheckoutResponse) {
-    setVerifyingRequestId(requestId);
-    const response = await fetch(`/api/subscription-upgrades/${requestId}`, {
+    setIsSubmitting(true);
+    const response = await fetch(`/api/subscription-upgrades/${activeRequest.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "VERIFY_RAZORPAY",
-        razorpayOrderId: payment.razorpay_order_id,
-        razorpayPaymentId: payment.razorpay_payment_id,
-        razorpaySignature: payment.razorpay_signature,
+        action: "SUBMIT_MANUAL_PAYMENT",
+        transactionId,
       }),
     });
-    const body = (await response.json().catch(() => null)) as { error?: string } | null;
-    setVerifyingRequestId(null);
+    const body = (await response.json().catch(() => null)) as {
+      request?: SubscriptionUpgradeRequestView;
+      error?: string;
+    } | null;
+    setIsSubmitting(false);
 
-    if (!response.ok) {
-      toast.error(body?.error ?? "Payment verification failed.");
+    if (!response.ok || !body?.request) {
+      toast.error(body?.error ?? "Unable to submit payment for verification.");
       return;
     }
 
-    setSelectedRequest(null);
-    toast.success("Payment verified. Subscription activated.");
+    setSelectedRequest(body.request);
+    setPayment(null);
+    setTransactionId("");
+    toast.success("Payment submitted. Your plan will activate after FlickOrder verifies the transaction.");
     router.refresh();
   }
+
+  const requestIsOpen = activeRequest?.status === "PENDING_PAYMENT";
+  const requestIsUnderReview = activeRequest?.status === "VERIFICATION_PENDING";
 
   return (
     <Card className="overflow-hidden p-0">
       <div className="border-b border-zinc-200 bg-zinc-50 p-5">
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Upgrade subscription</p>
-            <h3 className="mt-2 text-2xl font-semibold text-zinc-950">Choose a plan and pay securely</h3>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
-              FlickOrder creates the payment order on the server and activates the plan only after Razorpay signature verification.
-            </p>
-          </div>
-        </div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Subscription plans</p>
+        <h3 className="mt-2 text-2xl font-semibold text-zinc-950">Choose a plan and pay through UPI</h3>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+          The payment link fills the exact plan amount automatically. Your subscription activates only after FlickOrder
+          verifies the UPI transaction.
+        </p>
       </div>
 
-      {activeRequest && activeRequest.status === "PENDING_PAYMENT" ? (
-        <div className="border-b border-amber-200 bg-amber-50 p-5">
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+      {requestIsUnderReview ? (
+        <div className="border-b border-emerald-200 bg-emerald-50 p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Badge tone="danger" className="border-emerald-200 bg-emerald-100 text-emerald-900">
+                Verification pending
+              </Badge>
+              <p className="mt-3 font-semibold text-zinc-950">
+                {requestedPlan?.name ?? activeRequest.plan} · {formatCurrency(activeRequest.amount)}
+              </p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Transaction ID: <span className="font-semibold text-zinc-900">{activeRequest.transactionId}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+              <ShieldCheck className="h-5 w-5" />
+              Waiting for FlickOrder approval
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {requestIsOpen ? (
+        <div className="border-b border-amber-200 bg-amber-50 p-5">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
                 <Badge tone="danger" className="border-amber-200 bg-amber-100 text-amber-900">
                   Payment pending
                 </Badge>
-                {requestedPlan ? (
-                  <span className="text-sm font-semibold text-zinc-900">
-                    {requestedPlan.name} · {formatCurrency(activeRequest.amount)}
-                  </span>
-                ) : null}
+                <p className="mt-3 font-semibold text-zinc-950">
+                  {requestedPlan?.name ?? activeRequest.plan} · {formatCurrency(activeRequest.amount)}
+                </p>
               </div>
-              <p className="text-sm text-zinc-600">Complete the Razorpay checkout to activate this subscription.</p>
+              {!payment ? (
+                <Button
+                  type="button"
+                  disabled={loadingPlan !== null}
+                  onClick={() => requestUpgrade(activeRequest.plan)}
+                >
+                  {loadingPlan === activeRequest.plan ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  Show payment details
+                </Button>
+              ) : null}
             </div>
-            <Button
-              type="button"
-              disabled={loadingPlan !== null || verifyingRequestId !== null}
-              onClick={() => requestUpgrade(activeRequest.plan)}
-            >
-              {loadingPlan === activeRequest.plan || verifyingRequestId === activeRequest.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="h-4 w-4" />
-              )}
-              Continue payment
-            </Button>
+
+            {payment ? (
+              <div className="grid gap-5 rounded-xl border border-amber-200 bg-white p-4 lg:grid-cols-[auto_1fr]">
+                <div className="mx-auto rounded-lg border border-zinc-200 bg-white p-2 lg:mx-0">
+                  <QRCodeCanvas value={payment.upiUrl} size={164} includeMargin aria-label="Subscription payment QR code" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-500">Paying to</p>
+                  <p className="mt-1 font-semibold text-zinc-950">{payment.payeeName}</p>
+                  <p className="mt-3 text-sm text-zinc-500">Amount</p>
+                  <p className="mt-1 text-2xl font-bold text-zinc-950">{formatCurrency(payment.amount)}</p>
+                  <p className="mt-2 break-all text-xs text-zinc-500">Reference: {payment.transactionNote}</p>
+                  <a
+                    href={payment.upiUrl}
+                    className={cn(buttonVariants({ variant: "primary" }), "mt-4 w-full sm:w-auto")}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open UPI app
+                  </a>
+                </div>
+                <div className="lg:col-span-2">
+                  <label htmlFor="subscription-transaction-id" className="text-sm font-semibold text-zinc-900">
+                    UPI transaction ID
+                  </label>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Complete the payment first, then enter the transaction ID shown by your UPI app.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+                    <Input
+                      id="subscription-transaction-id"
+                      value={transactionId}
+                      onChange={(event) => setTransactionId(event.target.value)}
+                      placeholder="Enter UPI transaction ID"
+                      autoComplete="off"
+                      maxLength={64}
+                    />
+                    <Button type="button" disabled={isSubmitting || transactionId.trim().length < 6} onClick={submitPayment}>
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Submit for verification
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -200,7 +216,7 @@ export function SubscriptionUpgradePanel({ plans, currentPlan, pendingRequest }:
       <div className="grid gap-4 p-5 lg:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = currentPlan === plan.id;
-          const isBlocked = Boolean(activeRequest && activeRequest.status === "PENDING_PAYMENT");
+          const isBlocked = requestIsOpen || requestIsUnderReview;
 
           return (
             <div key={plan.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
@@ -226,11 +242,11 @@ export function SubscriptionUpgradePanel({ plans, currentPlan, pendingRequest }:
               <Button
                 type="button"
                 className="mt-6 w-full"
-                disabled={isCurrent || isBlocked || loadingPlan !== null || verifyingRequestId !== null}
+                disabled={isCurrent || isBlocked || loadingPlan !== null}
                 onClick={() => requestUpgrade(plan.id)}
               >
                 {loadingPlan === plan.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                {isCurrent ? "Current plan" : `Upgrade to ${plan.name}`}
+                {isCurrent ? "Current plan" : `Choose ${plan.name}`}
               </Button>
             </div>
           );
@@ -238,28 +254,4 @@ export function SubscriptionUpgradePanel({ plans, currentPlan, pendingRequest }:
       </div>
     </Card>
   );
-}
-
-function loadRazorpayScript() {
-  return new Promise<boolean>((resolve) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-
-    const existingScript = document.querySelector<HTMLScriptElement>("script[src='https://checkout.razorpay.com/v1/checkout.js']");
-
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(true), { once: true });
-      existingScript.addEventListener("error", () => resolve(false), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
 }

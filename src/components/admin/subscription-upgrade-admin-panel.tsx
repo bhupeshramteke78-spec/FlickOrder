@@ -17,6 +17,8 @@ export type AdminSubscriptionUpgradeRequest = {
   amount: number;
   status: string;
   transactionNote: string;
+  transactionId: string | null;
+  paymentSubmittedAt: string | null;
   createdAt: string;
 };
 
@@ -49,7 +51,7 @@ export function SubscriptionUpgradeAdminPanel({ requests }: { requests: AdminSub
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Subscription requests</p>
           <h2 className="mt-2 text-2xl font-semibold text-zinc-950">Manual verification queue</h2>
-          <p className="mt-2 text-sm text-zinc-500">Razorpay payments activate automatically after signature verification.</p>
+          <p className="mt-2 text-sm text-zinc-500">Verify the UPI transaction in your payment account before approving a plan.</p>
         </div>
         <Badge tone="danger" className="w-fit border-emerald-100 bg-emerald-50 text-emerald-800">
           {requests.length} pending
@@ -74,6 +76,9 @@ export function SubscriptionUpgradeAdminPanel({ requests }: { requests: AdminSub
                     <span className="font-semibold text-emerald-700">{formatCurrency(request.amount)}</span>
                   </p>
                   <p className="mt-1 break-words text-sm text-zinc-500">Transaction note: {request.transactionNote}</p>
+                  <p className="mt-1 break-words text-sm text-zinc-500">
+                    UPI transaction ID: <span className="font-semibold text-zinc-900">{request.transactionId ?? "Not submitted"}</span>
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button type="button" disabled={loadingRequestId !== null} onClick={() => updateRequest(request.id, "APPROVE")}>
@@ -91,7 +96,7 @@ export function SubscriptionUpgradeAdminPanel({ requests }: { requests: AdminSub
         ) : (
           <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 px-5 py-10 text-center">
             <p className="text-sm font-semibold text-zinc-900">No manual subscription payments waiting.</p>
-            <p className="mt-2 text-sm text-zinc-500">Razorpay subscription payments are verified automatically by the server.</p>
+            <p className="mt-2 text-sm text-zinc-500">Submitted UPI payments will appear here for verification.</p>
           </div>
         )}
       </div>

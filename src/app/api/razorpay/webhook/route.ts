@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
+import { isManualSubscriptionPaymentEnabled } from "@/lib/manual-subscription-payment";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
+  if (isManualSubscriptionPaymentEnabled()) {
+    return NextResponse.json({ error: "Razorpay subscription payments are disabled." }, { status: 404 });
+  }
+
   const signature = request.headers.get("x-razorpay-signature");
   const rawBody = await request.text();
 

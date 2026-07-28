@@ -32,6 +32,8 @@ export type SuperAdminSubscriptionRequest = {
   amount: number;
   status: string;
   transactionNote: string;
+  transactionId: string | null;
+  paymentSubmittedAt: string | null;
   createdAt: string;
 };
 
@@ -415,6 +417,16 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
                           <span>Amount: <b className="text-emerald-700">{formatCurrency(request.amount)}</b></span>
                         </div>
                         <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-zinc-500">Transaction note: {request.transactionNote}</p>
+                        <div className="mt-2 grid gap-2 text-sm text-zinc-600 sm:grid-cols-2">
+                          <span>
+                            UPI transaction ID:{" "}
+                            <b className="break-all text-zinc-950">{request.transactionId ?? "Not submitted"}</b>
+                          </span>
+                          <span>
+                            Submitted:{" "}
+                            <b className="text-zinc-950">{formatDate(request.paymentSubmittedAt ?? request.createdAt)}</b>
+                          </span>
+                        </div>
                       </div>
                       <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
                         <Button type="button" disabled={loadingId !== null} onClick={() => reviewRequest(request.id, "APPROVE")}>

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getPaidSubscriptionPlan, type PaidSubscriptionPlan } from "@/lib/billing-plans";
 import { hasPermission } from "@/lib/permissions";
-import { verifyRazorpaySignature } from "@/lib/razorpay";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSuperAdminUnlocked } from "@/lib/super-admin";
@@ -13,16 +13,28 @@ const paramsSchema = z.object({
 });
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
-    action: z.literal("VERIFY_RAZORPAY"),
-    razorpayOrderId: z.string().min(1),
-    razorpayPaymentId: z.string().min(1),
-    razorpaySignature: z.string().min(1),
+    action: z.literal("SUBMIT_MANUAL_PAYMENT"),
+    transactionId: z
+      .string()
+      .trim()
+      .min(6, "Enter a valid UPI transaction ID.")
+      .max(64, "UPI transaction ID is too long.")
+      .regex(/^[a-zA-Z0-9-]+$/, "Use only letters, numbers, and hyphens."),
   }),
-  z.object({ action: z.literal("MARK_PAID") }),
   z.object({ action: z.enum(["APPROVE", "REJECT"]) }),
 ]);
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ requestId: string }> }) {
+  const rateLimitResponse = await enforceRateLimit(request, {
+    keyPrefix: "subscription-upgrade-update",
+    limit: 20,
+    windowMs: 60 * 60 * 1000,
+  });
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const parsedParams = paramsSchema.safeParse(await params);
 
   if (!parsedParams.success) {
@@ -43,25 +55,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
     return NextResponse.json({ error: "Invalid subscription action." }, { status: 422 });
   }
 
-  if (payload.data.action === "VERIFY_RAZORPAY") {
-    return verifyRazorpayPayment(parsedParams.data.requestId, payload.data);
-  }
-
-  if (payload.data.action === "MARK_PAID") {
-    return markPaid(parsedParams.data.requestId);
+  if (payload.data.action === "SUBMIT_MANUAL_PAYMENT") {
+    return submitManualPayment(parsedParams.data.requestId, payload.data.transactionId);
   }
 
   return reviewRequest(parsedParams.data.requestId, payload.data.action);
 }
 
-async function verifyRazorpayPayment(
-  requestId: string,
-  payload: {
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  },
-) {
+async function submitManualPayment(requestId: string, transactionId: string) {
   const supabase = await createClient();
   const { data: userResult } = await supabase.auth.getUser();
 
@@ -71,7 +72,7 @@ async function verifyRazorpayPayment(
 
   const { data: upgradeRequest } = await supabase
     .from("subscription_upgrade_requests")
-    .select("id,restaurant_id,plan,amount,status,transaction_note,razorpay_order_id,created_at")
+    .select("id,restaurant_id,plan,amount,status,payment_method,transaction_note,created_at")
     .eq("id", requestId)
     .maybeSingle();
 
@@ -91,83 +92,47 @@ async function verifyRazorpayPayment(
   }
 
   if (upgradeRequest.status !== "PENDING_PAYMENT") {
-    return NextResponse.json({ error: "Only pending payment requests can be verified." }, { status: 409 });
+    return NextResponse.json({ error: "Only pending payment requests can be submitted." }, { status: 409 });
   }
 
-  if (!upgradeRequest.razorpay_order_id || upgradeRequest.razorpay_order_id !== payload.razorpayOrderId) {
-    return NextResponse.json({ error: "Razorpay order mismatch." }, { status: 409 });
-  }
-
-  const isValidPayment = verifyRazorpaySignature({
-    orderId: payload.razorpayOrderId,
-    paymentId: payload.razorpayPaymentId,
-    signature: payload.razorpaySignature,
-  });
-
-  if (!isValidPayment) {
-    return NextResponse.json({ error: "Razorpay payment signature verification failed." }, { status: 400 });
+  if (upgradeRequest.payment_method !== "UPI") {
+    return NextResponse.json({ error: "This is not a manual UPI payment request." }, { status: 409 });
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.rpc("activate_subscription_payment", {
-    p_request_id: requestId,
-    p_payment_id: payload.razorpayPaymentId,
-    p_signature: payload.razorpaySignature,
-    p_verified_by: userResult.user.id,
-    p_webhook_event_id: null,
-  });
-
-  if (error) {
-    return NextResponse.json({ error: "Unable to activate the verified payment." }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
-}
-
-async function markPaid(requestId: string) {
-  const supabase = await createClient();
-  const { data: userResult } = await supabase.auth.getUser();
-
-  if (!userResult.user) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
-  }
-
-  const { data: upgradeRequest } = await supabase
-    .from("subscription_upgrade_requests")
-    .select("id,restaurant_id,plan,amount,status,transaction_note,created_at")
-    .eq("id", requestId)
-    .maybeSingle();
-
-  if (!upgradeRequest) {
-    return NextResponse.json({ error: "Subscription request not found." }, { status: 404 });
-  }
-
-  const { data: membership } = await supabase
-    .from("restaurant_members")
-    .select("role")
-    .eq("restaurant_id", upgradeRequest.restaurant_id)
-    .eq("profile_id", userResult.user.id)
-    .maybeSingle();
-
-  if (!membership || !hasPermission(membership.role, "manageBilling")) {
-    return NextResponse.json({ error: "You do not have access to update this subscription request." }, { status: 403 });
-  }
-
-  if (upgradeRequest.status !== "PENDING_PAYMENT") {
-    return NextResponse.json({ error: "Only pending payment requests can be marked as paid." }, { status: 409 });
-  }
-
-  const admin = createAdminClient();
+  const normalizedTransactionId = transactionId.replaceAll(" ", "").toUpperCase();
   const { data: updatedRequest, error } = await admin
     .from("subscription_upgrade_requests")
-    .update({ status: "VERIFICATION_PENDING" })
+    .update({
+      status: "VERIFICATION_PENDING",
+      transaction_id: normalizedTransactionId,
+      payment_submitted_at: new Date().toISOString(),
+      rejection_reason: null,
+    })
     .eq("id", requestId)
-    .select("id,plan,amount,status,transaction_note,created_at")
+    .select("id,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .single();
 
   if (error || !updatedRequest) {
-    return NextResponse.json({ error: error?.message ?? "Unable to update subscription request." }, { status: 400 });
+    const duplicateTransaction = error?.code === "23505";
+    return NextResponse.json(
+      { error: duplicateTransaction ? "This UPI transaction ID has already been submitted." : "Unable to submit payment for verification." },
+      { status: duplicateTransaction ? 409 : 400 },
+    );
   }
+
+  await writeAuditLog(admin, {
+    actorId: userResult.user.id,
+    restaurantId: upgradeRequest.restaurant_id,
+    action: "subscription_payment_submitted",
+    entity: "subscription_upgrade_requests",
+    entityId: requestId,
+    metadata: {
+      plan: upgradeRequest.plan,
+      amount: Number(upgradeRequest.amount),
+      transactionId: normalizedTransactionId,
+    },
+  });
 
   return NextResponse.json({ request: toUpgradeRequestView(updatedRequest) });
 }
@@ -214,6 +179,7 @@ async function reviewRequest(requestId: string, action: "APPROVE" | "REJECT") {
       .from("subscription_upgrade_requests")
       .update({
         status: "REJECTED",
+        rejection_reason: "Payment could not be verified.",
         verified_by: userResult.user.id,
         verified_at: new Date().toISOString(),
       })
@@ -265,6 +231,8 @@ function toUpgradeRequestView(request: {
   amount: number;
   status: string;
   transaction_note: string;
+  transaction_id?: string | null;
+  payment_submitted_at?: string | null;
   created_at: string;
 }) {
   return {
@@ -273,6 +241,8 @@ function toUpgradeRequestView(request: {
     amount: Number(request.amount),
     status: request.status,
     transactionNote: request.transaction_note,
+    transactionId: request.transaction_id ?? null,
+    paymentSubmittedAt: request.payment_submitted_at ?? null,
     createdAt: request.created_at,
   };
 }

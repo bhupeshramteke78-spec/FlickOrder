@@ -108,7 +108,7 @@ async function getSuperAdminDashboardData(adminName: string): Promise<SuperAdmin
 async function getSubscriptionUpgradeRequests(admin: ReturnType<typeof createAdminClient>): Promise<SuperAdminSubscriptionRequest[]> {
   const { data: requests } = await admin
     .from("subscription_upgrade_requests")
-    .select("id,restaurant_id,requested_by,plan,amount,status,transaction_note,created_at")
+    .select("id,restaurant_id,requested_by,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .eq("status", "VERIFICATION_PENDING")
     .order("created_at", { ascending: true })
     .limit(50);
@@ -139,6 +139,8 @@ async function getSubscriptionUpgradeRequests(admin: ReturnType<typeof createAdm
     amount: Number(request.amount),
     status: request.status,
     transactionNote: request.transaction_note,
+    transactionId: request.transaction_id,
+    paymentSubmittedAt: request.payment_submitted_at,
     createdAt: request.created_at,
   }));
 }
