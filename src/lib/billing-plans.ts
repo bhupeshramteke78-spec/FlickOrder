@@ -32,7 +32,7 @@ export const subscriptionPlans: SubscriptionPlanDetails[] = [
     id: "growth",
     name: "Growth",
     price: 799,
-    description: "Realtime operations, staff flow, and analytics for busy restaurants.",
+    description: "Realtime operations, order history, and analytics for busy restaurants.",
     features: ["Everything in Basic", "Realtime order kanban", "Order history records", "Paid-order revenue and item analytics"],
   },
   {

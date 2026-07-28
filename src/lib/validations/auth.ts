@@ -23,8 +23,6 @@ export const restaurantRegistrationSchema = z.object({
   upiDisplayName: z.string().min(2).max(120),
   fssaiNumber: z.string().min(6).max(30),
   googleMapsUrl: optionalGoogleMapsUrlSchema,
-  storefrontPhotoUrl: optionalUrlSchema,
-  businessProofUrl: optionalUrlSchema,
 });
 
 export const loginSchema = z.object({
@@ -37,6 +35,7 @@ export const customerRegistrationSchema = z.object({
   phone: z.string().trim().min(7).max(20),
   email: z.string().trim().email(),
   password: z.string().min(8).max(128),
+  redirectTo: z.string().startsWith("/").refine((value) => !value.startsWith("//"), "Invalid redirect path.").optional(),
 });
 
 export type RestaurantRegistrationInput = z.infer<typeof restaurantRegistrationSchema>;

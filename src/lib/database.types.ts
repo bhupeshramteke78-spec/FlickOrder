@@ -579,6 +579,59 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      consume_api_rate_limit: {
+        Args: {
+          p_key: string;
+          p_limit: number;
+          p_window_seconds: number;
+        };
+        Returns: Array<{
+          allowed: boolean;
+          retry_after_seconds: number;
+        }>;
+      };
+      provision_restaurant_owner: {
+        Args: {
+          p_owner_id: string;
+          p_owner_name: string;
+          p_phone: string;
+          p_restaurant_name: string;
+          p_slug: string;
+          p_restaurant_type: string;
+          p_cuisine: string[];
+          p_email: string;
+          p_city: string;
+          p_state: string;
+          p_address: string;
+          p_upi_id: string;
+          p_upi_display_name: string;
+          p_fssai_number: string;
+          p_google_maps_url: string | null;
+          p_latitude: number | null;
+          p_longitude: number | null;
+          p_documents: Json;
+        };
+        Returns: Array<{
+          restaurant_id: string;
+          restaurant_slug: string;
+        }>;
+      };
+      activate_subscription_payment: {
+        Args: {
+          p_request_id: string;
+          p_payment_id?: string | null;
+          p_signature?: string | null;
+          p_verified_by?: string | null;
+          p_webhook_event_id?: string | null;
+        };
+        Returns: Array<{
+          request_id: string;
+          restaurant_id: string;
+          plan: string;
+          current_period_ends_at: string;
+          already_processed: boolean;
+        }>;
+      };
       create_qr_order_transaction: {
         Args: {
           p_restaurant_slug: string;

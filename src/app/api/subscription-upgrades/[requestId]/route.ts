@@ -108,42 +108,17 @@ async function verifyRazorpayPayment(
     return NextResponse.json({ error: "Razorpay payment signature verification failed." }, { status: 400 });
   }
 
-  const plan = getPaidSubscriptionPlan(upgradeRequest.plan);
-
-  if (!plan) {
-    return NextResponse.json({ error: "Plan not found." }, { status: 404 });
-  }
-
   const admin = createAdminClient();
-  const now = new Date();
-  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const [{ error: requestError }, { error: subscriptionError }] = await Promise.all([
-    admin
-      .from("subscription_upgrade_requests")
-      .update({
-        status: "APPROVED",
-        razorpay_payment_id: payload.razorpayPaymentId,
-        razorpay_signature: payload.razorpaySignature,
-        paid_at: now.toISOString(),
-        verified_by: userResult.user.id,
-        verified_at: now.toISOString(),
-      })
-      .eq("id", requestId),
-    admin
-      .from("subscriptions")
-      .update({
-        plan: plan.id,
-        status: "ACTIVE",
-        trial_ends_at: null,
-        current_period_ends_at: periodEnd.toISOString(),
-      })
-      .eq("restaurant_id", upgradeRequest.restaurant_id),
-  ]);
-
-  const error = requestError ?? subscriptionError;
+  const { error } = await admin.rpc("activate_subscription_payment", {
+    p_request_id: requestId,
+    p_payment_id: payload.razorpayPaymentId,
+    p_signature: payload.razorpaySignature,
+    p_verified_by: userResult.user.id,
+    p_webhook_event_id: null,
+  });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Unable to activate the verified payment." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });
@@ -269,46 +244,17 @@ async function reviewRequest(requestId: string, action: "APPROVE" | "REJECT") {
     return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   }
 
-  const now = new Date();
-  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const [{ error: requestError }, { error: subscriptionError }] = await Promise.all([
-    admin
-      .from("subscription_upgrade_requests")
-      .update({
-        status: "APPROVED",
-        verified_by: userResult.user.id,
-        verified_at: now.toISOString(),
-      })
-      .eq("id", requestId),
-    admin
-      .from("subscriptions")
-      .update({
-        plan: plan.id,
-        status: "ACTIVE",
-        trial_ends_at: null,
-        current_period_ends_at: periodEnd.toISOString(),
-      })
-      .eq("restaurant_id", upgradeRequest.restaurant_id),
-  ]);
-
-  const error = requestError ?? subscriptionError;
+  const { error } = await admin.rpc("activate_subscription_payment", {
+    p_request_id: requestId,
+    p_payment_id: null,
+    p_signature: null,
+    p_verified_by: userResult.user.id,
+    p_webhook_event_id: null,
+  });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Unable to activate the approved subscription." }, { status: 500 });
   }
-
-  await writeAuditLog(admin, {
-    actorId: userResult.user.id,
-    restaurantId: upgradeRequest.restaurant_id,
-    action: "subscription_payment_approved",
-    entity: "subscription_upgrade_requests",
-    entityId: requestId,
-    metadata: {
-      plan: plan.id,
-      amount: Number(upgradeRequest.amount),
-      currentPeriodEndsAt: periodEnd.toISOString(),
-    },
-  });
 
   return NextResponse.json({ ok: true });
 }

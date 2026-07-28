@@ -15,7 +15,10 @@ export async function proxy(request: NextRequest) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
-    return NextResponse.next();
+    return new NextResponse("Authentication service is not configured.", {
+      status: 503,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 
   let response = NextResponse.next({ request });

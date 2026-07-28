@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { assertSupabaseBrowserEnv } from "@/lib/supabase/env";
 import { customerRegistrationSchema } from "@/lib/validations/auth";
 
 export async function POST(request: Request) {
-  const rateLimited = enforceRateLimit(request, {
+  const rateLimited = await enforceRateLimit(request, {
     keyPrefix: "register-customer",
     limit: 5,
     windowMs: 60 * 60_000,
@@ -32,13 +34,21 @@ export async function POST(request: Request) {
   }
 
   const admin = createAdminClient();
-  const { data: authUser, error: authError } = await admin.auth.admin.createUser({
+  const { url, anonKey } = assertSupabaseBrowserEnv();
+  const authClient = createSupabaseClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
+  const nextPath = payload.data.redirectTo ?? "/customer/bookings";
+  const { data: authUser, error: authError } = await authClient.auth.signUp({
     email: payload.data.email,
     password: payload.data.password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: payload.data.fullName,
-      role: "CUSTOMER",
+    options: {
+      emailRedirectTo: `${siteUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      data: {
+        full_name: payload.data.fullName,
+        role: "CUSTOMER",
+      },
     },
   });
 
@@ -47,6 +57,10 @@ export async function POST(request: Request) {
       { error: authError?.message ?? "Unable to create the customer account." },
       { status: 400 },
     );
+  }
+
+  if (authUser.user.identities?.length === 0) {
+    return NextResponse.json({ error: "An account already exists for this email. Sign in instead." }, { status: 409 });
   }
 
   const { error: profileError } = await admin.from("profiles").insert({
@@ -61,5 +75,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to finish creating the customer account." }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  return NextResponse.json({ ok: true, requiresEmailConfirmation: !authUser.session }, { status: 201 });
 }

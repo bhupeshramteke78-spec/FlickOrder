@@ -2,7 +2,7 @@
 
 import { Loader2, Pencil, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -56,6 +56,32 @@ export function MenuManagementClient({ items, canManage }: { items: MenuItemRow[
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [togglingItemId, setTogglingItemId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [availabilityFilter, setAvailabilityFilter] = useState("ALL");
+  const categories = useMemo(
+    () => Array.from(new Set(items.map((item) => item.category))).sort((a, b) => a.localeCompare(b)),
+    [items],
+  );
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+
+    return items.filter((item) => {
+      const matchesSearch =
+        !query ||
+        item.name.toLocaleLowerCase().includes(query) ||
+        item.description?.toLocaleLowerCase().includes(query) ||
+        item.category.toLocaleLowerCase().includes(query);
+      const matchesCategory = categoryFilter === "ALL" || item.category === categoryFilter;
+      const matchesAvailability =
+        availabilityFilter === "ALL" ||
+        (availabilityFilter === "AVAILABLE" && item.isAvailable && !item.isSoldOut) ||
+        (availabilityFilter === "UNAVAILABLE" && !item.isAvailable && !item.isSoldOut) ||
+        (availabilityFilter === "SOLD_OUT" && item.isSoldOut);
+
+      return matchesSearch && matchesCategory && matchesAvailability;
+    });
+  }, [availabilityFilter, categoryFilter, items, search]);
 
   function updateField<T extends keyof FormState>(key: T, value: FormState[T]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -160,26 +186,57 @@ export function MenuManagementClient({ items, canManage }: { items: MenuItemRow[
   return (
     <>
       <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto_auto_auto]">
-        <Input placeholder="Search menu items" />
-        <Input placeholder="Category" />
-        <Input placeholder="Availability" />
+        <Input
+          placeholder="Search menu items"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          aria-label="Search menu items"
+        />
+        <select
+          value={categoryFilter}
+          onChange={(event) => setCategoryFilter(event.target.value)}
+          className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10"
+          aria-label="Filter by category"
+        >
+          <option value="ALL">All categories</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+        <select
+          value={availabilityFilter}
+          onChange={(event) => setAvailabilityFilter(event.target.value)}
+          className="h-11 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10"
+          aria-label="Filter by availability"
+        >
+          <option value="ALL">All availability</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="UNAVAILABLE">Unavailable</option>
+          <option value="SOLD_OUT">Sold out</option>
+        </select>
         <Button type="button" onClick={openAddModal} disabled={!canManage}>
           <Plus className="h-4 w-4" /> Add item
         </Button>
       </div>
-      {items.length > 0 ? (
+      {filteredItems.length > 0 ? (
         <MenuItemsTable
-          items={items}
+          items={filteredItems}
           togglingItemId={togglingItemId}
           canManage={canManage}
           onEdit={openEditModal}
           onToggleAvailability={toggleAvailability}
         />
-      ) : (
+      ) : items.length === 0 ? (
         <EmptyState
           icon={Plus}
           title="No menu items loaded"
           description="Create categories and menu items in Supabase. Availability, popular flags, offer prices, and preparation time are modeled in the database."
+        />
+      ) : (
+        <EmptyState
+          icon={Plus}
+          title="No matching menu items"
+          description="Adjust the search, category, or availability filters."
         />
       )}
 

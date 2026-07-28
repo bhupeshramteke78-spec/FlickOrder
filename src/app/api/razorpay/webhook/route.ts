@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getPaidSubscriptionPlan } from "@/lib/billing-plans";
 import { verifyRazorpayWebhookSignature } from "@/lib/razorpay";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -26,6 +25,9 @@ export async function POST(request: Request) {
   const payment = event.payload.payment?.entity;
   const order = event.payload.order?.entity;
   const razorpayOrderId = payment?.order_id ?? order?.id ?? null;
+  const webhookEventId =
+    request.headers.get("x-razorpay-event-id") ??
+    `${event.event}:${payment?.id ?? razorpayOrderId ?? "unknown"}`;
 
   if (!razorpayOrderId) {
     return NextResponse.json({ ok: true });
@@ -46,39 +48,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const plan = getPaidSubscriptionPlan(upgradeRequest.plan);
-
-  if (!plan) {
-    return NextResponse.json({ error: "Plan not found." }, { status: 404 });
-  }
-
-  const now = new Date();
-  const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const [{ error: requestError }, { error: subscriptionError }] = await Promise.all([
-    admin
-      .from("subscription_upgrade_requests")
-      .update({
-        status: "APPROVED",
-        razorpay_payment_id: payment?.id ?? null,
-        paid_at: now.toISOString(),
-        verified_at: now.toISOString(),
-      })
-      .eq("id", upgradeRequest.id),
-    admin
-      .from("subscriptions")
-      .update({
-        plan: plan.id,
-        status: "ACTIVE",
-        trial_ends_at: null,
-        current_period_ends_at: periodEnd.toISOString(),
-      })
-      .eq("restaurant_id", upgradeRequest.restaurant_id),
-  ]);
-
-  const error = requestError ?? subscriptionError;
+  const { error } = await admin.rpc("activate_subscription_payment", {
+    p_request_id: upgradeRequest.id,
+    p_payment_id: payment?.id ?? null,
+    p_signature: null,
+    p_verified_by: null,
+    p_webhook_event_id: webhookEventId,
+  });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: "Unable to activate subscription payment." }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

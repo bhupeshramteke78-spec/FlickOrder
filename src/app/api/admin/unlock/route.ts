@@ -16,7 +16,7 @@ const unlockSchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const rateLimited = enforceRateLimit(request, {
+  const rateLimited = await enforceRateLimit(request, {
     keyPrefix: "super-admin-unlock",
     limit: 5,
     windowMs: 60 * 1000,

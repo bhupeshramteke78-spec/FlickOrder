@@ -19,7 +19,7 @@ import { createBookingSchema } from "@/lib/validations/bookings";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const rateLimitResponse = enforceRateLimit(request, {
+  const rateLimitResponse = await enforceRateLimit(request, {
     keyPrefix: "booking-create",
     limit: 8,
     windowMs: 10 * 60_000,

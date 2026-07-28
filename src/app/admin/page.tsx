@@ -170,9 +170,25 @@ async function getRestaurants(admin: ReturnType<typeof createAdminClient>): Prom
   const subscriptionByRestaurantId = new Map((subscriptions ?? []).map((subscription) => [subscription.restaurant_id, subscription]));
   const documentsByRestaurantId = new Map<string, Array<{ id: string; type: string; url: string }>>();
 
-  for (const document of documents ?? []) {
+  const securedDocuments = await Promise.all(
+    (documents ?? []).map(async (document) => {
+      if (/^https?:\/\//i.test(document.file_url)) {
+        return { ...document, resolvedUrl: document.file_url };
+      }
+
+      const { data } = await admin.storage
+        .from("restaurant-verification")
+        .createSignedUrl(document.file_url, 10 * 60);
+
+      return { ...document, resolvedUrl: data?.signedUrl ?? "" };
+    }),
+  );
+
+  for (const document of securedDocuments) {
     const list = documentsByRestaurantId.get(document.restaurant_id) ?? [];
-    list.push({ id: document.id, type: document.document_type, url: document.file_url });
+    if (document.resolvedUrl) {
+      list.push({ id: document.id, type: document.document_type, url: document.resolvedUrl });
+    }
     documentsByRestaurantId.set(document.restaurant_id, list);
   }
 

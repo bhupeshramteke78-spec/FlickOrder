@@ -25,8 +25,6 @@ const fields: Array<{ name: keyof RestaurantRegistrationInput; label: string; ty
   { name: "upiDisplayName", label: "UPI display name", placeholder: "The Copper Table", required: true },
   { name: "fssaiNumber", label: "FSSAI number", placeholder: "12345678901234", required: true },
   { name: "googleMapsUrl", label: "Google Maps URL", placeholder: "https://maps.google.com/..." },
-  { name: "storefrontPhotoUrl", label: "Storefront photo URL", placeholder: "https://..." },
-  { name: "businessProofUrl", label: "Business proof URL", placeholder: "https://..." },
 ];
 
 async function readErrorMessage(response: Response) {
@@ -49,26 +47,54 @@ async function readErrorMessage(response: Response) {
 export function OwnerRegistrationForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fssaiCertificate, setFssaiCertificate] = useState<File | null>(null);
+  const [storefrontPhoto, setStorefrontPhoto] = useState<File | null>(null);
+  const [businessProof, setBusinessProof] = useState<File | null>(null);
   const form = useForm<RestaurantRegistrationInput>({
     resolver: zodResolver(restaurantRegistrationSchema),
   });
 
   async function onSubmit(values: RestaurantRegistrationInput) {
-    setIsSubmitting(true);
-    const response = await fetch("/api/auth/register-restaurant", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
-    setIsSubmitting(false);
-
-    if (!response.ok) {
-      toast.error(await readErrorMessage(response));
+    if (!fssaiCertificate || !storefrontPhoto) {
+      toast.error("Add the FSSAI certificate and a storefront photo before registering.");
       return;
     }
 
-    toast.success("Restaurant created. Verification is pending.");
-    router.push("/dashboard");
+    setIsSubmitting(true);
+
+    try {
+      const registration = new FormData();
+      Object.entries(values).forEach(([key, value]) => registration.append(key, value ?? ""));
+      registration.append("fssaiCertificate", fssaiCertificate);
+      registration.append("storefrontPhoto", storefrontPhoto);
+
+      if (businessProof) {
+        registration.append("businessProof", businessProof);
+      }
+
+      const response = await fetch("/api/auth/register-restaurant", {
+        method: "POST",
+        body: registration,
+      });
+
+      if (!response.ok) {
+        toast.error(await readErrorMessage(response));
+        return;
+      }
+
+      const result = (await response.json()) as { requiresEmailConfirmation?: boolean };
+      toast.success(
+        result.requiresEmailConfirmation
+          ? "Registration received. Confirm your email before signing in."
+          : "Restaurant created. Sign in to continue while verification is reviewed.",
+      );
+      router.push("/auth/owner?mode=login");
+      router.refresh();
+    } catch {
+      toast.error("Registration could not be completed. Check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -85,6 +111,23 @@ export function OwnerRegistrationForm() {
           ) : null}
         </label>
       ))}
+      <VerificationFileField
+        label="FSSAI certificate"
+        required
+        accept="application/pdf,image/jpeg,image/png,image/webp"
+        onChange={setFssaiCertificate}
+      />
+      <VerificationFileField
+        label="Storefront photo"
+        required
+        accept="image/jpeg,image/png,image/webp"
+        onChange={setStorefrontPhoto}
+      />
+      <VerificationFileField
+        label="Business proof"
+        accept="application/pdf,image/jpeg,image/png,image/webp"
+        onChange={setBusinessProof}
+      />
       <div className="sm:col-span-2">
         <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
           {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -92,5 +135,34 @@ export function OwnerRegistrationForm() {
         </Button>
       </div>
     </form>
+  );
+}
+
+function VerificationFileField({
+  label,
+  required = false,
+  accept,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  accept: string;
+  onChange: (file: File | null) => void;
+}) {
+  return (
+    <label className="grid gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-700">
+      <span className="font-medium">
+        {label}
+        {required ? <span className="ml-0.5 text-red-500">*</span> : null}
+      </span>
+      <Input
+        type="file"
+        accept={accept}
+        required={required}
+        className="h-auto border-0 p-0 file:mr-3 file:rounded-md file:border-0 file:bg-zinc-950 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+      />
+      <span className="text-xs text-zinc-500">PDF, JPEG, PNG, or WebP. Maximum 1.2 MB.</span>
+    </label>
   );
 }

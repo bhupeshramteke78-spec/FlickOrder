@@ -5,7 +5,7 @@ import { getSubscriptionAccessForRestaurantSlug } from "@/lib/subscription-acces
 import { serviceRequestSchema } from "@/lib/validations/orders";
 
 export async function POST(request: Request) {
-  const rateLimited = enforceRateLimit(request, {
+  const rateLimited = await enforceRateLimit(request, {
     keyPrefix: "service-request",
     limit: 20,
     windowMs: 60 * 1000,

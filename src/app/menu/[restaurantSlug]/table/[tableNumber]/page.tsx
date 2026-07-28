@@ -2,7 +2,6 @@ import { MobileMenuShell } from "@/components/customer/mobile-menu-shell";
 import { CustomerMenuRealtimeRefresh } from "@/components/realtime/customer-menu-realtime-refresh";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
 
 type MenuCategory = {
   id: string;
@@ -58,7 +57,7 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
     return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, categories: [], menuItems: [] };
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
     .select("id,name,verification_status,deletion_requested_at,deleted_at")

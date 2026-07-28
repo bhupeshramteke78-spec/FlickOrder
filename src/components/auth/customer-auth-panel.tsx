@@ -34,12 +34,21 @@ export function CustomerAuthPanel({
         const registration = await fetch("/api/auth/register-customer", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName, phone, email, password }),
+          body: JSON.stringify({ fullName, phone, email, password, redirectTo }),
         });
-        const registrationBody = (await registration.json().catch(() => null)) as { error?: string } | null;
+        const registrationBody = (await registration.json().catch(() => null)) as {
+          error?: string;
+          requiresEmailConfirmation?: boolean;
+        } | null;
 
         if (!registration.ok) {
           toast.error(registrationBody?.error ?? "Unable to create your account.");
+          return;
+        }
+
+        if (registrationBody?.requiresEmailConfirmation) {
+          toast.success("Account created. Confirm the link sent to your email, then continue.");
+          setMode("login");
           return;
         }
       }

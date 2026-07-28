@@ -7,7 +7,7 @@ import { getSubscriptionAccessForRestaurantSlug } from "@/lib/subscription-acces
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
-  const rateLimited = enforceRateLimit(request, {
+  const rateLimited = await enforceRateLimit(request, {
     keyPrefix: "create-order",
     limit: 30,
     windowMs: 60 * 1000,
