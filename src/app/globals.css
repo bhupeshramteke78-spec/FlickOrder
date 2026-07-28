@@ -278,15 +278,107 @@ html {
   }
 }
 
-@keyframes route-progress {
-  0% {
-    transform: translateX(-120%);
+.route-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(16, 185, 129, 0.12), transparent 28rem),
+    #071117;
+  color: #fff;
+}
+
+.route-loading-content {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+  transform: translateX(-0.9rem);
+}
+
+.route-loading-content p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.route-loading-spinner {
+  position: relative;
+  width: 9.5rem;
+  height: 3.75rem;
+}
+
+.route-loading-spinner span {
+  position: absolute;
+  top: 50%;
+  left: var(--domino-left);
+  width: 2.2rem;
+  height: 0.44rem;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow:
+    2px 2px 3px rgba(0, 0, 0, 0.8),
+    0 0 14px rgba(255, 255, 255, 0.14);
+  transform-origin: center;
+  animation: route-dominos 1s ease infinite;
+}
+
+.route-loading-spinner span:nth-child(1) {
+  --domino-left: 5.9rem;
+  animation-delay: 125ms;
+}
+
+.route-loading-spinner span:nth-child(2) {
+  --domino-left: 5.15rem;
+  animation-delay: 300ms;
+}
+
+.route-loading-spinner span:nth-child(3) {
+  --domino-left: 4.4rem;
+  animation-delay: 425ms;
+}
+
+.route-loading-spinner span:nth-child(4) {
+  --domino-left: 3.65rem;
+  animation-delay: 540ms;
+}
+
+.route-loading-spinner span:nth-child(5) {
+  --domino-left: 2.9rem;
+  animation-delay: 665ms;
+}
+
+.route-loading-spinner span:nth-child(6) {
+  --domino-left: 2.15rem;
+  animation-delay: 790ms;
+}
+
+.route-loading-spinner span:nth-child(7) {
+  --domino-left: 1.4rem;
+  animation-delay: 915ms;
+}
+
+.route-loading-spinner span:nth-child(8) {
+  --domino-left: 0.65rem;
+}
+
+@keyframes route-dominos {
+  50% {
+    opacity: 0.7;
   }
-  60% {
-    transform: translateX(190%);
+
+  75% {
+    transform: rotate(90deg);
   }
-  100% {
-    transform: translateX(320%);
+
+  80% {
+    opacity: 1;
   }
 }
 
