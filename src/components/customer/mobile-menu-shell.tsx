@@ -795,12 +795,6 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                 </div>
               ) : null}
 
-              {placedOrder && placedOrder.paymentStatus !== "PAID" && !orderIsServed ? (
-                <div className="mx-3 mb-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs font-medium text-amber-800">
-                  Payment opens after the waiter marks this order served.
-                </div>
-              ) : null}
-
               {placedOrder?.paymentStatus === "PAID" ? (
                 <div className="mx-3 mb-3 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-center">
                   <p className="font-semibold text-emerald-900">Thank you, {customerName}!</p>
