@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { BarChart3, BellRing, CalendarDays, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
 import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
+import type { DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import type { DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
 import { cn } from "@/lib/utils";
@@ -14,23 +15,10 @@ import { cn } from "@/lib/utils";
 type MobileNavItem = {
   href: string;
   label: string;
-  iconKey: MobileNavIconKey;
+  iconKey: DashboardNavIconKey;
 };
 
-type MobileNavIconKey =
-  | "overview"
-  | "orders"
-  | "bookings"
-  | "history"
-  | "menu"
-  | "tables"
-  | "kitchen"
-  | "waiter"
-  | "analytics"
-  | "subscription"
-  | "settings";
-
-const mobileNavIcons: Record<MobileNavIconKey, LucideIcon> = {
+const mobileNavIcons: Record<DashboardNavIconKey, LucideIcon> = {
   overview: LayoutDashboard,
   orders: ListOrdered,
   bookings: CalendarDays,
@@ -83,6 +71,7 @@ export function MobileDashboardNav({
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href="/"
+              prefetch={false}
               className="inline-flex shrink-0"
               aria-label="Go to FlickOrder homepage"
             >
@@ -135,6 +124,7 @@ export function MobileDashboardNav({
             <div className="mb-6 flex items-center justify-between gap-3">
               <Link
                 href="/"
+                prefetch={false}
                 onClick={closeMenu}
                 className="inline-flex shrink-0"
                 aria-label="Go to FlickOrder homepage"
@@ -182,6 +172,7 @@ export function MobileDashboardNav({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     onClick={closeMenu}
                     className={cn(
                       "dashboard-nav-link flex items-center gap-3 rounded-md px-3 py-3 text-sm transition",
