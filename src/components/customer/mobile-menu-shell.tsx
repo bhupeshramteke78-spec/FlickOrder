@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Minus, Plus, Search, ShoppingCart, UserRound, Utensils } from "lucide-react";
+import { Loader2, Minus, Plus, Search, ShoppingCart, UserRound, Utensils, X } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -78,12 +78,13 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [customerName, setCustomerName] = useState("");
-  const [guestCount, setGuestCount] = useState(2);
+  const [guestCount, setGuestCount] = useState(1);
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [addOnCartItems, setAddOnCartItems] = useState<CartItem[]>([]);
   const [isAddingMoreItems, setIsAddingMoreItems] = useState(false);
   const [isSavingAddOnItems, setIsSavingAddOnItems] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isCartPanelOpen, setIsCartPanelOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
@@ -124,6 +125,9 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
   const orderIsServed = placedOrder?.status === "SERVED";
   const canAddMoreItems = placedOrder?.paymentStatus === "UNPAID";
   const canSaveAddOnItems = canAddMoreItems && addOnCartItems.length > 0 && !isSavingAddOnItems;
+  const hasCartActivity = !isPreviewMode && (cartItems.length > 0 || Boolean(placedOrder));
+  const shouldShowCartPanel = hasCartActivity && isCartPanelOpen;
+  const cartItemCount = cartItems.reduce((total, cartItem) => total + cartItem.quantity, 0);
 
   useEffect(() => {
     if (!placedOrder || placedOrder.paymentStatus === "PAID") {
@@ -156,6 +160,10 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
 
       return [...currentItems, { item, quantity: 1 }];
     });
+
+    if (!placedOrder) {
+      setIsCartPanelOpen(false);
+    }
   }
 
   function updateCartItemsQuantity(setTargetCartItems: Dispatch<SetStateAction<CartItem[]>>, itemId: string, change: number) {
@@ -256,6 +264,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
       paymentStatus: "UNPAID",
       total: cartTotal,
     });
+    setIsCartPanelOpen(true);
   }
 
   async function requestPayment(method: PaymentMethod) {
@@ -339,6 +348,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
     setCartItems((currentItems) => mergeCartItems(currentItems, addOnCartItems));
     setAddOnCartItems([]);
     setIsAddingMoreItems(false);
+    setIsCartPanelOpen(true);
     toast.success("Added items to your order.");
   }
 
@@ -353,7 +363,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
         </div>
       </header>
 
-      <section className={`mx-auto grid gap-4 px-4 py-4 ${isPreviewMode ? "max-w-5xl" : "max-w-7xl lg:grid-cols-[1fr_360px]"}`}>
+      <section className={`mx-auto grid gap-4 px-4 py-4 ${hasCartActivity && !shouldShowCartPanel ? "pb-28" : ""} ${shouldShowCartPanel ? "max-w-7xl lg:grid-cols-[1fr_360px]" : "max-w-5xl"}`}>
         <div>
           <div className="mb-4 flex items-center gap-3 text-sm">
             <span className="rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700">Open</span>
@@ -486,7 +496,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
           )}
         </div>
 
-        {!isPreviewMode ? (
+        {shouldShowCartPanel ? (
         <aside className="lg:sticky lg:top-20 lg:h-fit">
           <div className="grid overflow-hidden rounded-[19px] border border-zinc-200 bg-white shadow-[0_30px_80px_rgba(15,23,42,0.12)]">
             <section className="border-b border-zinc-100">
@@ -495,7 +505,17 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                   <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500">{placedOrder ? "Your order" : "Your cart"}</p>
                   <p className="text-xs text-zinc-400">Table {tableNumber}</p>
                 </div>
-                <ShoppingCart className="h-5 w-5 text-zinc-400" />
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-zinc-400" />
+                  <button
+                    type="button"
+                    className="grid h-8 w-8 place-items-center rounded-full border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-100 hover:text-zinc-900"
+                    onClick={() => setIsCartPanelOpen(false)}
+                    aria-label="Close cart"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-3 p-3">
@@ -809,6 +829,33 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
         </aside>
         ) : null}
       </section>
+
+      {hasCartActivity && !shouldShowCartPanel ? (
+        <button
+          type="button"
+          className="fixed bottom-4 left-4 right-4 z-30 mx-auto flex max-w-md items-center justify-between rounded-2xl border border-emerald-200/30 bg-emerald-800 px-4 py-3 text-white shadow-2xl shadow-emerald-950/25 transition hover:-translate-y-0.5 hover:bg-emerald-950 lg:left-auto lg:right-6 lg:max-w-sm"
+          onClick={() => setIsCartPanelOpen(true)}
+          aria-label={placedOrder ? "Open order details" : "Open cart"}
+        >
+          <span className="inline-flex items-center gap-3">
+            <span className="relative grid h-10 w-10 place-items-center rounded-xl bg-white/15">
+              <ShoppingCart className="h-5 w-5" />
+              {cartItemCount > 0 ? (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[10px] font-black text-emerald-900">
+                  {cartItemCount}
+                </span>
+              ) : null}
+            </span>
+            <span className="text-left">
+              <span className="block text-sm font-black">{placedOrder ? "View order" : "View cart"}</span>
+              <span className="block text-xs font-medium text-emerald-100">
+                {placedOrder ? formatOrderStatus(placedOrder.status) : `${cartItemCount} item${cartItemCount === 1 ? "" : "s"} added`}
+              </span>
+            </span>
+          </span>
+          <span className="text-sm font-black">{currency.format(payableTotal)}</span>
+        </button>
+      ) : null}
     </main>
   );
 }
