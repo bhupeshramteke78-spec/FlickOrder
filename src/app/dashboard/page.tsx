@@ -215,7 +215,7 @@ async function getOverviewData(): Promise<{ metrics: DashboardMetrics; liveOrder
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("restaurant_id", restaurantId)
-      .eq("status", "PREPARING"),
+      .in("status", ["ACCEPTED", "PREPARING", "READY"]),
     supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
@@ -265,7 +265,7 @@ async function getLiveOrdersForRestaurant(
     .select("id,order_number,table_id,status,payment_status,total,created_at")
     .eq("restaurant_id", restaurantId)
     .neq("payment_status", "PAID")
-    .in("status", ["PENDING", "ACCEPTED", "SERVED"])
+    .in("status", ["PENDING", "ACCEPTED", "PREPARING", "READY", "SERVED"])
     .order("created_at", { ascending: false })
     .limit(5);
 

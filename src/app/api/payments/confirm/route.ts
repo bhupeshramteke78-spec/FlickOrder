@@ -50,13 +50,17 @@ export async function POST(request: Request) {
   const admin = createAdminClient();
   const { data: order } = await admin
     .from("orders")
-    .select("table_id,restaurant_id")
+    .select("table_id,restaurant_id,status")
     .eq("id", payment.order_id)
     .eq("restaurant_id", payment.restaurant_id)
     .maybeSingle();
 
   if (!order) {
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
+  }
+
+  if (order.status !== "SERVED") {
+    return NextResponse.json({ error: "Payment can be confirmed only after the order is served." }, { status: 409 });
   }
 
   const { error: paymentError } = await admin

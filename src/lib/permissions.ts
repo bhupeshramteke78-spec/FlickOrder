@@ -4,6 +4,7 @@ export type Permission =
   | "viewOverview"
   | "viewOrders"
   | "acceptOrders"
+  | "prepareOrders"
   | "serveOrders"
   | "confirmPayments"
   | "viewOrderHistory"
@@ -26,6 +27,7 @@ const rolePermissions: Record<MemberRole, Permission[]> = {
     "viewOverview",
     "viewOrders",
     "acceptOrders",
+    "prepareOrders",
     "serveOrders",
     "confirmPayments",
     "viewOrderHistory",
@@ -47,6 +49,7 @@ const rolePermissions: Record<MemberRole, Permission[]> = {
     "viewOverview",
     "viewOrders",
     "acceptOrders",
+    "prepareOrders",
     "serveOrders",
     "confirmPayments",
     "viewOrderHistory",
@@ -62,8 +65,8 @@ const rolePermissions: Record<MemberRole, Permission[]> = {
     "viewBookings",
     "manageBookings",
   ],
-  KITCHEN: ["viewOrders", "acceptOrders", "viewKitchen"],
-  WAITER: ["viewOrders", "confirmPayments", "viewWaiter", "viewBookings", "manageBookings"],
+  KITCHEN: ["viewOrders", "prepareOrders", "viewKitchen"],
+  WAITER: ["viewOrders", "serveOrders", "viewWaiter", "viewBookings", "manageBookings"],
 };
 
 export function hasPermission(role: string | null | undefined, permission: Permission) {
@@ -75,16 +78,16 @@ export function hasAnyPermission(role: string | null | undefined, permissions: P
 }
 
 export function getAllowedOrderStatuses(role: string | null | undefined) {
-  if (hasPermission(role, "acceptOrders") && hasPermission(role, "serveOrders")) {
-    return ["PENDING", "ACCEPTED", "SERVED"] as const;
+  if (hasPermission(role, "acceptOrders") && hasPermission(role, "confirmPayments")) {
+    return ["PENDING", "SERVED"] as const;
   }
 
-  if (hasPermission(role, "acceptOrders")) {
-    return ["PENDING", "ACCEPTED"] as const;
+  if (hasPermission(role, "prepareOrders")) {
+    return ["ACCEPTED", "PREPARING"] as const;
   }
 
-  if (hasPermission(role, "confirmPayments")) {
-    return ["SERVED"] as const;
+  if (hasPermission(role, "serveOrders")) {
+    return ["READY"] as const;
   }
 
   return [] as const;

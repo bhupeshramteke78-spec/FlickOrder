@@ -129,7 +129,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
 
   const { data: order } = await supabase
     .from("orders")
-    .select("restaurant_id,table_id,order_number,total")
+    .select("restaurant_id,table_id,order_number,total,status")
     .eq("id", parsedParams.data.orderId)
     .maybeSingle();
 
@@ -157,6 +157,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
   if (payload.data.paymentStatus === "PAID") {
     if (!hasPermission(membership.role, "confirmPayments")) {
       return NextResponse.json({ error: "You do not have access to accept payments." }, { status: 403 });
+    }
+
+    if (order.status !== "SERVED") {
+      return NextResponse.json({ error: "Payment can be accepted only after the order is served." }, { status: 409 });
     }
 
     const admin = createAdminClient();
@@ -215,12 +219,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
     return NextResponse.json({ ok: true });
   }
 
-  if (payload.data.status === "ACCEPTED" && !hasPermission(membership.role, "acceptOrders")) {
-    return NextResponse.json({ error: "You do not have access to accept orders." }, { status: 403 });
-  }
+  const transitionError = validateOrderTransition({
+    currentStatus: order.status,
+    nextStatus: payload.data.status,
+    role: membership.role,
+  });
 
-  if (payload.data.status === "SERVED" && !hasPermission(membership.role, "serveOrders")) {
-    return NextResponse.json({ error: "You do not have access to serve orders." }, { status: 403 });
+  if (transitionError) {
+    return NextResponse.json({ error: transitionError }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -234,4 +240,68 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
   }
 
   return NextResponse.json({ ok: true });
+}
+
+function validateOrderTransition({
+  currentStatus,
+  nextStatus,
+  role,
+}: {
+  currentStatus: string;
+  nextStatus?: string;
+  role: string;
+}) {
+  if (!nextStatus) {
+    return null;
+  }
+
+  if (nextStatus === "CANCELLED") {
+    return hasPermission(role, "acceptOrders") ? null : "Only admin can cancel orders.";
+  }
+
+  const expectedTransitions: Record<string, { from: string; permission: Parameters<typeof hasPermission>[1]; error: string }> = {
+    ACCEPTED: {
+      from: "PENDING",
+      permission: "acceptOrders",
+      error: "Only admin can accept pending orders.",
+    },
+    PREPARING: {
+      from: "ACCEPTED",
+      permission: "prepareOrders",
+      error: "Only kitchen can start accepted orders.",
+    },
+    READY: {
+      from: "PREPARING",
+      permission: "prepareOrders",
+      error: "Only kitchen can mark an order prepared.",
+    },
+    SERVED: {
+      from: "READY",
+      permission: "serveOrders",
+      error: "Only waiter can mark prepared orders as served.",
+    },
+  };
+
+  const transition = expectedTransitions[nextStatus];
+
+  if (!transition) {
+    return "This order status change is not allowed from the dashboard.";
+  }
+
+  if (!hasPermission(role, transition.permission)) {
+    return transition.error;
+  }
+
+  if (currentStatus !== transition.from) {
+    return `Order must be ${formatApiStatus(transition.from)} before moving to ${formatApiStatus(nextStatus)}.`;
+  }
+
+  return null;
+}
+
+function formatApiStatus(status: string) {
+  return status
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
 }

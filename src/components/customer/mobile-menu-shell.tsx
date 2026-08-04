@@ -121,6 +121,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
   const payableTotal = placedOrder ? placedOrder.total : cartTotal;
   const canPlaceOrder = cartItems.length > 0 && customerName.trim().length >= 2 && guestCount >= 1 && guestCount <= 30 && !placedOrder;
   const canAttemptOrder = cartItems.length > 0 && !placedOrder && !isPlacingOrder;
+  const orderIsServed = placedOrder?.status === "SERVED";
   const canAddMoreItems = placedOrder?.paymentStatus === "UNPAID";
   const canSaveAddOnItems = canAddMoreItems && addOnCartItems.length > 0 && !isSavingAddOnItems;
 
@@ -732,6 +733,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                   <div className="mt-3 grid gap-2 text-xs text-emerald-800">
                     <div className="flex justify-between"><span>Guests</span><span>{guestCount}</span></div>
                     <div className="flex justify-between"><span>Restaurant acceptance</span><span>{placedOrder.status === "PENDING" ? "Waiting" : formatOrderStatus(placedOrder.status)}</span></div>
+                    <div className="flex justify-between"><span>Service flow</span><span>{getCustomerOrderStage(placedOrder.status)}</span></div>
                     <div className="flex justify-between"><span>Payment</span><span>{formatPaymentStatus(placedOrder.paymentStatus)}</span></div>
                   </div>
                   {canAddMoreItems ? (
@@ -753,7 +755,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                 </div>
               ) : null}
 
-              {placedOrder && placedOrder.paymentStatus !== "PAID" ? (
+              {placedOrder && placedOrder.paymentStatus !== "PAID" && orderIsServed ? (
                 <div className="mx-3 mb-3 rounded-xl border border-zinc-200 p-3">
                   <h3 className="text-sm font-semibold">Payment option</h3>
                   <p className="mt-1 text-xs text-zinc-500">
@@ -770,6 +772,12 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                   </div>
                   {!upiId ? <p className="mt-2 text-xs text-rose-500">UPI is not configured by this restaurant yet.</p> : null}
                   {paymentMessage ? <p className="mt-2 text-xs text-zinc-500">{paymentMessage}</p> : null}
+                </div>
+              ) : null}
+
+              {placedOrder && placedOrder.paymentStatus !== "PAID" && !orderIsServed ? (
+                <div className="mx-3 mb-3 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs font-medium text-amber-800">
+                  Payment opens after the waiter marks this order served.
                 </div>
               ) : null}
 
@@ -816,6 +824,18 @@ function formatPaymentStatus(status: string) {
   if (status === "VERIFICATION_PENDING") {
     return "Waiting for confirmation";
   }
+
+  return formatOrderStatus(status);
+}
+
+function getCustomerOrderStage(status: string) {
+  if (status === "PENDING") return "Waiting for admin";
+  if (status === "ACCEPTED") return "Sent to kitchen";
+  if (status === "PREPARING") return "Being prepared";
+  if (status === "READY") return "Waiting for waiter";
+  if (status === "SERVED") return "Served";
+  if (status === "COMPLETED") return "Completed";
+  if (status === "CANCELLED") return "Cancelled";
 
   return formatOrderStatus(status);
 }

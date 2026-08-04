@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const supabase = createAdminClient();
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id,restaurant_id,order_number,total,payment_status,customer_name")
+    .select("id,restaurant_id,order_number,total,payment_status,customer_name,status")
     .eq("id", payload.data.orderId)
     .maybeSingle();
 
@@ -46,6 +46,10 @@ export async function POST(request: Request) {
 
   if (order.payment_status === "PAID") {
     return NextResponse.json({ error: "This order is already paid." }, { status: 409 });
+  }
+
+  if (order.status !== "SERVED") {
+    return NextResponse.json({ error: "Payment opens after the waiter marks this order served." }, { status: 409 });
   }
 
   const customerName = order.customer_name?.trim() || payload.data.customerName;
