@@ -593,7 +593,7 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                       <UserRound className="h-5 w-5" />
                     </span>
                     <span className="name-required-now">Name</span>
-                    <span className="name-required-play">Required</span>
+                    <span className="name-required-play">Name required</span>
                   </button>
                 ) : null}
 
