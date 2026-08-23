@@ -17,11 +17,6 @@ export default async function BookRestaurantPage({ params }: { params: Promise<{
     redirect(`/auth/customer?mode=login&returnTo=${encodeURIComponent(`/restaurants/${slug}/book`)}`);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name,phone")
-    .eq("id", auth.user.id)
-    .maybeSingle();
   const data = await getBookingRestaurant(slug);
   if (!data) notFound();
 
@@ -60,9 +55,6 @@ export default async function BookRestaurantPage({ params }: { params: Promise<{
                 maxDate={maxDate}
                 maxPartySize={Math.min(data.config.maxPartySize, data.maxTableSeats)}
                 bookingConfig={data.config}
-                initialCustomerName={profile?.full_name ?? ""}
-                initialCustomerPhone={profile?.phone ?? ""}
-                customerEmail={auth.user.email ?? ""}
               />
             </div>
           )}

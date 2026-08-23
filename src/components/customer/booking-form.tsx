@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Clock3, Loader2, Mail, Phone, UserRound, Users } from "lucide-react";
+import { CalendarDays, Clock3, Loader2, Phone, UserRound, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,6 @@ type BookingFormProps = {
   maxDate: string;
   maxPartySize: number;
   bookingConfig: BookingConfig;
-  initialCustomerName: string;
-  initialCustomerPhone: string;
-  customerEmail: string;
 };
 
 export function BookingForm({
@@ -25,17 +22,14 @@ export function BookingForm({
   maxDate,
   maxPartySize,
   bookingConfig,
-  initialCustomerName,
-  initialCustomerPhone,
-  customerEmail,
 }: BookingFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [partySize, setPartySize] = useState(2);
   const [bookingDate, setBookingDate] = useState(minDate);
   const [bookingTime, setBookingTime] = useState("");
-  const [customerName, setCustomerName] = useState(initialCustomerName);
-  const [customerPhone, setCustomerPhone] = useState(initialCustomerPhone);
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
   const visiblePartySizes = useMemo(() => Array.from({ length: Math.min(maxPartySize, 10) }, (_, index) => index + 1), [maxPartySize]);
   const slots = useMemo(() => getBookingSlots(bookingConfig, bookingDate), [bookingConfig, bookingDate]);
@@ -146,21 +140,6 @@ export function BookingForm({
           <Input required type="tel" minLength={7} value={customerPhone} onChange={(event) => setCustomerPhone(event.target.value)} placeholder="Restaurant can contact you" />
         </label>
       </div>
-
-      <label>
-        <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold">
-          <Mail className="h-4 w-4 text-emerald-700" />
-          Account email
-        </span>
-        <Input
-          type="email"
-          value={customerEmail}
-          readOnly
-          aria-readonly="true"
-          className="cursor-not-allowed bg-zinc-50 text-zinc-600"
-        />
-        <span className="mt-1.5 block text-xs text-zinc-500">This comes from your signed-in FlickOrder account.</span>
-      </label>
 
       <label>
         <span className="mb-2 inline-flex items-center gap-2 text-sm font-semibold"><Users className="h-4 w-4 text-emerald-700" />Special request <span className="font-normal text-zinc-400">(optional)</span></span>

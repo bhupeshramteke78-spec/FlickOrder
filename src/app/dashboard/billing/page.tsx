@@ -158,6 +158,10 @@ function SubscriptionDetailsView({
               Trial status is calculated dynamically from the subscription dates, so it automatically changes from days
               left to expired.
             </p>
+            <p>
+              Separate Kitchen and Waiter tabs are available only on Growth and Pro. Owners can turn those tabs on or off
+              from Settings when the selected plan supports staff workflows.
+            </p>
           </div>
         </Card>
       </div>

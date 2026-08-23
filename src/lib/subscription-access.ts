@@ -23,6 +23,9 @@ export type SubscriptionAccess = {
   features: PlanRules;
   canManageRestaurant: boolean;
   canUseQrOrdering: boolean;
+  canUseStaffWorkflow: boolean;
+  kitchenEnabled: boolean;
+  waiterEnabled: boolean;
   verificationStatus: "PENDING" | "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED";
   isRestaurantVerified: boolean;
   deletionRequestedAt: string | null;
@@ -102,7 +105,7 @@ export async function getSubscriptionAccessForRestaurantId(
       .maybeSingle(),
     supabase
       .from("restaurant_settings")
-      .select("qr_ordering_enabled")
+      .select("qr_ordering_enabled,kitchen_enabled,waiter_enabled")
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
     supabase
@@ -123,6 +126,8 @@ export async function getSubscriptionAccessForRestaurantId(
       trialEndsAt: null,
       currentPeriodEndsAt: null,
       qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
+      kitchenEnabled: settings?.kitchen_enabled ?? false,
+      waiterEnabled: settings?.waiter_enabled ?? false,
       verificationStatus,
       deletionRequestedAt,
       deletedAt,
@@ -140,6 +145,8 @@ export async function getSubscriptionAccessForRestaurantId(
     trialEndsAt: subscription.trial_ends_at,
     currentPeriodEndsAt: subscription.current_period_ends_at,
     qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
+    kitchenEnabled: settings?.kitchen_enabled ?? false,
+    waiterEnabled: settings?.waiter_enabled ?? false,
     verificationStatus,
     deletionRequestedAt,
     deletedAt,
@@ -172,6 +179,8 @@ function buildAccess({
   trialEndsAt,
   currentPeriodEndsAt,
   qrOrderingEnabled,
+  kitchenEnabled,
+  waiterEnabled,
   verificationStatus,
   deletionRequestedAt,
   deletedAt,
@@ -183,6 +192,8 @@ function buildAccess({
   trialEndsAt: string | null;
   currentPeriodEndsAt: string | null;
   qrOrderingEnabled: boolean;
+  kitchenEnabled: boolean;
+  waiterEnabled: boolean;
   verificationStatus: SubscriptionAccess["verificationStatus"];
   deletionRequestedAt: string | null;
   deletedAt: string | null;
@@ -195,6 +206,7 @@ function buildAccess({
   const isDeletionLocked = Boolean(deletionRequestedAt || deletedAt || isAbandonedTrialDeleted);
   const canUsePlan = (canUseSubscription || isInGracePeriod) && !isAbandonedTrialDeleted;
   const features = canUsePlan ? getPlanRules(plan) : getPlanRules("none");
+  const canUseStaffWorkflow = canUsePlan && isRestaurantVerified && !isDeletionLocked && features.staffWorkflow;
 
   return {
     restaurantId,
@@ -214,6 +226,9 @@ function buildAccess({
     deletedAt,
     canManageRestaurant: canUsePlan && isRestaurantVerified && !isDeletionLocked,
     canUseQrOrdering: canUsePlan && isRestaurantVerified && !isDeletionLocked && qrOrderingEnabled && features.qrOrdering,
+    canUseStaffWorkflow,
+    kitchenEnabled: canUseStaffWorkflow && kitchenEnabled,
+    waiterEnabled: canUseStaffWorkflow && waiterEnabled,
     message,
   };
 }

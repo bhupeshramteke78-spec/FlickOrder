@@ -29,18 +29,18 @@ const plans = [
   {
     name: "Growth",
     price: "₹799",
-    description: "For busy restaurants that need faster live operations.",
+    description: "For busy restaurants that want separate kitchen and waiter workflows.",
     highlight: true,
     accent: "from-emerald-500/20 via-white/[0.08] to-orange-500/14",
-    features: ["Everything in Basic", "Realtime order kanban", "Order history records", "Paid-order revenue and item analytics"],
+    features: ["Everything in Basic", "Optional Kitchen and Waiter staff tabs", "Order history records", "Paid-order revenue and item analytics"],
   },
   {
     name: "Pro",
     price: "₹1,499",
-    description: "For restaurants that want deeper reporting and history controls.",
+    description: "For restaurants that want staff workflows plus deeper reporting and history controls.",
     highlight: false,
     accent: "from-orange-500/14 via-white/[0.065] to-emerald-500/12",
-    features: ["Everything in Growth", "7, 30, and 90 day analytics views", "Searchable order history", "Detailed busy-hour reporting"],
+    features: ["Everything in Growth", "Optional Kitchen and Waiter staff tabs", "Searchable order history", "Detailed busy-hour reporting"],
   },
 ];
 
@@ -49,6 +49,7 @@ const includedFeatures = [
   { icon: Utensils, title: "Menu control", text: "Add items, edit pricing, and update availability from the dashboard." },
   { icon: CreditCard, title: "Payment verification", text: "Track UPI, cash, and card-machine payments after staff confirmation." },
   { icon: Table2, title: "Table operations", text: "Generate QR links, monitor status, and reset tables after paid orders." },
+  { icon: Store, title: "Staff workflow", text: "Growth and Pro can enable separate Kitchen and Waiter tabs from settings." },
 ];
 
 const comparisonRows = [
@@ -56,6 +57,7 @@ const comparisonRows = [
   ["QR table ordering", "Included", "Included", "Included"],
   ["Menu and table management", "Included", "Included", "Included"],
   ["Order kanban", "Included", "Included", "Included"],
+  ["Separate Kitchen and Waiter tabs", "Not included", "Optional from Settings", "Optional from Settings"],
   ["Paid-order analytics", "Dashboard totals", "Revenue and item analytics", "Range-filtered analytics"],
   ["Order history", "Recent active orders", "History records", "Searchable history records"],
   ["Busy-hour reporting", "Not included", "Basic hourly view", "Working-hour performance"],

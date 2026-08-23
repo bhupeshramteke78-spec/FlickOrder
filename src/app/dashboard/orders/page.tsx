@@ -21,7 +21,13 @@ export default async function OrdersPage() {
   const canUseOrderHistory = hasPlanFeature(access, "orderHistory");
   const canUseLiveOrders = hasPlanFeature(access, "liveOrders");
   const canAcceptOrders = canUseLiveOrders && hasPermission(memberRole, "acceptOrders");
+  const canPrepareOrders = canUseLiveOrders && hasPermission(memberRole, "prepareOrders") && !access?.kitchenEnabled;
+  const canServeOrders = canUseLiveOrders && hasPermission(memberRole, "serveOrders") && !access?.waiterEnabled;
   const canConfirmPayments = canUseLiveOrders && hasPermission(memberRole, "confirmPayments");
+  const visibleStatuses = getVisibleOrderStatuses(dashboardOrderStatuses, {
+    kitchenEnabled: Boolean(access?.kitchenEnabled),
+    waiterEnabled: Boolean(access?.waiterEnabled),
+  });
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const paidOrders: OrderHistoryRow[] = orders
@@ -45,7 +51,7 @@ export default async function OrdersPage() {
           <SubscriptionLock access={access} feature="liveOrders" />
           <div className="grid gap-4">
             <div className={`grid gap-4 ${canUseOrderHistory ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
-              {dashboardOrderStatuses.map((status) => {
+              {visibleStatuses.map((status) => {
                 const columnOrders = activeOrders.filter((order) => order.status === status);
 
                 return (
@@ -63,6 +69,8 @@ export default async function OrdersPage() {
                             order={order}
                             stage="admin"
                             canAccept={canAcceptOrders}
+                            canPrepare={canPrepareOrders}
+                            canServe={canServeOrders}
                             canConfirmPayment={canConfirmPayments}
                           />
                         ))}
@@ -113,4 +121,22 @@ async function getOrdersAccess() {
   const { access, membership } = await getSubscriptionAccessForCurrentUser(supabase);
 
   return { access, memberRole: membership?.role ?? null };
+}
+
+function getVisibleOrderStatuses(
+  roleStatuses: OrderStatus[],
+  options: { kitchenEnabled: boolean; waiterEnabled: boolean },
+) {
+  const statuses = new Set(roleStatuses);
+
+  if (!options.kitchenEnabled && statuses.has("PENDING")) {
+    statuses.add("ACCEPTED");
+    statuses.add("PREPARING");
+  }
+
+  if (!options.waiterEnabled && statuses.has("SERVED")) {
+    statuses.add("READY");
+  }
+
+  return (["PENDING", "ACCEPTED", "PREPARING", "READY", "SERVED"] as OrderStatus[]).filter((status) => statuses.has(status));
 }

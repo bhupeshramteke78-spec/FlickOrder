@@ -262,6 +262,8 @@ export type Database = {
           booking_advance_days: number;
           booking_min_notice_minutes: number;
           booking_max_party_size: number;
+          kitchen_enabled: boolean;
+          waiter_enabled: boolean;
         }>,
         {
           restaurant_id: string;
@@ -278,6 +280,8 @@ export type Database = {
           booking_advance_days?: number;
           booking_min_notice_minutes?: number;
           booking_max_party_size?: number;
+          kitchen_enabled?: boolean;
+          waiter_enabled?: boolean;
         },
         Partial<{
           restaurant_id: string;
@@ -294,6 +298,8 @@ export type Database = {
           booking_advance_days: number;
           booking_min_notice_minutes: number;
           booking_max_party_size: number;
+          kitchen_enabled: boolean;
+          waiter_enabled: boolean;
         }>
       >;
       push_subscriptions: DbTable<

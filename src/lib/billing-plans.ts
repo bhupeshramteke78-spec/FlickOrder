@@ -5,6 +5,7 @@ export type PlanFeature =
   | "menuManagement"
   | "tableManagement"
   | "liveOrders"
+  | "staffWorkflow"
   | "analytics"
   | "orderHistory"
   | "advancedReporting"
@@ -33,14 +34,14 @@ export const subscriptionPlans: SubscriptionPlanDetails[] = [
     name: "Growth",
     price: 799,
     description: "Realtime operations, order history, and analytics for busy restaurants.",
-    features: ["Everything in Basic", "Realtime order kanban", "Order history records", "Paid-order revenue and item analytics"],
+    features: ["Everything in Basic", "Optional Kitchen and Waiter staff tabs", "Order history records", "Paid-order revenue and item analytics"],
   },
   {
     id: "pro",
     name: "Pro",
     price: 1499,
     description: "Advanced controls and reporting for scaling restaurant teams.",
-    features: ["Everything in Growth", "7, 30, and 90 day analytics views", "Searchable order history", "Detailed busy-hour reporting"],
+    features: ["Everything in Growth", "Optional Kitchen and Waiter staff tabs", "Searchable order history", "Detailed busy-hour reporting"],
   },
 ];
 
@@ -49,6 +50,7 @@ const emptyRules: PlanRules = {
   menuManagement: false,
   tableManagement: false,
   liveOrders: false,
+  staffWorkflow: false,
   analytics: false,
   orderHistory: false,
   advancedReporting: false,
@@ -65,6 +67,7 @@ const basicRules: PlanRules = {
 
 const growthRules: PlanRules = {
   ...basicRules,
+  staffWorkflow: true,
   analytics: true,
   orderHistory: true,
 };

@@ -101,6 +101,24 @@ export function WorkflowOrderCard({
         </OrderStatusButton>
       ) : null}
 
+      {stage === "admin" && order.status === "ACCEPTED" ? (
+        <OrderStatusButton orderId={order.id} status="PREPARING" disabled={!canPrepare}>
+          Start preparing
+        </OrderStatusButton>
+      ) : null}
+
+      {stage === "admin" && order.status === "PREPARING" ? (
+        <OrderStatusButton orderId={order.id} status="READY" disabled={!canPrepare}>
+          Mark prepared
+        </OrderStatusButton>
+      ) : null}
+
+      {stage === "admin" && order.status === "READY" ? (
+        <OrderStatusButton orderId={order.id} status="SERVED" disabled={!canServe}>
+          Mark served
+        </OrderStatusButton>
+      ) : null}
+
       {stage === "kitchen" && order.status === "ACCEPTED" ? (
         <OrderStatusButton orderId={order.id} status="PREPARING" disabled={!canPrepare}>
           Start preparing

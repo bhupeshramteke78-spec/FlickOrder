@@ -8,7 +8,7 @@ import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import { DashboardRealtimeRefresh } from "@/components/realtime/dashboard-realtime-refresh";
 import { getInitials, getSelectedDashboardRestaurant, type DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
 import { hasPermission, type Permission } from "@/lib/permissions";
-import { getSubscriptionAccessForRestaurantId } from "@/lib/subscription-access";
+import { getSubscriptionAccessForRestaurantId, type SubscriptionAccess } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -55,8 +55,25 @@ export async function DashboardShell({
   showClock?: boolean;
 }) {
   const identity = await getDashboardIdentity();
-  const subscriptionNotice = identity.restaurantId ? await getDashboardSubscriptionNotice(identity.restaurantId) : null;
-  const visibleNavItems = navItems.filter((item) => hasPermission(identity.memberRole, item.permission));
+  const access = identity.restaurantId && isSupabaseConfigured()
+    ? await getSubscriptionAccessForRestaurantId(await createClient(), identity.restaurantId)
+    : null;
+  const subscriptionNotice = access ? getDashboardSubscriptionNotice(access) : null;
+  const visibleNavItems = navItems.filter((item) => {
+    if (!hasPermission(identity.memberRole, item.permission)) {
+      return false;
+    }
+
+    if (item.href === "/dashboard/kitchen") {
+      return Boolean(access?.kitchenEnabled);
+    }
+
+    if (item.href === "/dashboard/waiter") {
+      return Boolean(access?.waiterEnabled);
+    }
+
+    return true;
+  });
   const visibleMobileNavItems = visibleNavItems.map(({ href, label, iconKey }) => ({ href, label, iconKey }));
 
   return (
@@ -138,14 +155,7 @@ export async function DashboardShell({
   );
 }
 
-async function getDashboardSubscriptionNotice(restaurantId: string) {
-  if (!isSupabaseConfigured()) {
-    return null;
-  }
-
-  const supabase = await createClient();
-  const access = await getSubscriptionAccessForRestaurantId(supabase, restaurantId);
-
+function getDashboardSubscriptionNotice(access: SubscriptionAccess) {
   if (access.deletedAt || access.isAbandonedTrialPastDeletionDate) {
     return {
       title: "Trial account deletion pending",
