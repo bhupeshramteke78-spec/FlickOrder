@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { playNotificationChime } from "@/lib/notification-sound";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 
@@ -10,13 +11,22 @@ type DashboardRealtimeRefreshProps = {
   restaurantId: string | null;
 };
 
-const restaurantScopedTables = ["orders", "payments", "tables", "menu_items", "service_requests", "notifications", "restaurant_bookings"] as const;
-const newOrderSoundPath = "/sounds/new-order.mp3";
+const restaurantScopedTables = [
+  "orders",
+  "payments",
+  "tables",
+  "menu_items",
+  "service_requests",
+  "notifications",
+  "restaurant_bookings",
+] as const;
+
 const notifiedOrderStorageKey = "flickorder_notified_order_ids";
 
 type RealtimeOrderRow = {
   id: string;
   order_number: string | null;
+  status: string | null;
   total: number | null;
 };
 
@@ -27,22 +37,23 @@ type RealtimeBookingRow = {
   booking_time: string | null;
 };
 
+type RealtimeServiceRequestRow = {
+  id: string;
+  table_number: string | null;
+  type: string | null;
+};
+
 export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefreshProps) {
   const router = useRouter();
   const refreshTimer = useRef<number | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!restaurantId) {
       return;
     }
 
-    audioRef.current = new Audio(newOrderSoundPath);
-    audioRef.current.volume = 0.75;
-    audioRef.current.preload = "auto";
-
     const unlockAudio = () => {
-      audioRef.current?.load();
+      // Audio unlock on user interaction
     };
 
     window.addEventListener("pointerdown", unlockAudio, { once: true });
@@ -61,6 +72,7 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
 
     const channel = supabase.channel(`dashboard:${restaurantId}`);
 
+    // 1. Live Incoming Orders
     channel.on(
       "postgres_changes",
       {
@@ -82,7 +94,7 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
         const orderLabel = order.order_number ? `#${order.order_number}` : "New order";
         const totalLabel = formatCurrency(Number(order.total ?? 0));
 
-        toast.success("New order received", {
+        toast.success("New order received 🔔", {
           description: `${orderLabel} - ${totalLabel}`,
           action: {
             label: "Open",
@@ -90,11 +102,60 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
           },
         });
 
-        await playNewOrderSound(audioRef.current);
+        await playNotificationChime("order");
         scheduleRefresh();
       },
     );
 
+    // 2. Order Status Updates (Kitchen / Waiter sounds)
+    channel.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+        filter: `restaurant_id=eq.${restaurantId}`,
+      },
+      async (payload) => {
+        const newOrder = payload.new as RealtimeOrderRow;
+        const oldOrder = payload.old as Partial<RealtimeOrderRow> | undefined;
+
+        if (newOrder.status === "ACCEPTED" && oldOrder?.status !== "ACCEPTED") {
+          toast.info("Kitchen order accepted 👨‍🍳", {
+            description: `Order ${newOrder.order_number ?? ""} sent to kitchen queue.`,
+          });
+          await playNotificationChime("kitchen");
+        } else if (newOrder.status === "READY" && oldOrder?.status !== "READY") {
+          toast.success("Dishes ready to serve! 🍽️", {
+            description: `Order ${newOrder.order_number ?? ""} is ready for table delivery.`,
+          });
+          await playNotificationChime("waiter");
+        }
+
+        scheduleRefresh();
+      },
+    );
+
+    // 3. Guest Service Requests (Call Waiter / Water / Bill)
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "service_requests",
+        filter: `restaurant_id=eq.${restaurantId}`,
+      },
+      async (payload) => {
+        const request = payload.new as RealtimeServiceRequestRow;
+        toast.info(`Table ${request.table_number ?? "Guest"}: ${request.type ?? "Assistance"} Requested 🛎️`, {
+          description: "Guest needs staff service at their table.",
+        });
+        await playNotificationChime("bell");
+        scheduleRefresh();
+      },
+    );
+
+    // 4. Table Bookings
     channel.on(
       "postgres_changes",
       {
@@ -105,11 +166,11 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
       },
       async (payload) => {
         const booking = payload.new as RealtimeBookingRow;
-        toast.success("New table booking", {
+        toast.success("New table booking 📅", {
           description: `${booking.customer_name ?? "Guest"} · ${booking.party_size ?? 1} guests${booking.booking_time ? ` · ${booking.booking_time.slice(0, 5)}` : ""}`,
           action: { label: "Open", onClick: () => router.push("/dashboard/bookings") },
         });
-        await playNewOrderSound(audioRef.current);
+        await playNotificationChime("order");
         scheduleRefresh();
       },
     );
@@ -141,19 +202,6 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
   }, [restaurantId, router]);
 
   return null;
-}
-
-async function playNewOrderSound(audio: HTMLAudioElement | null) {
-  if (!audio) {
-    return;
-  }
-
-  try {
-    audio.currentTime = 0;
-    await audio.play();
-  } catch {
-    toast.info("Sound is ready after one click on this page.");
-  }
 }
 
 function hasAlreadyNotified(orderId: string) {
