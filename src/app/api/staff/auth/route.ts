@@ -60,13 +60,12 @@ export async function POST(request: Request) {
 
   const encoded = Buffer.from(JSON.stringify(session)).toString("base64");
 
-  // Set 12-hour shift session cookie
+  // Set tab-session cookie (destroyed as soon as browser/tab closes)
   cookieStore.set(cookieName, encoded, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 12, // 12 hours (1 shift)
   });
 
   return NextResponse.json({ ok: true, session });

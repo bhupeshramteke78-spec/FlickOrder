@@ -90,9 +90,12 @@ export function StaffAccessManager({
             Kitchen & Waiter Staff Passcodes & QR Access
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Chefs and waiters can scan these QR codes or enter their 4-digit PIN on any phone/tablet to operate without your owner password.
+            Chefs and waiters can scan these QR codes and enter their 4-digit PIN to operate. PINs automatically rotate daily at midnight for security, or you can generate/customize them anytime below.
           </p>
         </div>
+        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+          Daily Auto-Rotation Active 🛡️
+        </span>
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
