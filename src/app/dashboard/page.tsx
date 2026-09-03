@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { OrderStatus, PaymentStatus } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
+import { getSubscriptionAccessForRestaurantId, hasPlanFeature, type SubscriptionAccess } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency, getTrialStatus } from "@/lib/utils";
@@ -77,7 +78,7 @@ const emptyMetrics: DashboardMetrics = {
 };
 
 export default async function DashboardPage() {
-  const { metrics, liveOrders, tables, role } = await getOverviewData();
+  const { metrics, liveOrders, tables, role, access } = await getOverviewData();
   const trial = getTrialStatus(metrics.trialEndsAt);
   const shouldShowTrialBadge = metrics.subscriptionPlan === "trial" || metrics.subscriptionStatus === "TRIALING";
 
@@ -126,9 +127,10 @@ export default async function DashboardPage() {
               label="Today's Revenue"
               value={formatCurrency(metrics.todaysRevenue)}
               icon={IndianRupee}
-              subcaption="Verified paid settlements"
+              subcaption={hasPlanFeature(access, "analytics") ? "Click to view analytics" : "Verified paid settlements"}
               trend="+12.5%"
               tone="emerald"
+              href={hasPlanFeature(access, "analytics") ? "/dashboard/analytics" : "/dashboard/billing"}
             />
             <MetricCard
               label="Active Dine-In Orders"
@@ -136,6 +138,7 @@ export default async function DashboardPage() {
               icon={ListOrdered}
               subcaption={`${metrics.preparingOrders} in kitchen queue`}
               tone="amber"
+              href="/dashboard/orders"
             />
             <MetricCard
               label="Table Floor Occupancy"
@@ -143,13 +146,15 @@ export default async function DashboardPage() {
               icon={Table2}
               subcaption={`${metrics.availableTables} tables available`}
               tone="blue"
+              href="/dashboard/tables"
             />
             <MetricCard
               label="Unpaid Orders"
               value={String(metrics.unpaidOrders)}
               icon={CreditCard}
-              subcaption="Awaiting staff payment confirmation"
+              subcaption="Click to settle at Payment Desk"
               tone={metrics.unpaidOrders > 0 ? "rose" : "zinc"}
+              href="/dashboard/orders"
             />
           </div>
 
@@ -389,22 +394,23 @@ async function getOverviewData(): Promise<{
   liveOrders: LiveOrder[];
   tables: TableSummary[];
   role: string | null;
+  access: SubscriptionAccess | null;
 }> {
   if (!isSupabaseConfigured()) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null };
+    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null, access: null };
   }
 
   const supabase = await createClient();
   const context = await getSelectedDashboardRestaurant(supabase);
 
   if (!context) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null };
+    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null, access: null };
   }
 
   const role = context.selected.memberRole;
 
   if (!hasPermission(role, "viewOverview")) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role };
+    return { metrics: emptyMetrics, liveOrders: [], tables: [], role, access: null };
   }
 
   const restaurantId = context.selected.restaurantId;
@@ -419,6 +425,7 @@ async function getOverviewData(): Promise<{
     allTables,
     subscription,
     liveOrders,
+    access,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -452,6 +459,7 @@ async function getOverviewData(): Promise<{
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
     getLiveOrdersForRestaurant(supabase, restaurantId),
+    getSubscriptionAccessForRestaurantId(supabase, restaurantId),
   ]);
 
   const tablesList: TableSummary[] = (allTables.data ?? []).map((t) => ({
@@ -468,6 +476,7 @@ async function getOverviewData(): Promise<{
     role,
     liveOrders,
     tables: tablesList,
+    access,
     metrics: {
       todaysRevenue: paidOrders.data?.reduce((sum, order) => sum + Number(order.total), 0) ?? 0,
       todaysOrders: todaysOrders.count ?? 0,
