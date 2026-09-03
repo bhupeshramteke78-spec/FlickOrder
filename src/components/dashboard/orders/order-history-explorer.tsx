@@ -248,6 +248,7 @@ function formatTime(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Asia/Kolkata",
   }).format(new Date(value));
 }
 
