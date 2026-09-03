@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import type { FoodImageSuggestion } from "@/lib/food-images";
 import { getMatchingFoodImages } from "@/lib/food-images";
+import { parseItemVariants, serializeItemVariants, getItemDisplayPrice, type ItemPortion } from "@/lib/item-variants";
 import { formatCurrency } from "@/lib/utils";
 
 type FoodType = "VEG" | "NON_VEG" | "EGG";
@@ -35,6 +36,8 @@ type FormState = {
   foodType: FoodType;
   isAvailable: boolean;
   isPopular: boolean;
+  hasPortions: boolean;
+  portions: ItemPortion[];
 };
 
 export type MenuItemRow = {
@@ -63,6 +66,11 @@ const initialForm: FormState = {
   foodType: "VEG",
   isAvailable: true,
   isPopular: false,
+  hasPortions: false,
+  portions: [
+    { name: "Half Plate", price: 160 },
+    { name: "Full Plate", price: 280 },
+  ],
 };
 
 export function MenuManagementClient({
@@ -222,11 +230,13 @@ export function MenuManagementClient({
       return;
     }
 
+    const parsedVariants = parseItemVariants(item.description);
+
     setEditingItemId(item.id);
     setForm({
       name: item.name,
       category: item.category,
-      description: item.description ?? "",
+      description: parsedVariants.description,
       imageUrl: item.imageUrl ?? "",
       price: String(item.price),
       offerPrice: item.offerPrice === null ? "" : String(item.offerPrice),
@@ -234,24 +244,86 @@ export function MenuManagementClient({
       foodType: item.foodType,
       isAvailable: item.isAvailable,
       isPopular: item.isPopular,
+      hasPortions: parsedVariants.hasPortions,
+      portions: parsedVariants.hasPortions
+        ? parsedVariants.portions
+        : [
+            { name: "Half Plate", price: Math.round(item.price * 0.6) },
+            { name: "Full Plate", price: item.price },
+          ],
     });
     setSuggestions(getMatchingFoodImages(item.name, item.category));
     setIsCustomImageMode(Boolean(item.imageUrl && !suggestions.some((s) => s.url === item.imageUrl)));
     setIsOpen(true);
   }
 
+  function addPortionRow() {
+    setForm((current) => ({
+      ...current,
+      portions: [...current.portions, { name: "", price: 0 }],
+    }));
+  }
+
+  function updatePortionRow(index: number, field: "name" | "price", value: string | number) {
+    setForm((current) => ({
+      ...current,
+      portions: current.portions.map((portion, i) => (
+        i === index ? { ...portion, [field]: field === "price" ? Number(value) || 0 : value } : portion
+      )),
+    }));
+  }
+
+  function removePortionRow(index: number) {
+    setForm((current) => ({
+      ...current,
+      portions: current.portions.filter((_, i) => i !== index),
+    }));
+  }
+
+  function setPresetPortions(type: "half_full" | "small_med_large") {
+    const base = Number(form.price) || 200;
+    if (type === "half_full") {
+      setForm((current) => ({
+        ...current,
+        hasPortions: true,
+        portions: [
+          { name: "Half Plate", price: Math.round(base * 0.6) },
+          { name: "Full Plate", price: base },
+        ],
+      }));
+    } else {
+      setForm((current) => ({
+        ...current,
+        hasPortions: true,
+        portions: [
+          { name: "Small", price: Math.round(base * 0.5) },
+          { name: "Medium", price: Math.round(base * 0.8) },
+          { name: "Large", price: base },
+        ],
+      }));
+    }
+  }
+
   async function submitMenuItem(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
+
+    const finalDescription = form.hasPortions
+      ? serializeItemVariants(form.description, form.portions)
+      : form.description.replace(/<!--portions:.*?-->/g, "").trim();
+
+    const minPortionPrice = form.hasPortions && form.portions.length > 0
+      ? Math.min(...form.portions.map((p) => p.price))
+      : Number(form.price);
 
     const payload = {
       ...(editingItemId ? { id: editingItemId } : {}),
       name: form.name,
       category: form.category,
-      description: form.description || undefined,
+      description: finalDescription || undefined,
       imageUrl: form.imageUrl.trim() ? form.imageUrl.trim() : null,
-      price: Number(form.price),
-      offerPrice: form.offerPrice ? Number(form.offerPrice) : null,
+      price: minPortionPrice,
+      offerPrice: form.hasPortions ? null : (form.offerPrice ? Number(form.offerPrice) : null),
       preparationTimeMinutes: Number(form.preparationTimeMinutes),
       foodType: form.foodType,
       isAvailable: form.isAvailable,
@@ -590,34 +662,128 @@ export function MenuManagementClient({
                 )}
               </div>
 
-              <label>
-                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
-                  Regular Price (₹) *
-                </span>
-                <Input
-                  required
-                  min={0}
-                  step="0.01"
-                  type="number"
-                  value={form.price}
-                  onChange={(event) => updateField("price", event.target.value)}
-                  placeholder="299"
-                />
-              </label>
+              {/* Portion Pricing Toggle & Builder */}
+              <div className="sm:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/40 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                      Portion / Size Variations (Half & Full Plate)
+                    </p>
+                    <p className="text-xs text-emerald-800">
+                      Enable if this dish has different plate sizes (e.g. Half / Full Plate, Regular / Large).
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.hasPortions}
+                      onChange={(e) => updateField("hasPortions", e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-zinc-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
 
-              <label>
-                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
-                  Offer / Discount Price (₹)
-                </span>
-                <Input
-                  min={0}
-                  step="0.01"
-                  type="number"
-                  value={form.offerPrice}
-                  onChange={(event) => updateField("offerPrice", event.target.value)}
-                  placeholder="249 (optional)"
-                />
-              </label>
+                {form.hasPortions ? (
+                  <div className="mt-4 space-y-3 pt-3 border-t border-emerald-200/60">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setPresetPortions("half_full")}
+                        className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
+                      >
+                        + Half & Full Plate
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetPortions("small_med_large")}
+                        className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
+                      >
+                        + Small / Med / Large
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {form.portions.map((portion, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            placeholder="Portion name (e.g. Half Plate)"
+                            value={portion.name}
+                            onChange={(e) => updatePortionRow(index, "name", e.target.value)}
+                            className="flex-1 bg-white text-xs font-bold"
+                            required
+                          />
+                          <div className="relative w-32">
+                            <span className="absolute left-3 top-2.5 text-xs font-bold text-zinc-400">₹</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Price"
+                              value={portion.price || ""}
+                              onChange={(e) => updatePortionRow(index, "price", e.target.value)}
+                              className="pl-7 bg-white text-xs font-black text-zinc-950"
+                              required
+                            />
+                          </div>
+                          {form.portions.length > 1 ? (
+                            <button
+                              type="button"
+                              onClick={() => removePortionRow(index)}
+                              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50"
+                              title="Remove portion"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addPortionRow}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-950 hover:underline pt-1"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Add another size / portion
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {!form.hasPortions ? (
+                <>
+                  <label>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                      Regular Price (₹) *
+                    </span>
+                    <Input
+                      required
+                      min={0}
+                      step="0.01"
+                      type="number"
+                      value={form.price}
+                      onChange={(event) => updateField("price", event.target.value)}
+                      placeholder="299"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                      Offer / Discount Price (₹)
+                    </span>
+                    <Input
+                      min={0}
+                      step="0.01"
+                      type="number"
+                      value={form.offerPrice}
+                      onChange={(event) => updateField("offerPrice", event.target.value)}
+                      placeholder="249 (optional)"
+                    />
+                  </label>
+                </>
+              ) : null}
 
               <label>
                 <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
@@ -735,58 +901,67 @@ function MenuItemsTable({
         <span className="text-right">Actions</span>
       </div>
       <div className="divide-y divide-zinc-100">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="grid grid-cols-[auto_1.2fr_0.8fr_0.7fr_0.7fr_1fr_0.8fr_auto] items-center gap-4 px-4 py-3 text-sm hover:bg-zinc-50/70 transition"
-          >
-            {/* Dish Thumbnail */}
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
-              {item.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="grid h-full w-full place-items-center text-zinc-400">
-                  <Utensils className="h-5 w-5" />
-                </div>
-              )}
-            </div>
+        {items.map((item) => {
+          const parsed = parseItemVariants(item.description);
+          const displayPrice = getItemDisplayPrice(item.price, item.offerPrice, parsed.portions);
 
-            {/* Name & Details */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span
-                  className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                    item.foodType === "VEG"
-                      ? "bg-emerald-500 ring-2 ring-emerald-200"
-                      : item.foodType === "NON_VEG"
-                        ? "bg-rose-500 ring-2 ring-rose-200"
-                        : "bg-amber-500 ring-2 ring-amber-200"
-                  }`}
-                  title={item.foodType}
-                />
-                <p className="truncate font-bold text-zinc-950">{item.name}</p>
-                {item.isPopular ? (
-                  <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">
-                    Bestseller
-                  </span>
-                ) : null}
+          return (
+            <div
+              key={item.id}
+              className="grid grid-cols-[auto_1.2fr_0.8fr_0.7fr_0.7fr_1fr_0.8fr_auto] items-center gap-4 px-4 py-3 text-sm hover:bg-zinc-50/70 transition"
+            >
+              {/* Dish Thumbnail */}
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                {item.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-zinc-400">
+                    <Utensils className="h-5 w-5" />
+                  </div>
+                )}
               </div>
-              <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">
-                {item.description ?? "No description"}
-              </p>
-            </div>
 
-            <span className="font-medium text-zinc-700">{item.category}</span>
-            <span className="font-bold text-zinc-950">{formatCurrency(item.price)}</span>
-            <span className="font-semibold text-emerald-700">
-              {item.offerPrice === null ? "-" : formatCurrency(item.offerPrice)}
-            </span>
+              {/* Name & Details */}
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                      item.foodType === "VEG"
+                        ? "bg-emerald-500 ring-2 ring-emerald-200"
+                        : item.foodType === "NON_VEG"
+                          ? "bg-rose-500 ring-2 ring-rose-200"
+                          : "bg-amber-500 ring-2 ring-amber-200"
+                    }`}
+                    title={item.foodType}
+                  />
+                  <p className="truncate font-bold text-zinc-950">{item.name}</p>
+                  {parsed.hasPortions ? (
+                    <span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800">
+                      {parsed.portions.length} Sizes
+                    </span>
+                  ) : null}
+                  {item.isPopular ? (
+                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">
+                      Bestseller
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">
+                  {parsed.description || "No description"}
+                </p>
+              </div>
+
+              <span className="font-medium text-zinc-700">{item.category}</span>
+              <span className="font-bold text-zinc-950">{displayPrice}</span>
+              <span className="font-semibold text-emerald-700">
+                {parsed.hasPortions ? "-" : item.offerPrice === null ? "-" : formatCurrency(item.offerPrice)}
+              </span>
 
             {/* Availability Toggle */}
             <span className="flex items-center gap-2">
@@ -847,7 +1022,8 @@ function MenuItemsTable({
               </button>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </div>
   );

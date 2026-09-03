@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { parseItemVariants, getItemDisplayPrice, type ItemPortion } from "@/lib/item-variants";
 
 export type CustomerMenuCategory = {
   id: string;
@@ -44,6 +45,7 @@ type MobileMenuShellProps = {
 type CartItem = {
   item: CustomerMenuItem;
   quantity: number;
+  portion?: ItemPortion;
 };
 
 type PlacedOrder = {
@@ -89,6 +91,23 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [isRequestingPayment, setIsRequestingPayment] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | null>(null);
+  const [portionModalItem, setPortionModalItem] = useState<{
+    item: CustomerMenuItem;
+    portions: ItemPortion[];
+    selectedPortion: ItemPortion;
+    quantity: number;
+  } | null>(null);
+
+  function getCartItemKey(cartItem: CartItem): string {
+    return `${cartItem.item.id}::${cartItem.portion?.name ?? "default"}`;
+  }
+
+  function getItemUnitPrice(cartItem: CartItem): number {
+    if (cartItem.portion) {
+      return cartItem.portion.price;
+    }
+    return cartItem.item.offerPrice ?? cartItem.item.price;
+  }
 
   const activeCategory = categories.find((category) => category.id === activeCategoryId);
   const normalizedSearch = searchQuery.trim().toLowerCase();
@@ -107,17 +126,12 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
       return matchesCategory && matchesSearch && matchesFoodType && matchesAvailability && matchesPopularity;
     });
   }, [activeCategory, activeCategoryId, foodTypeFilter, isSearching, menuItems, normalizedSearch, onlyAvailable, onlyPopular]);
-  const cartSubtotal = cartItems.reduce((total, cartItem) => total + cartItem.item.price * cartItem.quantity, 0);
-  const cartDiscount = cartItems.reduce((total, cartItem) => {
-    const effectivePrice = cartItem.item.offerPrice ?? cartItem.item.price;
-    return total + (cartItem.item.price - effectivePrice) * cartItem.quantity;
-  }, 0);
+
+  const cartSubtotal = cartItems.reduce((total, cartItem) => total + getItemUnitPrice(cartItem) * cartItem.quantity, 0);
+  const cartDiscount = 0;
   const cartTotal = cartSubtotal - cartDiscount;
-  const addOnSubtotal = addOnCartItems.reduce((total, cartItem) => total + cartItem.item.price * cartItem.quantity, 0);
-  const addOnDiscount = addOnCartItems.reduce((total, cartItem) => {
-    const effectivePrice = cartItem.item.offerPrice ?? cartItem.item.price;
-    return total + (cartItem.item.price - effectivePrice) * cartItem.quantity;
-  }, 0);
+  const addOnSubtotal = addOnCartItems.reduce((total, cartItem) => total + getItemUnitPrice(cartItem) * cartItem.quantity, 0);
+  const addOnDiscount = 0;
   const addOnTotal = addOnSubtotal - addOnDiscount;
   const payableTotal = placedOrder ? placedOrder.total : cartTotal;
   const canPlaceOrder = cartItems.length > 0 && customerName.trim().length >= 2 && guestCount >= 1 && guestCount <= 30 && !placedOrder;
@@ -147,14 +161,25 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
   }, [placedOrder]);
 
   function addToCart(item: CustomerMenuItem) {
+    const parsedVariants = parseItemVariants(item.description);
+    if (parsedVariants.hasPortions && parsedVariants.portions.length > 0) {
+      setPortionModalItem({
+        item,
+        portions: parsedVariants.portions,
+        selectedPortion: parsedVariants.portions[0],
+        quantity: 1,
+      });
+      return;
+    }
+
     const setTargetCartItems = placedOrder && isAddingMoreItems ? setAddOnCartItems : setCartItems;
 
     setTargetCartItems((currentItems) => {
-      const existingItem = currentItems.find((cartItem) => cartItem.item.id === item.id);
+      const existingItem = currentItems.find((cartItem) => cartItem.item.id === item.id && !cartItem.portion);
 
       if (existingItem) {
         return currentItems.map((cartItem) => (
-          cartItem.item.id === item.id ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
+          cartItem.item.id === item.id && !cartItem.portion ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem
         ));
       }
 
@@ -166,42 +191,69 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
     }
   }
 
-  function updateCartItemsQuantity(setTargetCartItems: Dispatch<SetStateAction<CartItem[]>>, itemId: string, change: number) {
+  function addPortionToCart(item: CustomerMenuItem, portion: ItemPortion, quantity: number) {
+    const setTargetCartItems = placedOrder && isAddingMoreItems ? setAddOnCartItems : setCartItems;
+
+    setTargetCartItems((currentItems) => {
+      const existingItem = currentItems.find(
+        (cartItem) => cartItem.item.id === item.id && cartItem.portion?.name === portion.name
+      );
+
+      if (existingItem) {
+        return currentItems.map((cartItem) => (
+          cartItem.item.id === item.id && cartItem.portion?.name === portion.name
+            ? { ...cartItem, quantity: cartItem.quantity + quantity }
+            : cartItem
+        ));
+      }
+
+      return [...currentItems, { item, quantity, portion }];
+    });
+
+    setPortionModalItem(null);
+    toast.success(`Added ${quantity}x ${item.name} (${portion.name})`);
+  }
+
+  function updateCartItemsQuantity(setTargetCartItems: Dispatch<SetStateAction<CartItem[]>>, itemKey: string, change: number) {
     setTargetCartItems((currentItems) => (
       currentItems
         .map((cartItem) => (
-          cartItem.item.id === itemId ? { ...cartItem, quantity: cartItem.quantity + change } : cartItem
+          getCartItemKey(cartItem) === itemKey ? { ...cartItem, quantity: cartItem.quantity + change } : cartItem
         ))
         .filter((cartItem) => cartItem.quantity > 0)
     ));
   }
 
-  function updateCartQuantity(itemId: string, change: number) {
-    updateCartItemsQuantity(setCartItems, itemId, change);
+  function updateCartQuantity(itemKey: string, change: number) {
+    updateCartItemsQuantity(setCartItems, itemKey, change);
   }
 
-  function updateAddOnCartQuantity(itemId: string, change: number) {
-    updateCartItemsQuantity(setAddOnCartItems, itemId, change);
+  function updateAddOnCartQuantity(itemKey: string, change: number) {
+    updateCartItemsQuantity(setAddOnCartItems, itemKey, change);
   }
 
-  function removeFromCart(itemId: string) {
-    setCartItems((currentItems) => currentItems.filter((cartItem) => cartItem.item.id !== itemId));
+  function removeFromCart(itemKey: string) {
+    setCartItems((currentItems) => currentItems.filter((cartItem) => getCartItemKey(cartItem) !== itemKey));
   }
 
-  function removeFromAddOnCart(itemId: string) {
-    setAddOnCartItems((currentItems) => currentItems.filter((cartItem) => cartItem.item.id !== itemId));
+  function removeFromAddOnCart(itemKey: string) {
+    setAddOnCartItems((currentItems) => currentItems.filter((cartItem) => getCartItemKey(cartItem) !== itemKey));
   }
 
   function mergeCartItems(baseItems: CartItem[], newItems: CartItem[]) {
     return newItems.reduce<CartItem[]>((mergedItems, newItem) => {
-      const existingItem = mergedItems.find((cartItem) => cartItem.item.id === newItem.item.id);
+      const existingItem = mergedItems.find(
+        (cartItem) => getCartItemKey(cartItem) === getCartItemKey(newItem)
+      );
 
       if (!existingItem) {
         return [...mergedItems, newItem];
       }
 
       return mergedItems.map((cartItem) => (
-        cartItem.item.id === newItem.item.id ? { ...cartItem, quantity: cartItem.quantity + newItem.quantity } : cartItem
+        getCartItemKey(cartItem) === getCartItemKey(newItem)
+          ? { ...cartItem, quantity: cartItem.quantity + newItem.quantity }
+          : cartItem
       ));
     }, baseItems);
   }
@@ -242,7 +294,10 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
         items: cartItems.map((cartItem) => ({
           menuItemId: cartItem.item.id,
           quantity: cartItem.quantity,
-          options: selectedOptions,
+          options: [
+            ...(cartItem.portion ? [cartItem.portion.name] : []),
+            ...selectedOptions,
+          ],
         })),
       }),
     });
@@ -330,7 +385,10 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
         items: addOnCartItems.map((cartItem) => ({
           menuItemId: cartItem.item.id,
           quantity: cartItem.quantity,
-          options: selectedOptions,
+          options: [
+            ...(cartItem.portion ? [cartItem.portion.name] : []),
+            ...selectedOptions,
+          ],
         })),
       }),
     });
@@ -453,6 +511,8 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
             <div className="grid gap-3">
               {visibleItems.map((item) => {
                 const isUnavailable = !item.isAvailable || item.isSoldOut;
+                const parsedVariants = parseItemVariants(item.description);
+                const displayPrice = getItemDisplayPrice(item.price, item.offerPrice, parsedVariants.portions);
 
                 return (
                   <Card key={item.id} className={`grid items-center gap-4 p-3.5 sm:p-4 rounded-2xl border-zinc-200/80 shadow-sm transition hover:shadow-md ${isPreviewMode ? "grid-cols-[96px_1fr]" : "grid-cols-[96px_1fr_auto]"} ${isUnavailable ? "opacity-60 grayscale-[30%]" : ""}`}>
@@ -490,6 +550,11 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="truncate text-base font-bold text-zinc-950">{item.name}</h3>
+                        {parsedVariants.hasPortions ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200/80">
+                            Customisable
+                          </span>
+                        ) : null}
                         {isUnavailable ? (
                           <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                             {item.isSoldOut ? "Sold out" : "Unavailable"}
@@ -497,13 +562,13 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                         ) : null}
                       </div>
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-500">
-                        {item.description ?? "Freshly prepared dish"}
+                        {parsedVariants.description || "Freshly prepared dish"}
                       </p>
                       <div className="mt-2.5 flex items-center gap-3 text-xs">
                         <span className="text-sm font-black text-zinc-950">
-                          {currency.format(item.offerPrice ?? item.price)}
+                          {displayPrice}
                         </span>
-                        {item.offerPrice ? (
+                        {!parsedVariants.hasPortions && item.offerPrice ? (
                           <span className="text-xs font-semibold text-zinc-400 line-through">
                             {currency.format(item.price)}
                           </span>
@@ -641,37 +706,48 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
 
                 {cartItems.length > 0 ? (
                   <div className="grid gap-3">
-                    {cartItems.map((cartItem) => (
-                      <div key={cartItem.item.id} className="grid grid-cols-[56px_1fr_auto] gap-3 rounded-xl border border-zinc-100 bg-white p-2 shadow-sm">
-                        <div className="grid h-14 w-14 place-items-center rounded-xl bg-orange-50 text-orange-500">
-                          <Utensils className="h-6 w-6" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-zinc-800">{cartItem.item.name}</p>
-                          <p className="mt-1 text-xs font-medium text-zinc-500">{cartItem.item.categoryName}</p>
-                          {selectedOptions.length > 0 ? (
-                            <p className="mt-1 line-clamp-1 text-xs font-medium text-zinc-400">{selectedOptions.join(", ")}</p>
-                          ) : null}
-                          <div className="mt-2 inline-grid h-8 grid-cols-3 rounded-lg border border-zinc-200 bg-white shadow-sm">
-                            <button type="button" className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40" disabled={Boolean(placedOrder)} onClick={() => updateCartQuantity(cartItem.item.id, -1)} aria-label={`Decrease ${cartItem.item.name}`}>
-                              <Minus className="h-3.5 w-3.5" />
-                            </button>
-                            <span className="grid w-7 place-items-center text-sm font-bold text-zinc-800">{cartItem.quantity}</span>
-                            <button type="button" className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40" disabled={Boolean(placedOrder)} onClick={() => updateCartQuantity(cartItem.item.id, 1)} aria-label={`Increase ${cartItem.item.name}`}>
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
+                    {cartItems.map((cartItem) => {
+                      const itemKey = getCartItemKey(cartItem);
+                      const unitPrice = getItemUnitPrice(cartItem);
+
+                      return (
+                        <div key={itemKey} className="grid grid-cols-[56px_1fr_auto] gap-3 rounded-xl border border-zinc-100 bg-white p-2.5 shadow-sm">
+                          <div className="grid h-14 w-14 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
+                            <Utensils className="h-6 w-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-zinc-900">{cartItem.item.name}</p>
+                            {cartItem.portion ? (
+                              <span className="inline-block mt-0.5 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                                {cartItem.portion.name} ({currency.format(cartItem.portion.price)})
+                              </span>
+                            ) : (
+                              <p className="mt-0.5 text-xs text-zinc-500">{cartItem.item.categoryName}</p>
+                            )}
+                            {selectedOptions.length > 0 ? (
+                              <p className="mt-1 line-clamp-1 text-xs font-medium text-zinc-400">{selectedOptions.join(", ")}</p>
+                            ) : null}
+                            <div className="mt-2 inline-grid h-8 grid-cols-3 rounded-lg border border-zinc-200 bg-white shadow-xs">
+                              <button type="button" className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40" disabled={Boolean(placedOrder)} onClick={() => updateCartQuantity(itemKey, -1)} aria-label={`Decrease ${cartItem.item.name}`}>
+                                <Minus className="h-3.5 w-3.5" />
+                              </button>
+                              <span className="grid w-7 place-items-center text-sm font-bold text-zinc-800">{cartItem.quantity}</span>
+                              <button type="button" className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40" disabled={Boolean(placedOrder)} onClick={() => updateCartQuantity(itemKey, 1)} aria-label={`Increase ${cartItem.item.name}`}>
+                                <Plus className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end justify-between gap-2">
+                            <span className="text-sm font-black text-zinc-900">{currency.format(unitPrice * cartItem.quantity)}</span>
+                            {!placedOrder ? (
+                              <button type="button" className="text-xs font-semibold text-rose-500 hover:text-rose-700" onClick={() => removeFromCart(itemKey)}>
+                                Remove
+                              </button>
+                            ) : null}
                           </div>
                         </div>
-                        <div className="flex flex-col items-end justify-between gap-2">
-                          <span className="text-sm font-black text-zinc-900">{currency.format((cartItem.item.offerPrice ?? cartItem.item.price) * cartItem.quantity)}</span>
-                          {!placedOrder ? (
-                            <button type="button" className="text-xs font-medium text-rose-500 hover:text-rose-700" onClick={() => removeFromCart(cartItem.item.id)}>
-                              Remove
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-zinc-200 p-4 text-sm text-zinc-500">
@@ -700,29 +776,40 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
 
                     {addOnCartItems.length > 0 ? (
                       <div className="mt-3 grid gap-2">
-                        {addOnCartItems.map((cartItem) => (
-                          <div key={cartItem.item.id} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-emerald-100 bg-white p-3">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-zinc-900">{cartItem.item.name}</p>
-                              <p className="mt-1 text-xs text-zinc-500">{cartItem.item.categoryName}</p>
-                              <div className="mt-2 inline-grid h-8 grid-cols-3 rounded-lg border border-zinc-200 bg-white shadow-sm">
-                                <button type="button" className="grid w-8 place-items-center text-zinc-600" onClick={() => updateAddOnCartQuantity(cartItem.item.id, -1)} aria-label={`Decrease ${cartItem.item.name}`}>
-                                  <Minus className="h-3.5 w-3.5" />
-                                </button>
-                                <span className="grid w-7 place-items-center text-sm font-bold text-zinc-800">{cartItem.quantity}</span>
-                                <button type="button" className="grid w-8 place-items-center text-zinc-600" onClick={() => updateAddOnCartQuantity(cartItem.item.id, 1)} aria-label={`Increase ${cartItem.item.name}`}>
-                                  <Plus className="h-3.5 w-3.5" />
+                        {addOnCartItems.map((cartItem) => {
+                          const itemKey = getCartItemKey(cartItem);
+                          const unitPrice = getItemUnitPrice(cartItem);
+
+                          return (
+                            <div key={itemKey} className="grid grid-cols-[1fr_auto] gap-3 rounded-xl border border-emerald-100 bg-white p-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-bold text-zinc-900">{cartItem.item.name}</p>
+                                {cartItem.portion ? (
+                                  <span className="inline-block mt-0.5 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                                    {cartItem.portion.name} ({currency.format(cartItem.portion.price)})
+                                  </span>
+                                ) : (
+                                  <p className="mt-1 text-xs text-zinc-500">{cartItem.item.categoryName}</p>
+                                )}
+                                <div className="mt-2 inline-grid h-8 grid-cols-3 rounded-lg border border-zinc-200 bg-white shadow-xs">
+                                  <button type="button" className="grid w-8 place-items-center text-zinc-600" onClick={() => updateAddOnCartQuantity(itemKey, -1)} aria-label={`Decrease ${cartItem.item.name}`}>
+                                    <Minus className="h-3.5 w-3.5" />
+                                  </button>
+                                  <span className="grid w-7 place-items-center text-sm font-bold text-zinc-800">{cartItem.quantity}</span>
+                                  <button type="button" className="grid w-8 place-items-center text-zinc-600" onClick={() => updateAddOnCartQuantity(itemKey, 1)} aria-label={`Increase ${cartItem.item.name}`}>
+                                    <Plus className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end justify-between">
+                                <span className="text-sm font-black text-zinc-900">{currency.format(unitPrice * cartItem.quantity)}</span>
+                                <button type="button" className="text-xs font-semibold text-rose-500 hover:text-rose-700" onClick={() => removeFromAddOnCart(itemKey)}>
+                                  Remove
                                 </button>
                               </div>
                             </div>
-                            <div className="flex flex-col items-end justify-between">
-                              <span className="text-sm font-black text-zinc-900">{currency.format((cartItem.item.offerPrice ?? cartItem.item.price) * cartItem.quantity)}</span>
-                              <button type="button" className="text-xs font-medium text-rose-500 hover:text-rose-700" onClick={() => removeFromAddOnCart(cartItem.item.id)}>
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2 text-sm font-semibold text-zinc-900">
                           <span>Add-on total</span>
                           <span>{currency.format(addOnTotal)}</span>
@@ -891,6 +978,124 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
           </span>
           <span className="text-sm font-black">{currency.format(payableTotal)}</span>
         </button>
+      ) : null}
+
+      {/* Portion / Size Selector Modal */}
+      {portionModalItem ? (
+        <div className="fixed inset-0 z-50 grid place-items-end sm:place-items-center bg-zinc-950/60 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-5 shadow-2xl border border-zinc-200 animate-in slide-in-from-bottom duration-300">
+            <div className="flex items-start justify-between gap-3 border-b border-zinc-100 pb-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2.5 w-2.5 rounded-full ${
+                      portionModalItem.item.foodType === "VEG"
+                        ? "bg-emerald-600"
+                        : portionModalItem.item.foodType === "NON_VEG"
+                          ? "bg-rose-600"
+                          : "bg-amber-500"
+                    }`}
+                  />
+                  <h3 className="truncate text-base font-bold text-zinc-950">{portionModalItem.item.name}</h3>
+                </div>
+                <p className="mt-0.5 text-xs text-zinc-500">Choose portion size for your table</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPortionModalItem(null)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                aria-label="Close modal"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">Select Portion Size</p>
+              <div className="grid gap-2">
+                {portionModalItem.portions.map((portion) => {
+                  const isSelected = portionModalItem.selectedPortion.name === portion.name;
+                  return (
+                    <div
+                      key={portion.name}
+                      onClick={() =>
+                        setPortionModalItem((current) =>
+                          current ? { ...current, selectedPortion: portion } : null
+                        )
+                      }
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-3.5 transition ${
+                        isSelected
+                          ? "border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-500/20"
+                          : "border-zinc-200 hover:border-zinc-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`grid h-4 w-4 place-items-center rounded-full border ${
+                            isSelected ? "border-emerald-600 bg-emerald-600" : "border-zinc-300"
+                          }`}
+                        >
+                          {isSelected ? <div className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
+                        </div>
+                        <span className="text-sm font-bold text-zinc-900">{portion.name}</span>
+                      </div>
+                      <span className="text-sm font-black text-zinc-950">{currency.format(portion.price)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-zinc-50 p-3 border border-zinc-100">
+                <span className="text-xs font-bold text-zinc-600">Quantity</span>
+                <div className="inline-grid h-8 grid-cols-3 rounded-lg border border-zinc-200 bg-white shadow-xs">
+                  <button
+                    type="button"
+                    className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40"
+                    disabled={portionModalItem.quantity <= 1}
+                    onClick={() =>
+                      setPortionModalItem((current) =>
+                        current ? { ...current, quantity: Math.max(1, current.quantity - 1) } : null
+                      )
+                    }
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="grid w-8 place-items-center text-sm font-bold text-zinc-900">
+                    {portionModalItem.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    className="grid w-8 place-items-center text-zinc-600 disabled:opacity-40"
+                    disabled={portionModalItem.quantity >= 20}
+                    onClick={() =>
+                      setPortionModalItem((current) =>
+                        current ? { ...current, quantity: Math.min(20, current.quantity + 1) } : null
+                      )
+                    }
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <Button
+                type="button"
+                className="w-full bg-emerald-700 font-bold text-white hover:bg-emerald-800 h-11 text-sm shadow-md"
+                onClick={() =>
+                  addPortionToCart(
+                    portionModalItem.item,
+                    portionModalItem.selectedPortion,
+                    portionModalItem.quantity
+                  )
+                }
+              >
+                Add to Cart · {currency.format(portionModalItem.selectedPortion.price * portionModalItem.quantity)}
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </main>
   );
