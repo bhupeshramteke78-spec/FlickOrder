@@ -51,6 +51,7 @@ export function KitchenKioskView({
       body: JSON.stringify({ action: "LOGOUT", role: "chef", slug: "dummy" }),
     });
     router.refresh();
+    window.location.reload();
   }
 
   return (

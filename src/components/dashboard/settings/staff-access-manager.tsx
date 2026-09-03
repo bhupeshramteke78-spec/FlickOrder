@@ -26,8 +26,8 @@ export function StaffAccessManager({
   const waiterQrRef = useRef<HTMLDivElement>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-  const kitchenUrl = `${origin}/kitchen?slug=${restaurantSlug}&pin=${kitchenPin}`;
-  const waiterUrl = `${origin}/waiter?slug=${restaurantSlug}&pin=${waiterPin}`;
+  const kitchenUrl = `${origin}/kitchen?slug=${restaurantSlug}`;
+  const waiterUrl = `${origin}/waiter?slug=${restaurantSlug}`;
 
   async function handleSavePins(nextKitchenPin: string, nextWaiterPin: string) {
     if (!/^\d{4,6}$/.test(nextKitchenPin) || !/^\d{4,6}$/.test(nextWaiterPin)) {

@@ -51,6 +51,7 @@ export function WaiterKioskView({
       body: JSON.stringify({ action: "LOGOUT", role: "waiter", slug: "dummy" }),
     });
     router.refresh();
+    window.location.reload();
   }
 
   return (
