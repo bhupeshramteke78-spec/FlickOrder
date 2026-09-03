@@ -43,6 +43,7 @@ export default async function TableMenuPage({
         restaurantName={menu.restaurantName}
         upiId={menu.upiId}
         upiDisplayName={menu.upiDisplayName}
+        taxRate={menu.taxRate}
         tableNumber={tableNumber}
         categories={menu.categories}
         menuItems={menu.menuItems}
@@ -52,9 +53,17 @@ export default async function TableMenuPage({
   );
 }
 
-async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string | null; restaurantName: string; upiId: string | null; upiDisplayName: string | null; categories: MenuCategory[]; menuItems: MenuItem[] }> {
+async function getRestaurantMenu(slug: string): Promise<{
+  restaurantId: string | null;
+  restaurantName: string;
+  upiId: string | null;
+  upiDisplayName: string | null;
+  taxRate: number;
+  categories: MenuCategory[];
+  menuItems: MenuItem[];
+}> {
   if (!isSupabaseConfigured()) {
-    return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, categories: [], menuItems: [] };
+    return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, taxRate: 0, categories: [], menuItems: [] };
   }
 
   const supabase = createAdminClient();
@@ -71,7 +80,7 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
     restaurant.deletion_requested_at ||
     restaurant.deleted_at
   ) {
-    return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, categories: [], menuItems: [] };
+    return { restaurantId: null, restaurantName: "Restaurant", upiId: null, upiDisplayName: null, taxRate: 0, categories: [], menuItems: [] };
   }
 
   const [{ data: categoryRows }, { data: itemRows }] = await Promise.all([
@@ -104,7 +113,7 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
       description: item.description,
       imageUrl: item.image_url,
       price: Number(item.price),
-      offerPrice: item.offer_price === null ? null : Number(item.offer_price),
+      offerPrice: item.offer_price ? Number(item.offer_price) : null,
       preparationTimeMinutes: item.preparation_time_minutes,
       foodType: item.food_type,
       isAvailable: item.is_available,
@@ -113,24 +122,23 @@ async function getRestaurantMenu(slug: string): Promise<{ restaurantId: string |
     };
   });
 
-  const categories = Array.from(new Set(menuItems.map((item) => item.categoryName)))
-    .sort((first, second) => {
-      const firstIndex = categoryOrder.get(first) ?? Number.MAX_SAFE_INTEGER;
-      const secondIndex = categoryOrder.get(second) ?? Number.MAX_SAFE_INTEGER;
+  menuItems.sort((a, b) => {
+    const orderA = categoryOrder.get(a.categoryName) ?? 999;
+    const orderB = categoryOrder.get(b.categoryName) ?? 999;
+    return orderA - orderB;
+  });
 
-      if (firstIndex !== secondIndex) {
-        return firstIndex - secondIndex;
-      }
-
-      return first.localeCompare(second);
-    })
-    .map((name) => ({ id: slugifyCategory(name), name }));
+  const categories = Array.from(new Set(menuItems.map((item) => item.categoryName))).map((name) => ({
+    id: (categoryRows ?? []).find((c) => c.name === name)?.id ?? slugifyCategory(name),
+    name,
+  }));
 
   return {
     restaurantId: restaurant.id,
     restaurantName: sanitizeRestaurantName(restaurant.name),
     upiId: settings?.upi_id ?? null,
     upiDisplayName: settings?.upi_display_name ?? null,
+    taxRate: Number(settings?.tax_rate ?? 0),
     categories,
     menuItems,
   };
@@ -141,7 +149,7 @@ async function getPublicMenuPaymentSettings(restaurantId: string) {
     const admin = createAdminClient();
     const { data } = await admin
       .from("restaurant_settings")
-      .select("upi_id,upi_display_name")
+      .select("upi_id,upi_display_name,tax_rate")
       .eq("restaurant_id", restaurantId)
       .maybeSingle();
 

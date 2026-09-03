@@ -36,6 +36,7 @@ type MobileMenuShellProps = {
   restaurantName: string;
   upiId: string | null;
   upiDisplayName: string | null;
+  taxRate?: number;
   tableNumber: string;
   categories: CustomerMenuCategory[];
   menuItems: CustomerMenuItem[];
@@ -61,7 +62,7 @@ type PaymentMethod = "UPI" | "CASH";
 const currency = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
-  maximumFractionDigits: 0,
+  maximumFractionDigits: 2,
 });
 const quickOptions = ["Less Spicy", "Extra Cheese", "Extra Plate", "Extra Spoon", "Extra Tissue", "Serve Together"];
 
@@ -69,7 +70,7 @@ function getGuestServiceOptions(guestCount: number) {
   return [`${guestCount} Plates`, `${guestCount} Spoons`, `${guestCount} Tissues`];
 }
 
-export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisplayName, tableNumber, categories, menuItems, mode = "ordering" }: MobileMenuShellProps) {
+export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisplayName, taxRate = 0, tableNumber, categories, menuItems, mode = "ordering" }: MobileMenuShellProps) {
   const isPreviewMode = mode === "preview";
   const [activeCategoryId, setActiveCategoryId] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,12 +128,14 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
     });
   }, [activeCategory, activeCategoryId, foodTypeFilter, isSearching, menuItems, normalizedSearch, onlyAvailable, onlyPopular]);
 
+  const taxRatePercent = Number(taxRate ?? 0);
   const cartSubtotal = cartItems.reduce((total, cartItem) => total + getItemUnitPrice(cartItem) * cartItem.quantity, 0);
-  const cartDiscount = 0;
-  const cartTotal = cartSubtotal - cartDiscount;
+  const cartTax = Math.round((cartSubtotal * (taxRatePercent / 100)) * 100) / 100;
+  const cartTotal = cartSubtotal + cartTax;
+
   const addOnSubtotal = addOnCartItems.reduce((total, cartItem) => total + getItemUnitPrice(cartItem) * cartItem.quantity, 0);
-  const addOnDiscount = 0;
-  const addOnTotal = addOnSubtotal - addOnDiscount;
+  const addOnTax = Math.round((addOnSubtotal * (taxRatePercent / 100)) * 100) / 100;
+  const addOnTotal = addOnSubtotal + addOnTax;
   const payableTotal = placedOrder ? placedOrder.total : cartTotal;
   const canPlaceOrder = cartItems.length > 0 && customerName.trim().length >= 2 && guestCount >= 1 && guestCount <= 30 && !placedOrder;
   const canAttemptOrder = cartItems.length > 0 && !placedOrder && !isPlacingOrder;
@@ -859,15 +862,33 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
 
             <section>
               <div className="flex h-10 items-center border-b border-zinc-100 px-4">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500">Checkout</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-500">Bill Breakdown</p>
               </div>
-              <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 p-3 text-sm">
-                <span className="text-xs font-bold text-zinc-500">{placedOrder ? "Current order total:" : "Your cart subtotal:"}</span>
-                <span className="text-sm font-semibold text-zinc-800">{currency.format(placedOrder ? placedOrder.total : cartSubtotal)}</span>
-                <span className="text-xs font-bold text-zinc-500">{placedOrder ? "Unsaved add-ons:" : "Offer discount:"}</span>
-                <span className="text-sm font-semibold text-emerald-700">{placedOrder ? currency.format(addOnTotal) : `-${currency.format(cartDiscount)}`}</span>
-                <span className="text-xs font-bold text-zinc-500">Tax:</span>
-                <span className="text-sm font-semibold text-zinc-800">{currency.format(0)}</span>
+              <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 p-3.5 text-sm">
+                <span className="text-xs font-bold text-zinc-500">
+                  {placedOrder ? "Order Total:" : "Items Subtotal:"}
+                </span>
+                <span className="text-sm font-semibold text-zinc-800">
+                  {currency.format(placedOrder ? placedOrder.total : cartSubtotal)}
+                </span>
+
+                {!placedOrder && taxRatePercent > 0 ? (
+                  <>
+                    <span className="text-xs font-bold text-zinc-500">GST / Taxes ({taxRatePercent}%):</span>
+                    <span className="text-sm font-semibold text-zinc-800">+{currency.format(cartTax)}</span>
+                  </>
+                ) : null}
+
+                {placedOrder && addOnCartItems.length > 0 ? (
+                  <>
+                    <span className="text-xs font-bold text-zinc-500">Unsaved Add-ons (incl. tax):</span>
+                    <span className="text-sm font-semibold text-emerald-700">+{currency.format(addOnTotal)}</span>
+                  </>
+                ) : null}
+
+                <div className="col-span-2 my-1 border-t border-zinc-100" />
+                <span className="text-sm font-black text-zinc-950">Grand Total (To Pay):</span>
+                <span className="text-base font-black text-emerald-700">{currency.format(payableTotal)}</span>
               </div>
 
               {placedOrder ? (
