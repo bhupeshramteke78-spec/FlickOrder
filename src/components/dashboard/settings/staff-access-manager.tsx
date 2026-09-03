@@ -144,21 +144,17 @@ export function StaffAccessManager({
             Kitchen & Waiter Staff Passcodes & QR Access
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Chefs and waiters can scan these QR codes and enter their 4-digit PIN to operate. PINs automatically rotate daily at midnight for security.
+            Chefs and waiters can scan these QR codes and enter their 4-digit PIN to operate.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isCooldownActive ? (
+        {isCooldownActive ? (
+          <div className="flex items-center gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200">
               <Clock className="h-3.5 w-3.5 animate-pulse" />
               Reset Cooldown: {formatTime(cooldownRemaining)}
             </span>
-          ) : (
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
-              Daily Auto-Rotation Active 🛡️
-            </span>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
