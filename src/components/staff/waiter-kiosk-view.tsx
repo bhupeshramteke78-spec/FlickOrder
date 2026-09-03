@@ -12,10 +12,12 @@ import type { DashboardOrder } from "@/lib/dashboard-orders";
 export function WaiterKioskView({
   orders,
   restaurantName,
+  restaurantSlug,
   restaurantId,
 }: {
   orders: DashboardOrder[];
   restaurantName: string;
+  restaurantSlug: string;
   restaurantId: string;
 }) {
   const router = useRouter();
@@ -48,10 +50,9 @@ export function WaiterKioskView({
     await fetch("/api/staff/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "LOGOUT", role: "waiter", slug: "dummy" }),
+      body: JSON.stringify({ action: "LOGOUT", role: "waiter", slug: restaurantSlug }),
     });
-    router.refresh();
-    window.location.reload();
+    window.location.href = `/waiter?slug=${restaurantSlug}`;
   }
 
   return (

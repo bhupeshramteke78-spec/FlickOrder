@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChefHat, Delete, Lock, Utensils } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
@@ -16,14 +16,11 @@ export function StaffPinKiosk({
   restaurantName: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialUrlPin = searchParams.get("pin") ?? "";
-  const [pin, setPin] = useState(initialUrlPin);
+  const [pin, setPin] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const autoSubmittedRef = useRef(false);
 
   const submitPin = useCallback(async (pinToSubmit: string) => {
-    if (pinToSubmit.length < 4) return;
+    if (pinToSubmit.length < 4 || isSubmitting) return;
 
     setIsSubmitting(true);
 
@@ -49,17 +46,10 @@ export function StaffPinKiosk({
 
     toast.success(`${role === "chef" ? "Kitchen" : "Waiter"} terminal unlocked!`);
     router.refresh();
-  }, [restaurantSlug, role, router]);
-
-  useEffect(() => {
-    if (initialUrlPin && /^\d{4,6}$/.test(initialUrlPin) && !autoSubmittedRef.current) {
-      autoSubmittedRef.current = true;
-      submitPin(initialUrlPin);
-    }
-  }, [initialUrlPin, submitPin]);
+  }, [isSubmitting, restaurantSlug, role, router]);
 
   function handleKeyPress(digit: string) {
-    if (pin.length < 6) {
+    if (pin.length < 6 && !isSubmitting) {
       const nextPin = pin + digit;
       setPin(nextPin);
       if (nextPin.length === 4) {
@@ -69,7 +59,9 @@ export function StaffPinKiosk({
   }
 
   function handleBackspace() {
-    setPin((prev) => prev.slice(0, -1));
+    if (!isSubmitting) {
+      setPin((prev) => prev.slice(0, -1));
+    }
   }
 
   const isChef = role === "chef";
@@ -104,48 +96,46 @@ export function StaffPinKiosk({
             ))}
           </div>
 
-          {/* Touch-Friendly Number Pad */}
+          {/* Numeric Keypad */}
           <div className="mt-8 grid grid-cols-3 gap-3">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
               <button
                 key={digit}
                 type="button"
-                onClick={() => handleKeyPress(digit)}
                 disabled={isSubmitting}
-                className="h-14 rounded-2xl border border-white/10 bg-white/[0.04] text-xl font-bold text-zinc-100 transition active:scale-95 hover:bg-white/10 hover:border-white/20"
+                onClick={() => handleKeyPress(digit)}
+                className="grid h-14 place-items-center rounded-2xl border border-white/10 bg-white/5 text-xl font-black text-white shadow-sm transition hover:bg-white/10 active:scale-95 disabled:opacity-50"
               >
                 {digit}
               </button>
             ))}
+
+            <div className="grid place-items-center text-zinc-600">
+              <Lock className="h-5 w-5" />
+            </div>
+
             <button
               type="button"
-              onClick={() => setPin("")}
-              disabled={isSubmitting || pin.length === 0}
-              className="h-14 rounded-2xl border border-white/10 bg-white/[0.02] text-xs font-bold text-zinc-400 transition hover:bg-white/10"
-            >
-              Clear
-            </button>
-            <button
-              key="0"
-              type="button"
-              onClick={() => handleKeyPress("0")}
               disabled={isSubmitting}
-              className="h-14 rounded-2xl border border-white/10 bg-white/[0.04] text-xl font-bold text-zinc-100 transition active:scale-95 hover:bg-white/10"
+              onClick={() => handleKeyPress("0")}
+              className="grid h-14 place-items-center rounded-2xl border border-white/10 bg-white/5 text-xl font-black text-white shadow-sm transition hover:bg-white/10 active:scale-95 disabled:opacity-50"
             >
               0
             </button>
+
             <button
               type="button"
-              onClick={handleBackspace}
               disabled={isSubmitting || pin.length === 0}
-              className="grid h-14 place-items-center rounded-2xl border border-white/10 bg-white/[0.02] text-zinc-400 transition hover:bg-white/10"
+              onClick={handleBackspace}
+              className="grid h-14 place-items-center rounded-2xl border border-white/10 bg-white/5 text-zinc-400 shadow-sm transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30"
+              aria-label="Backspace"
             >
               <Delete className="h-5 w-5" />
             </button>
           </div>
 
-          <p className="mt-6 flex items-center justify-center gap-1.5 text-[11px] text-zinc-500 font-medium">
-            <Lock className="h-3 w-3" /> Secure multi-tenant terminal
+          <p className="mt-6 text-[11px] text-zinc-500 font-medium">
+            Contact restaurant manager if you forgot your staff PIN.
           </p>
         </div>
       </Card>

@@ -37,6 +37,13 @@ export async function POST(request: Request) {
   const cookieName = `flickorder_staff_${payload.data.role}`;
 
   if (payload.data.action === "LOGOUT") {
+    cookieStore.set(cookieName, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
     cookieStore.delete(cookieName);
     return NextResponse.json({ ok: true });
   }
@@ -48,17 +55,18 @@ export async function POST(request: Request) {
   const session = await verifyAndCreateStaffSession(payload.data.slug, payload.data.role, payload.data.pin);
 
   if (!session) {
-    return NextResponse.json({ error: "Incorrect staff PIN for this restaurant." }, { status: 401 });
+    return NextResponse.json({ error: "Incorrect staff PIN. Please try again." }, { status: 401 });
   }
 
   const encoded = Buffer.from(JSON.stringify(session)).toString("base64");
 
+  // Set 12-hour shift session cookie
   cookieStore.set(cookieName, encoded, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 12, // 12 hours (1 shift)
   });
 
   return NextResponse.json({ ok: true, session });

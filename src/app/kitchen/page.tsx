@@ -7,23 +7,24 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 export default async function KitchenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ slug?: string; pin?: string }>;
+  searchParams: Promise<{ slug?: string }>;
 }) {
   const { slug } = await searchParams;
   const staffSession = await getStaffSessionFromCookie("chef");
 
-  if (staffSession) {
+  if (staffSession && (!slug || staffSession.restaurantSlug === slug)) {
     const orders = await getKitchenOrders(staffSession.restaurantId);
     return (
       <KitchenKioskView
         orders={orders}
         restaurantName={staffSession.restaurantName}
+        restaurantSlug={staffSession.restaurantSlug}
         restaurantId={staffSession.restaurantId}
       />
     );
   }
 
-  // If no session, find default or slug restaurant for PIN login
+  // If no session or different slug, find restaurant for PIN login
   const restaurant = await getTargetRestaurant(slug);
 
   if (!restaurant) {
