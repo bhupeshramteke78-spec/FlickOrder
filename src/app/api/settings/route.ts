@@ -140,6 +140,18 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: restaurantError.message }, { status: 400 });
   }
 
+  const { data: existingSettings } = await supabase
+    .from("restaurant_settings")
+    .select("menu_preferences")
+    .eq("restaurant_id", membership.restaurant_id)
+    .maybeSingle();
+
+  const currentPrefs = (existingSettings?.menu_preferences as Record<string, unknown>) ?? {};
+  const mergedMenuPreferences = {
+    ...currentPrefs,
+    ...input.settings.menuPreferences,
+  };
+
   const { error: settingsError } = await supabase
     .from("restaurant_settings")
     .upsert({
@@ -156,7 +168,7 @@ export async function PATCH(request: Request) {
       booking_min_notice_minutes: input.settings.bookingMinNoticeMinutes,
       booking_max_party_size: input.settings.bookingMaxPartySize,
       opening_hours: input.settings.openingHours as Json,
-      menu_preferences: input.settings.menuPreferences as Json,
+      menu_preferences: mergedMenuPreferences as Json,
     }, {
       onConflict: "restaurant_id",
     })

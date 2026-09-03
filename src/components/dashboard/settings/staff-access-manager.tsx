@@ -36,16 +36,12 @@ export function StaffAccessManager({
     }
 
     setIsSaving(true);
-    const response = await fetch("/api/settings", {
+    const response = await fetch("/api/staff/auth", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        menuPreferences: {
-          staff_pins: {
-            kitchenPin: nextKitchenPin,
-            waiterPin: nextWaiterPin,
-          },
-        },
+        kitchenPin: nextKitchenPin,
+        waiterPin: nextWaiterPin,
       }),
     });
     setIsSaving(false);
