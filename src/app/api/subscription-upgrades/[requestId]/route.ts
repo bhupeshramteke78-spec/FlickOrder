@@ -21,6 +21,7 @@ const actionSchema = z.discriminatedUnion("action", [
       .max(64, "UPI transaction ID is too long.")
       .regex(/^[a-zA-Z0-9-]+$/, "Use only letters, numbers, and hyphens."),
   }),
+  z.object({ action: z.literal("CANCEL") }),
   z.object({ action: z.enum(["APPROVE", "REJECT"]) }),
 ]);
 
@@ -57,6 +58,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ re
 
   if (payload.data.action === "SUBMIT_MANUAL_PAYMENT") {
     return submitManualPayment(parsedParams.data.requestId, payload.data.transactionId);
+  }
+
+  if (payload.data.action === "CANCEL") {
+    return cancelPendingPayment(parsedParams.data.requestId);
   }
 
   return reviewRequest(parsedParams.data.requestId, payload.data.action);
@@ -225,6 +230,52 @@ async function reviewRequest(requestId: string, action: "APPROVE" | "REJECT") {
   return NextResponse.json({ ok: true });
 }
 
+async function cancelPendingPayment(requestId: string) {
+  const supabase = await createClient();
+  const { data: userResult } = await supabase.auth.getUser();
+
+  if (!userResult.user) {
+    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+  }
+
+  const { data: upgradeRequest } = await supabase
+    .from("subscription_upgrade_requests")
+    .select("id,restaurant_id,status")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (!upgradeRequest) {
+    return NextResponse.json({ error: "Subscription request not found." }, { status: 404 });
+  }
+
+  const { data: membership } = await supabase
+    .from("restaurant_members")
+    .select("role")
+    .eq("restaurant_id", upgradeRequest.restaurant_id)
+    .eq("profile_id", userResult.user.id)
+    .maybeSingle();
+
+  if (!membership || !hasPermission(membership.role, "manageBilling")) {
+    return NextResponse.json({ error: "You do not have access to cancel this subscription request." }, { status: 403 });
+  }
+
+  if (upgradeRequest.status !== "PENDING_PAYMENT") {
+    return NextResponse.json({ error: "Only pending payment requests can be cancelled." }, { status: 409 });
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("subscription_upgrade_requests")
+    .update({ status: "CANCELLED" })
+    .eq("id", requestId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 function toUpgradeRequestView(request: {
   id: string;
   plan: string;
@@ -235,10 +286,12 @@ function toUpgradeRequestView(request: {
   payment_submitted_at?: string | null;
   created_at: string;
 }) {
+  const isYearly = Number(request.amount) >= 2000 || request.transaction_note?.includes("YEARLY");
   return {
     id: request.id,
     plan: request.plan as PaidSubscriptionPlan,
     amount: Number(request.amount),
+    interval: (isYearly ? "YEARLY" : "MONTHLY") as "MONTHLY" | "YEARLY",
     status: request.status,
     transactionNote: request.transaction_note,
     transactionId: request.transaction_id ?? null,

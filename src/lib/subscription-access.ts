@@ -105,7 +105,7 @@ export async function getSubscriptionAccessForRestaurantId(
       .maybeSingle(),
     supabase
       .from("restaurant_settings")
-      .select("qr_ordering_enabled,kitchen_enabled,waiter_enabled")
+      .select("qr_ordering_enabled")
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
     supabase
@@ -125,9 +125,9 @@ export async function getSubscriptionAccessForRestaurantId(
       status: "EXPIRED",
       trialEndsAt: null,
       currentPeriodEndsAt: null,
-      qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
-      kitchenEnabled: settings?.kitchen_enabled ?? false,
-      waiterEnabled: settings?.waiter_enabled ?? false,
+      qrOrderingEnabled: settings?.qr_ordering_enabled ?? true,
+      kitchenEnabled: false,
+      waiterEnabled: false,
       verificationStatus,
       deletionRequestedAt,
       deletedAt,
@@ -144,9 +144,9 @@ export async function getSubscriptionAccessForRestaurantId(
     status: computedStatus,
     trialEndsAt: subscription.trial_ends_at,
     currentPeriodEndsAt: subscription.current_period_ends_at,
-    qrOrderingEnabled: settings?.qr_ordering_enabled ?? false,
-    kitchenEnabled: settings?.kitchen_enabled ?? false,
-    waiterEnabled: settings?.waiter_enabled ?? false,
+    qrOrderingEnabled: settings?.qr_ordering_enabled ?? true,
+    kitchenEnabled: true,
+    waiterEnabled: true,
     verificationStatus,
     deletionRequestedAt,
     deletedAt,

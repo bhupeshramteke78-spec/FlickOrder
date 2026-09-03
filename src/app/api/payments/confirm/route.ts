@@ -4,9 +4,16 @@ import { getSubscriptionAccessForRestaurantId, hasPlanFeature } from "@/lib/subs
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { confirmPaymentSchema } from "@/lib/validations/orders";
-
 export async function POST(request: Request) {
-  const payload = confirmPaymentSchema.safeParse(await request.json());
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
+
+  const payload = confirmPaymentSchema.safeParse(body);
 
   if (!payload.success) {
     return NextResponse.json({ error: "Invalid payment payload." }, { status: 422 });

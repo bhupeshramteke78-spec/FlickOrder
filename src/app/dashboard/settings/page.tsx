@@ -2,11 +2,13 @@ import { Settings } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { SettingsForm, type SettingsFormState } from "@/components/dashboard/settings/settings-form";
+import { StaffAccessManager } from "@/components/dashboard/settings/staff-access-manager";
 import { SubscriptionLock } from "@/components/dashboard/subscription-lock";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { Json } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
+import { getRestaurantStaffPins, type RestaurantStaffPins } from "@/lib/staff-auth";
 import { getSubscriptionAccessForCurrentUser } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -23,46 +25,67 @@ type MenuPreferences = {
 };
 
 export default async function SettingsPage() {
-  const { access, role } = await getSettingsAccess();
+  const { access, role, restaurantId } = await getSettingsAccess();
   const canViewSettings = hasPermission(role, "viewSettings");
   const canEditSettings = hasPermission(role, "manageSettings");
   const initialState = canViewSettings ? await getSettingsState() : null;
+  const staffPins = restaurantId && canViewSettings ? await getStaffPinsData(restaurantId) : null;
 
   return (
     <DashboardShell title="Settings" eyebrow="Restaurant configuration">
       {!canViewSettings ? (
         <PermissionLock description="Only owners and managers can view restaurant settings." />
       ) : (
-      <>
-      <SubscriptionLock access={access} />
-      {initialState ? (
-        <SettingsForm
-          initialState={initialState}
-          canEdit={(access?.canManageRestaurant ?? false) && canEditSettings}
-          canRequestDeletion={role === "OWNER" && !initialState.restaurant.deletedAt}
-        />
-      ) : (
-        <EmptyState
-          icon={Settings}
-          title="Settings not available"
-          description="Complete restaurant registration first. Once a restaurant and settings row exist, profile, payment, QR ordering, and menu preferences can be edited here."
-        />
-      )}
-      </>
+      <div className="space-y-6">
+        <SubscriptionLock access={access} />
+        {initialState ? (
+          <>
+            <SettingsForm
+              initialState={initialState}
+              canEdit={(access?.canManageRestaurant ?? false) && canEditSettings}
+              canRequestDeletion={role === "OWNER" && !initialState.restaurant.deletedAt}
+            />
+
+            {staffPins && restaurantId && initialState.restaurant.slug && access?.canUseStaffWorkflow ? (
+              <StaffAccessManager
+                restaurantId={restaurantId}
+                restaurantSlug={initialState.restaurant.slug}
+                initialPins={staffPins}
+              />
+            ) : null}
+          </>
+        ) : (
+          <EmptyState
+            icon={Settings}
+            title="Settings not available"
+            description="Complete restaurant registration first. Once a restaurant and settings row exist, profile, payment, QR ordering, and menu preferences can be edited here."
+          />
+        )}
+      </div>
       )}
     </DashboardShell>
   );
 }
 
+async function getStaffPinsData(restaurantId: string): Promise<RestaurantStaffPins> {
+  const supabase = await createClient();
+  return getRestaurantStaffPins(supabase, restaurantId);
+}
+
 async function getSettingsAccess() {
   if (!isSupabaseConfigured()) {
-    return { access: null, role: null };
+    return { access: null, role: null, restaurantId: null };
   }
 
   const supabase = await createClient();
   const { access, membership } = await getSubscriptionAccessForCurrentUser(supabase);
+  const context = await getSelectedDashboardRestaurant(supabase);
 
-  return { access, role: membership?.role ?? null };
+  return {
+    access,
+    role: membership?.role ?? null,
+    restaurantId: context?.selected.restaurantId ?? null,
+  };
 }
 
 async function getSettingsState(): Promise<SettingsFormState | null> {

@@ -8,6 +8,7 @@ import {
   getSuperAdminContext,
   getSuperAdminPassword,
   getSuperAdminUnlockMaxAgeSeconds,
+  safeCompare,
   SUPER_ADMIN_UNLOCK_COOKIE,
 } from "@/lib/super-admin";
 
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
   const payload = unlockSchema.safeParse(body);
 
-  if (!payload.success || payload.data.password !== configuredPassword) {
+  if (!payload.success || !safeCompare(payload.data.password, configuredPassword)) {
     return NextResponse.json({ error: "Invalid super admin password." }, { status: 401 });
   }
 

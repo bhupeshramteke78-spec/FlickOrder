@@ -69,18 +69,20 @@ export function DashboardNavLink({
       prefetch={false}
       onClick={onNavigate}
       className={cn(
-        "dashboard-nav-link group relative flex items-center gap-3 overflow-hidden rounded-md px-3 py-2.5 text-sm transition active:scale-[0.99]",
-        isActive ? "bg-white/10 text-white" : "text-zinc-300 hover:text-white",
+        "dashboard-nav-link group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-xs font-semibold tracking-wide transition-all duration-200 active:scale-[0.98]",
+        isActive
+          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] backdrop-blur"
+          : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] border border-transparent",
         className,
       )}
     >
-      <span
-        aria-hidden
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 transition"
-      />
-      <Icon className="relative h-4 w-4 shrink-0" />
+      <Icon className={cn("relative h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-emerald-400" : "text-zinc-400 group-hover:text-zinc-200")} />
       <span className="relative min-w-0 flex-1 truncate">{label}</span>
-      <DashboardNavPendingHint />
+      {isActive ? (
+        <span className="relative h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+      ) : (
+        <DashboardNavPendingHint />
+      )}
     </Link>
   );
 }

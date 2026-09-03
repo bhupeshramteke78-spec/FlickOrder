@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -17,10 +20,13 @@ import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-const plans = [
+const pricingPlans = [
   {
     name: "Basic",
-    price: "₹299",
+    monthlyPrice: "₹299",
+    yearlyPrice: "₹2,990",
+    yearlyMonthlyEquivalent: "₹249",
+    yearlySavings: "₹598",
     description: "For small restaurants starting with table QR ordering.",
     highlight: false,
     accent: "from-white/[0.07] to-white/[0.035]",
@@ -28,7 +34,10 @@ const plans = [
   },
   {
     name: "Growth",
-    price: "₹799",
+    monthlyPrice: "₹799",
+    yearlyPrice: "₹7,990",
+    yearlyMonthlyEquivalent: "₹665",
+    yearlySavings: "₹1,598",
     description: "For busy restaurants that want separate kitchen and waiter workflows.",
     highlight: true,
     accent: "from-emerald-500/20 via-white/[0.08] to-orange-500/14",
@@ -36,7 +45,10 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "₹1,499",
+    monthlyPrice: "₹1,499",
+    yearlyPrice: "₹14,990",
+    yearlyMonthlyEquivalent: "₹1,249",
+    yearlySavings: "₹2,998",
     description: "For restaurants that want staff workflows plus deeper reporting and history controls.",
     highlight: false,
     accent: "from-orange-500/14 via-white/[0.065] to-emerald-500/12",
@@ -80,9 +92,15 @@ const faqs = [
     question: "How do subscription upgrades work?",
     answer: "Restaurant subscriptions use a prefilled UPI payment link. FlickOrder activates the selected plan only after the super admin verifies the submitted transaction ID.",
   },
+  {
+    question: "Can I choose yearly billing to get a discount?",
+    answer: "Yes. All plans offer an annual subscription option with approximately 20% discount (2 months free) paid directly via UPI.",
+  },
 ];
 
 export default function PricingPage() {
+  const [interval, setInterval] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
+
   return (
     <main className="customer-surface min-h-screen text-white">
       <MarketingNav />
@@ -141,6 +159,91 @@ export default function PricingPage() {
           </Card>
         </div>
 
+        {/* Interactive Billing Cycle Toggle */}
+        <div className="mt-12 flex flex-col items-center justify-center gap-3">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Billing Cycle</p>
+          <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 p-1.5 backdrop-blur">
+            <button
+              type="button"
+              onClick={() => setInterval("MONTHLY")}
+              className={`rounded-full px-5 py-2 text-xs font-bold transition ${
+                interval === "MONTHLY"
+                  ? "bg-white text-zinc-950 shadow-md"
+                  : "text-zinc-300 hover:text-white"
+              }`}
+            >
+              Monthly billing
+            </button>
+            <button
+              type="button"
+              onClick={() => setInterval("YEARLY")}
+              className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition ${
+                interval === "YEARLY"
+                  ? "bg-emerald-500 text-zinc-950 shadow-md"
+                  : "text-zinc-300 hover:text-white"
+              }`}
+            >
+              <span>Annual billing</span>
+              <span className="rounded-full bg-orange-400 px-2 py-0.5 text-[10px] font-black text-zinc-950">
+                2 Months Free 🎉
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <section className="mt-8 grid gap-4 lg:grid-cols-3">
+          {pricingPlans.map((plan) => {
+            const isYearly = interval === "YEARLY";
+            const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
+
+            return (
+              <Card
+                key={plan.name}
+                className={`relative flex min-h-[520px] flex-col overflow-hidden border-white/10 bg-gradient-to-br ${plan.accent} p-6 text-white shadow-2xl shadow-black/15 transition duration-300 hover:-translate-y-1 hover:border-emerald-300/30`}
+              >
+                {plan.highlight ? (
+                  <span className="absolute right-5 top-5 rounded-full bg-orange-400 px-3 py-1 text-xs font-black uppercase tracking-wide text-zinc-950">
+                    Most chosen
+                  </span>
+                ) : null}
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">{plan.name}</p>
+                <div className="mt-5 flex items-end gap-2">
+                  <span className="text-5xl font-black tracking-tight">{price}</span>
+                  <span className="pb-2 text-sm text-zinc-400">/{isYearly ? "year" : "month"}</span>
+                </div>
+                {isYearly ? (
+                  <p className="mt-1 text-xs font-bold text-emerald-300">
+                    ~{plan.yearlyMonthlyEquivalent}/month · Save {plan.yearlySavings}/year
+                  </p>
+                ) : null}
+                <p className="mt-4 min-h-14 text-sm leading-6 text-zinc-300">{plan.description}</p>
+
+                <div className="mt-6 grid gap-3">
+                  {plan.features.map((feature) => (
+                    <div key={feature} className="flex items-start gap-3 text-sm text-zinc-200">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Link
+                  href={`/dashboard/billing?plan=${plan.name.toLowerCase()}&interval=${interval.toLowerCase()}`}
+                  className="mt-auto pt-8"
+                >
+                  <Button
+                    variant="glass"
+                    className={`w-full ${plan.highlight ? "border-orange-200/50 bg-orange-500/45" : "border-emerald-300/30 bg-emerald-700/35"}`}
+                  >
+                    Choose {plan.name} {isYearly ? "(Annual)" : ""}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </Card>
+            );
+          })}
+        </section>
+
         <section className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {includedFeatures.map((feature) => (
             <Card key={feature.title} className="border-white/10 bg-white/[0.045] p-5 text-white">
@@ -149,46 +252,6 @@ export default function PricingPage() {
               </div>
               <h2 className="font-semibold">{feature.title}</h2>
               <p className="mt-2 text-sm leading-6 text-zinc-400">{feature.text}</p>
-            </Card>
-          ))}
-        </section>
-
-        <section className="mt-10 grid gap-4 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <Card
-              key={plan.name}
-              className={`relative flex min-h-[520px] flex-col overflow-hidden border-white/10 bg-gradient-to-br ${plan.accent} p-6 text-white shadow-2xl shadow-black/15 transition duration-300 hover:-translate-y-1 hover:border-emerald-300/30`}
-            >
-              {plan.highlight ? (
-                <span className="absolute right-5 top-5 rounded-full bg-orange-400 px-3 py-1 text-xs font-black uppercase tracking-wide text-zinc-950">
-                  Most chosen
-                </span>
-              ) : null}
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">{plan.name}</p>
-              <div className="mt-5 flex items-end gap-2">
-                <span className="text-5xl font-black tracking-tight">{plan.price}</span>
-                <span className="pb-2 text-sm text-zinc-400">/month</span>
-              </div>
-              <p className="mt-4 min-h-14 text-sm leading-6 text-zinc-300">{plan.description}</p>
-
-              <div className="mt-6 grid gap-3">
-                {plan.features.map((feature) => (
-                  <div key={feature} className="flex items-start gap-3 text-sm text-zinc-200">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
-                    <span>{feature}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Link href={`/dashboard/billing?plan=${plan.name.toLowerCase()}`} className="mt-auto pt-8">
-                <Button
-                  variant="glass"
-                  className={`w-full ${plan.highlight ? "border-orange-200/50 bg-orange-500/45" : "border-emerald-300/30 bg-emerald-700/35"}`}
-                >
-                  Choose {plan.name}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </Card>
           ))}
         </section>

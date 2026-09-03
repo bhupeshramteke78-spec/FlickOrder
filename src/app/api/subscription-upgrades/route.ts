@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const createUpgradeRequestSchema = z.object({
   plan: z.enum(["basic", "growth", "pro"]),
+  interval: z.enum(["MONTHLY", "YEARLY"]).default("MONTHLY"),
 });
 
 type MembershipResult =
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   const payload = createUpgradeRequestSchema.safeParse(body);
 
   if (!payload.success) {
-    return NextResponse.json({ error: "Invalid subscription plan." }, { status: 422 });
+    return NextResponse.json({ error: "Invalid subscription plan details." }, { status: 422 });
   }
 
   const plan = getPaidSubscriptionPlan(payload.data.plan);
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
   if (!plan) {
     return NextResponse.json({ error: "Plan not found." }, { status: 404 });
   }
+
+  const interval = payload.data.interval;
+  const planAmount = interval === "YEARLY" ? plan.yearlyPrice : plan.price;
 
   const membership = await getOwnerOrManagerMembership();
 
@@ -86,9 +90,30 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingRequest) {
+    if (existingRequest.status === "VERIFICATION_PENDING") {
+      const payment = createManualSubscriptionPayment({
+        amount: Number(existingRequest.amount),
+        transactionNote: existingRequest.transaction_note,
+      });
+
+      if (!payment) {
+        return NextResponse.json(
+          { error: "Manual UPI subscription payments are not configured." },
+          { status: 503 },
+        );
+      }
+
+      return NextResponse.json({
+        request: toUpgradeRequestView(existingRequest),
+        payment,
+      });
+    }
+
+    // If PENDING_PAYMENT, update to requested plan, interval and amount
+    const transactionNote = `FO-SUB-${interval}-${membership.restaurantId.slice(0, 8).toUpperCase()}-${Date.now()}`;
     const payment = createManualSubscriptionPayment({
-      amount: Number(existingRequest.amount),
-      transactionNote: existingRequest.transaction_note,
+      amount: planAmount,
+      transactionNote,
     });
 
     if (!payment) {
@@ -98,15 +123,30 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: updatedRequest, error: updateError } = await admin
+      .from("subscription_upgrade_requests")
+      .update({
+        plan: plan.id,
+        amount: planAmount,
+        transaction_note: transactionNote,
+      })
+      .eq("id", existingRequest.id)
+      .select("id,plan,amount,status,transaction_note,transaction_id,payment_submitted_at,created_at")
+      .single();
+
+    if (updateError || !updatedRequest) {
+      return NextResponse.json({ error: "Unable to update subscription request." }, { status: 400 });
+    }
+
     return NextResponse.json({
-      request: toUpgradeRequestView(existingRequest),
+      request: toUpgradeRequestView(updatedRequest),
       payment,
     });
   }
 
-  const transactionNote = `FO-SUB-${membership.restaurantId.slice(0, 8).toUpperCase()}-${Date.now()}`;
+  const transactionNote = `FO-SUB-${interval}-${membership.restaurantId.slice(0, 8).toUpperCase()}-${Date.now()}`;
   const payment = createManualSubscriptionPayment({
-    amount: plan.price,
+    amount: planAmount,
     transactionNote,
   });
 
@@ -123,7 +163,7 @@ export async function POST(request: Request) {
       restaurant_id: membership.restaurantId,
       requested_by: membership.userId,
       plan: plan.id,
-      amount: plan.price,
+      amount: planAmount,
       payment_method: "UPI",
       gateway: "MANUAL_UPI",
       transaction_note: transactionNote,
@@ -179,6 +219,7 @@ function toUpgradeRequestView(request: {
   plan: string;
   amount: number;
   status: string;
+  billing_interval?: string | null;
   transaction_note: string;
   transaction_id?: string | null;
   payment_submitted_at?: string | null;
@@ -188,6 +229,7 @@ function toUpgradeRequestView(request: {
     id: request.id,
     plan: request.plan as PaidSubscriptionPlan,
     amount: Number(request.amount),
+    interval: (request.billing_interval === "YEARLY" ? "YEARLY" : "MONTHLY") as "MONTHLY" | "YEARLY",
     status: request.status,
     transactionNote: request.transaction_note,
     transactionId: request.transaction_id ?? null,

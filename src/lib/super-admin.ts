@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
 
@@ -107,9 +107,9 @@ function signPayload(payload: string, secret: string) {
   return createHmac("sha256", secret).update(payload).digest("hex");
 }
 
-function safeCompare(first: string, second: string) {
-  const firstBuffer = Buffer.from(first);
-  const secondBuffer = Buffer.from(second);
+export function safeCompare(first: string, second: string) {
+  const firstHash = createHash("sha256").update(first).digest();
+  const secondHash = createHash("sha256").update(second).digest();
 
-  return firstBuffer.length === secondBuffer.length && timingSafeEqual(firstBuffer, secondBuffer);
+  return timingSafeEqual(firstHash, secondHash);
 }

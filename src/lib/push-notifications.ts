@@ -3,18 +3,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { formatCurrency } from "@/lib/utils";
 
-type OrderNotificationRow = {
-  id: string;
-  restaurant_id: string;
-  table_id: string | null;
-  order_number: string | null;
-  total: number | null;
-  customer_name: string | null;
-};
-
-type TableNotificationRow = {
-  table_number: string | number | null;
-};
 
 type BookingNotification = {
   id: string;
@@ -62,7 +50,6 @@ export async function notifyRestaurantNewOrder(
     .from("orders")
     .select("id,restaurant_id,table_id,order_number,total,customer_name")
     .eq("id", orderId)
-    .returns<OrderNotificationRow[]>()
     .maybeSingle();
 
   if (!order) {
@@ -74,7 +61,6 @@ export async function notifyRestaurantNewOrder(
         .from("tables")
         .select("table_number")
         .eq("id", order.table_id)
-        .returns<TableNotificationRow[]>()
         .maybeSingle()
     : { data: null };
 

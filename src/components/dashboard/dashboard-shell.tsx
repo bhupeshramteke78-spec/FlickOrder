@@ -72,6 +72,14 @@ export async function DashboardShell({
       return Boolean(access?.waiterEnabled);
     }
 
+    if (item.href === "/dashboard/order-history") {
+      return Boolean(access?.features?.orderHistory);
+    }
+
+    if (item.href === "/dashboard/analytics") {
+      return Boolean(access?.features?.analytics);
+    }
+
     return true;
   });
   const visibleMobileNavItems = visibleNavItems.map(({ href, label, iconKey }) => ({ href, label, iconKey }));

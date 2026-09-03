@@ -9,6 +9,7 @@ const createMenuItemSchema = z.object({
   name: z.string().min(2).max(140),
   category: z.string().min(2).max(80),
   description: z.string().max(500).optional(),
+  imageUrl: z.string().url().optional().nullable(),
   price: z.number().min(0),
   offerPrice: z.number().min(0).optional().nullable(),
   preparationTimeMinutes: z.number().int().min(1).max(240),
@@ -18,6 +19,10 @@ const createMenuItemSchema = z.object({
 });
 
 const updateMenuItemSchema = createMenuItemSchema.extend({
+  id: z.string().uuid(),
+});
+
+const deleteMenuItemSchema = z.object({
   id: z.string().uuid(),
 });
 
@@ -126,6 +131,7 @@ export async function POST(request: Request) {
       category_id: categoryId,
       name: input.name,
       description: input.description ?? null,
+      image_url: input.imageUrl ?? null,
       price: input.price,
       offer_price: input.offerPrice ?? null,
       preparation_time_minutes: input.preparationTimeMinutes,
@@ -200,6 +206,7 @@ export async function PATCH(request: Request) {
       category_id: categoryId,
       name: input.name,
       description: input.description ?? null,
+      image_url: input.imageUrl ?? null,
       price: input.price,
       offer_price: input.offerPrice ?? null,
       preparation_time_minutes: input.preparationTimeMinutes,
@@ -212,6 +219,40 @@ export async function PATCH(request: Request) {
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
+
+  const { supabase, membership, error } = await getEditableMembership();
+
+  if (error || !membership) {
+    return error;
+  }
+
+  const payload = deleteMenuItemSchema.safeParse(body);
+
+  if (!payload.success) {
+    return NextResponse.json({ error: "Invalid menu item id." }, { status: 422 });
+  }
+
+  const { error: deleteError } = await supabase
+    .from("menu_items")
+    .delete()
+    .eq("id", payload.data.id)
+    .eq("restaurant_id", membership.restaurant_id);
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 400 });
   }
 
   return NextResponse.json({ ok: true });

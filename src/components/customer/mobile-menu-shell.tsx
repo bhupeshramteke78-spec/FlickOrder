@@ -455,32 +455,74 @@ export function MobileMenuShell({ restaurantSlug, restaurantName, upiId, upiDisp
                 const isUnavailable = !item.isAvailable || item.isSoldOut;
 
                 return (
-                  <Card key={item.id} className={`grid items-center gap-4 p-3 ${isPreviewMode ? "grid-cols-[92px_1fr]" : "grid-cols-[92px_1fr_auto]"} ${isUnavailable ? "opacity-65" : ""}`}>
-                    {item.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.imageUrl} alt={item.name} className="h-20 w-full rounded-lg object-cover" />
-                    ) : (
-                      <div className="food-photo h-20 rounded-lg" />
-                    )}
+                  <Card key={item.id} className={`grid items-center gap-4 p-3.5 sm:p-4 rounded-2xl border-zinc-200/80 shadow-sm transition hover:shadow-md ${isPreviewMode ? "grid-cols-[96px_1fr]" : "grid-cols-[96px_1fr_auto]"} ${isUnavailable ? "opacity-60 grayscale-[30%]" : ""}`}>
+                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-100 border border-zinc-200/70 shadow-sm">
+                      {item.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="h-full w-full object-cover transition duration-300 hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="food-photo h-full w-full" />
+                      )}
+                      <div className="absolute top-1.5 left-1.5">
+                        <span
+                          className={`inline-block h-3 w-3 rounded-full border-2 border-white shadow-sm ${
+                            item.foodType === "VEG"
+                              ? "bg-emerald-600"
+                              : item.foodType === "NON_VEG"
+                                ? "bg-rose-600"
+                                : "bg-amber-500"
+                          }`}
+                          title={item.foodType === "NON_VEG" ? "Non-Vegetarian" : item.foodType === "EGG" ? "Contains Egg" : "Vegetarian"}
+                        />
+                      </div>
+                      {item.isPopular ? (
+                        <span className="absolute bottom-1 right-1 rounded-md bg-amber-500/95 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
+                          Top
+                        </span>
+                      ) : null}
+                    </div>
+
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="truncate font-semibold">{item.name}</h3>
-                        <span className={`rounded border px-1 text-[10px] ${item.foodType === "NON_VEG" ? "border-rose-200 text-rose-700" : "border-emerald-200 text-emerald-700"}`}>
-                          {item.foodType === "NON_VEG" ? "non-veg" : item.foodType.toLowerCase()}
-                        </span>
-                        {item.isPopular ? <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">Popular</span> : null}
-                        {isUnavailable ? <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium text-zinc-600">{item.isSoldOut ? "Sold out" : "Unavailable"}</span> : null}
+                        <h3 className="truncate text-base font-bold text-zinc-950">{item.name}</h3>
+                        {isUnavailable ? (
+                          <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
+                            {item.isSoldOut ? "Sold out" : "Unavailable"}
+                          </span>
+                        ) : null}
                       </div>
-                      <p className="mt-1 line-clamp-1 text-sm text-zinc-500">{item.description ?? "Restaurant menu item"}</p>
-                      <div className="mt-2 flex items-center gap-4 text-xs text-zinc-500">
-                        <span className="font-medium text-zinc-800">{currency.format(item.offerPrice ?? item.price)}</span>
-                        {item.offerPrice ? <span className="line-through">{currency.format(item.price)}</span> : null}
-                        <span>{item.preparationTimeMinutes} min</span>
+                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-500">
+                        {item.description ?? "Freshly prepared dish"}
+                      </p>
+                      <div className="mt-2.5 flex items-center gap-3 text-xs">
+                        <span className="text-sm font-black text-zinc-950">
+                          {currency.format(item.offerPrice ?? item.price)}
+                        </span>
+                        {item.offerPrice ? (
+                          <span className="text-xs font-semibold text-zinc-400 line-through">
+                            {currency.format(item.price)}
+                          </span>
+                        ) : null}
+                        <span className="text-zinc-400">•</span>
+                        <span className="font-medium text-zinc-500">{item.preparationTimeMinutes} mins</span>
                       </div>
                     </div>
+
                     {!isPreviewMode ? (
-                      <Button type="button" variant="secondary" size="sm" disabled={isUnavailable || (Boolean(placedOrder) && !isAddingMoreItems)} onClick={() => addToCart(item)}>
-                        {isAddingMoreItems ? "Add more" : "Add"} <Plus className="h-3 w-3" />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={isUnavailable || (Boolean(placedOrder) && !isAddingMoreItems)}
+                        onClick={() => addToCart(item)}
+                        className="h-9 px-3.5 text-xs font-bold text-emerald-800 border-emerald-300 hover:bg-emerald-50 hover:border-emerald-500 transition"
+                      >
+                        {isAddingMoreItems ? "Add more" : "Add"} <Plus className="h-3.5 w-3.5" />
                       </Button>
                     ) : null}
                   </Card>

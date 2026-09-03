@@ -13,10 +13,15 @@ export type PlanFeature =
 
 export type PlanRules = Record<PlanFeature, boolean>;
 
+export type SubscriptionBillingInterval = "MONTHLY" | "YEARLY";
+
 export type SubscriptionPlanDetails = {
   id: PaidSubscriptionPlan;
   name: string;
   price: number;
+  yearlyPrice: number;
+  yearlyDiscountAmount: number;
+  yearlyEffectiveMonthlyPrice: number;
   description: string;
   features: string[];
 };
@@ -26,6 +31,9 @@ export const subscriptionPlans: SubscriptionPlanDetails[] = [
     id: "basic",
     name: "Basic",
     price: 299,
+    yearlyPrice: 2990,
+    yearlyDiscountAmount: 598,
+    yearlyEffectiveMonthlyPrice: 249,
     description: "Core QR ordering and restaurant operations for small teams.",
     features: ["QR table menu access", "Menu and table management", "Live orders and payment verification", "Owner dashboard"],
   },
@@ -33,6 +41,9 @@ export const subscriptionPlans: SubscriptionPlanDetails[] = [
     id: "growth",
     name: "Growth",
     price: 799,
+    yearlyPrice: 7990,
+    yearlyDiscountAmount: 1598,
+    yearlyEffectiveMonthlyPrice: 665,
     description: "Realtime operations, order history, and analytics for busy restaurants.",
     features: ["Everything in Basic", "Optional Kitchen and Waiter staff tabs", "Order history records", "Paid-order revenue and item analytics"],
   },
@@ -40,6 +51,9 @@ export const subscriptionPlans: SubscriptionPlanDetails[] = [
     id: "pro",
     name: "Pro",
     price: 1499,
+    yearlyPrice: 14990,
+    yearlyDiscountAmount: 2998,
+    yearlyEffectiveMonthlyPrice: 1249,
     description: "Advanced controls and reporting for scaling restaurant teams.",
     features: ["Everything in Growth", "Optional Kitchen and Waiter staff tabs", "Searchable order history", "Detailed busy-hour reporting"],
   },
@@ -106,8 +120,10 @@ export function getMinimumPlanForFeature(feature: PlanFeature) {
   return "Pro";
 }
 
-export function getPlanAmount(plan: PaidSubscriptionPlan) {
-  return getPaidSubscriptionPlan(plan)?.price ?? 0;
+export function getPlanAmount(plan: PaidSubscriptionPlan, interval: SubscriptionBillingInterval = "MONTHLY") {
+  const details = getPaidSubscriptionPlan(plan);
+  if (!details) return 0;
+  return interval === "YEARLY" ? details.yearlyPrice : details.price;
 }
 
 export function getPlatformUpiDetails() {

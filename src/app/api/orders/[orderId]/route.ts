@@ -30,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
   const supabase = createAdminClient();
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("id,order_number,status,payment_status,total,created_at")
+    .select("id,order_number,status,payment_status,subtotal,discount_total,tax_total,total,customer_name,created_at,restaurant_id,table_id")
     .eq("id", parsedParams.data.orderId)
     .maybeSingle();
 
@@ -38,13 +38,36 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
-  const { data: payment } = await supabase
-    .from("payments")
-    .select("id,method,status,amount,transaction_note,created_at")
-    .eq("order_id", order.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [itemsResult, paymentResult, restaurantResult, settingsResult, tableResult] = await Promise.all([
+    supabase
+      .from("order_items")
+      .select("id,name_snapshot,unit_price,quantity,notes,options,total")
+      .eq("order_id", order.id),
+    supabase
+      .from("payments")
+      .select("id,method,status,amount,transaction_note,created_at")
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("restaurants")
+      .select("name,slug")
+      .eq("id", order.restaurant_id)
+      .maybeSingle(),
+    supabase
+      .from("restaurant_settings")
+      .select("upi_id,upi_display_name")
+      .eq("restaurant_id", order.restaurant_id)
+      .maybeSingle(),
+    supabase
+      .from("tables")
+      .select("table_number")
+      .eq("id", order.table_id)
+      .maybeSingle(),
+  ]);
+
+  const payment = paymentResult.data;
 
   return NextResponse.json({
     order: {
@@ -52,8 +75,26 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
       orderNumber: order.order_number,
       status: order.status,
       paymentStatus: order.payment_status,
+      customerName: order.customer_name,
+      subtotal: Number(order.subtotal ?? order.total),
+      discountTotal: Number(order.discount_total ?? 0),
+      taxTotal: Number(order.tax_total ?? 0),
       total: Number(order.total),
       createdAt: order.created_at,
+      restaurantName: restaurantResult.data?.name ?? "Restaurant",
+      restaurantSlug: restaurantResult.data?.slug ?? "",
+      tableNumber: tableResult.data?.table_number ?? "1",
+      upiId: settingsResult.data?.upi_id ?? null,
+      upiDisplayName: settingsResult.data?.upi_display_name ?? null,
+      items: (itemsResult.data ?? []).map((item) => ({
+        id: item.id,
+        name: item.name_snapshot,
+        unitPrice: Number(item.unit_price),
+        quantity: item.quantity,
+        notes: item.notes,
+        options: item.options,
+        total: Number(item.total),
+      })),
     },
     payment: payment
       ? {
@@ -159,8 +200,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
       return NextResponse.json({ error: "You do not have access to accept payments." }, { status: 403 });
     }
 
-    if (order.status !== "SERVED") {
-      return NextResponse.json({ error: "Payment can be accepted only after the order is served." }, { status: 409 });
+    if (order.status === "CANCELLED") {
+      return NextResponse.json({ error: "Payment cannot be accepted for a cancelled order." }, { status: 409 });
     }
 
     const admin = createAdminClient();
@@ -188,7 +229,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
         method: "CASH",
         status: "PAID",
         amount: Number(order.total),
-        transaction_note: `Payment accepted for ${order.order_number}`,
+        transaction_note: `FO-MANUAL-${order.order_number}`,
         confirmed_by: userResult.user.id,
       });
 
@@ -197,13 +238,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
       }
     }
 
-    const { error: orderPaymentError } = await admin
+    const { error: orderError } = await admin
       .from("orders")
-      .update({ payment_status: "PAID", status: "COMPLETED" })
+      .update({ payment_status: "PAID", status: order.status === "PENDING" ? "ACCEPTED" : order.status })
       .eq("id", parsedParams.data.orderId);
 
-    if (orderPaymentError) {
-      return NextResponse.json({ error: orderPaymentError.message }, { status: 400 });
+    if (orderError) {
+      return NextResponse.json({ error: orderError.message }, { status: 400 });
     }
 
     const { error: tableError } = await admin
@@ -237,6 +278,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ or
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (payload.data.status === "CANCELLED") {
+    await admin
+      .from("tables")
+      .update({ status: "AVAILABLE" })
+      .eq("id", order.table_id)
+      .eq("restaurant_id", order.restaurant_id);
   }
 
   return NextResponse.json({ ok: true });

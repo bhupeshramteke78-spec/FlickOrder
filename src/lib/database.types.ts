@@ -169,6 +169,7 @@ export type Database = {
           restaurant_id: string;
           plan: "trial" | "basic" | "growth" | "pro";
           status: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           trial_ends_at: string | null;
           current_period_ends_at: string | null;
         }>,
@@ -176,6 +177,7 @@ export type Database = {
           restaurant_id: string;
           plan: "trial" | "basic" | "growth" | "pro";
           status: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           trial_ends_at?: string | null;
           current_period_ends_at?: string | null;
         },
@@ -183,6 +185,7 @@ export type Database = {
           restaurant_id: string;
           plan: "trial" | "basic" | "growth" | "pro";
           status: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED";
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           trial_ends_at: string | null;
           current_period_ends_at: string | null;
         }>
@@ -194,6 +197,7 @@ export type Database = {
           plan: "basic" | "growth" | "pro";
           amount: number;
           status: SubscriptionUpgradeStatus;
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           payment_method: "UPI" | "RAZORPAY";
           gateway: string;
           razorpay_order_id: string | null;
@@ -213,6 +217,7 @@ export type Database = {
           plan: "basic" | "growth" | "pro";
           amount: number;
           status?: SubscriptionUpgradeStatus;
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           payment_method?: "UPI" | "RAZORPAY";
           gateway?: string;
           razorpay_order_id?: string | null;
@@ -232,6 +237,7 @@ export type Database = {
           plan: "basic" | "growth" | "pro";
           amount: number;
           status: SubscriptionUpgradeStatus;
+          billing_interval?: "MONTHLY" | "YEARLY" | string | null;
           payment_method: "UPI" | "RAZORPAY";
           gateway: string;
           razorpay_order_id: string | null;
@@ -262,8 +268,8 @@ export type Database = {
           booking_advance_days: number;
           booking_min_notice_minutes: number;
           booking_max_party_size: number;
-          kitchen_enabled: boolean;
-          waiter_enabled: boolean;
+          kitchen_enabled?: boolean;
+          waiter_enabled?: boolean;
         }>,
         {
           restaurant_id: string;
@@ -298,8 +304,8 @@ export type Database = {
           booking_advance_days: number;
           booking_min_notice_minutes: number;
           booking_max_party_size: number;
-          kitchen_enabled: boolean;
-          waiter_enabled: boolean;
+          kitchen_enabled?: boolean;
+          waiter_enabled?: boolean;
         }>
       >;
       push_subscriptions: DbTable<

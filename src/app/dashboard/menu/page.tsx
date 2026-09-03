@@ -46,7 +46,7 @@ async function getMenuData(): Promise<{
 
   const { data: menuItems } = await supabase
     .from("menu_items")
-    .select("id,name,description,price,offer_price,preparation_time_minutes,food_type,is_available,is_sold_out,is_popular,category_id,created_at")
+    .select("id,name,description,price,offer_price,preparation_time_minutes,food_type,is_available,is_sold_out,is_popular,category_id,created_at,image_url")
     .eq("restaurant_id", membership.restaurant_id)
     .order("created_at", { ascending: false });
 
@@ -65,6 +65,7 @@ async function getMenuData(): Promise<{
     id: item.id,
     name: item.name,
     description: item.description,
+    imageUrl: item.image_url ?? null,
     category: categoriesById.get(item.category_id) ?? "Uncategorized",
     price: Number(item.price),
     offerPrice: item.offer_price === null ? null : Number(item.offer_price),
