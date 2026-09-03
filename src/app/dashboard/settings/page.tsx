@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { Json } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
-import { getRestaurantStaffPins, type RestaurantStaffPins } from "@/lib/staff-auth";
+import { getRestaurantStaffPinsDetails } from "@/lib/staff-auth";
 import { getSubscriptionAccessForCurrentUser } from "@/lib/subscription-access";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
@@ -50,7 +50,8 @@ export default async function SettingsPage() {
               <StaffAccessManager
                 restaurantId={restaurantId}
                 restaurantSlug={initialState.restaurant.slug}
-                initialPins={staffPins}
+                initialPins={staffPins.pins}
+                lastResetTimestamp={staffPins.lastResetTimestamp}
               />
             ) : null}
           </>
@@ -67,9 +68,9 @@ export default async function SettingsPage() {
   );
 }
 
-async function getStaffPinsData(restaurantId: string): Promise<RestaurantStaffPins> {
+async function getStaffPinsData(restaurantId: string) {
   const supabase = await createClient();
-  return getRestaurantStaffPins(supabase, restaurantId);
+  return getRestaurantStaffPinsDetails(supabase, restaurantId);
 }
 
 async function getSettingsAccess() {

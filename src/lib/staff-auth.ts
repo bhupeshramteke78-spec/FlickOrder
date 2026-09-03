@@ -2,27 +2,23 @@ import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  PIN_RESET_COOLDOWN_MS,
+  type RestaurantStaffPins,
+  type StaffPinsSaveResult,
+  type StaffRole,
+  type StaffSession,
+  type StoredStaffPins,
+} from "@/lib/staff-auth-types";
 
-export type StaffRole = "chef" | "waiter";
-
-export type StaffSession = {
-  restaurantId: string;
-  restaurantSlug: string;
-  restaurantName: string;
-  role: StaffRole;
-  date: string; // YYYY-MM-DD
+export type {
+  StaffRole,
+  StaffSession,
+  RestaurantStaffPins,
+  StoredStaffPins,
+  StaffPinsSaveResult,
 };
-
-export type RestaurantStaffPins = {
-  kitchenPin: string;
-  waiterPin: string;
-};
-
-export type StoredStaffPins = {
-  kitchenPin?: string;
-  waiterPin?: string;
-  updatedAtDate?: string; // YYYY-MM-DD
-};
+export { PIN_RESET_COOLDOWN_MS };
 
 export function getTodayDateString(): string {
   // Use Indian Standard Time (Asia/Kolkata) date string YYYY-MM-DD
@@ -65,6 +61,17 @@ export async function getRestaurantStaffPins(
   supabase: SupabaseClient<Database>,
   restaurantId: string,
 ): Promise<RestaurantStaffPins> {
+  const details = await getRestaurantStaffPinsDetails(supabase, restaurantId);
+  return details.pins;
+}
+
+export async function getRestaurantStaffPinsDetails(
+  supabase: SupabaseClient<Database>,
+  restaurantId: string,
+): Promise<{
+  pins: RestaurantStaffPins;
+  lastResetTimestamp: number | null;
+}> {
   const today = getTodayDateString();
   const dailyDefaults = generateDailyStaffPins(restaurantId, today);
 
@@ -80,27 +87,35 @@ export async function getRestaurantStaffPins(
   // If the owner explicitly reset/saved PINs TODAY, honor the owner's manual override
   if (staffPins && staffPins.updatedAtDate === today) {
     return {
-      kitchenPin:
-        staffPins.kitchenPin && /^\d{4,6}$/.test(staffPins.kitchenPin)
-          ? staffPins.kitchenPin
-          : dailyDefaults.kitchenPin,
-      waiterPin:
-        staffPins.waiterPin && /^\d{4,6}$/.test(staffPins.waiterPin)
-          ? staffPins.waiterPin
-          : dailyDefaults.waiterPin,
+      pins: {
+        kitchenPin:
+          staffPins.kitchenPin && /^\d{4,6}$/.test(staffPins.kitchenPin)
+            ? staffPins.kitchenPin
+            : dailyDefaults.kitchenPin,
+        waiterPin:
+          staffPins.waiterPin && /^\d{4,6}$/.test(staffPins.waiterPin)
+            ? staffPins.waiterPin
+            : dailyDefaults.waiterPin,
+      },
+      lastResetTimestamp: staffPins.lastResetTimestamp ?? null,
     };
   }
 
   // Otherwise, return today's daily auto-rotated PINs
-  return dailyDefaults;
+  return {
+    pins: dailyDefaults,
+    lastResetTimestamp: null,
+  };
 }
 
 export async function saveRestaurantStaffPins(
   supabase: SupabaseClient<Database>,
   restaurantId: string,
   pins: RestaurantStaffPins,
-): Promise<boolean> {
+): Promise<StaffPinsSaveResult> {
   const today = getTodayDateString();
+  const now = Date.now();
+
   const { data: settings } = await supabase
     .from("restaurant_settings")
     .select("menu_preferences")
@@ -108,12 +123,29 @@ export async function saveRestaurantStaffPins(
     .maybeSingle();
 
   const currentPrefs = (settings?.menu_preferences as Record<string, unknown>) ?? {};
+  const staffPins = currentPrefs.staff_pins as StoredStaffPins | undefined;
+
+  // 5-Minute Rate-Limit Cooldown Protection
+  if (staffPins?.lastResetTimestamp) {
+    const elapsed = now - staffPins.lastResetTimestamp;
+    if (elapsed < PIN_RESET_COOLDOWN_MS) {
+      const remainingSeconds = Math.ceil((PIN_RESET_COOLDOWN_MS - elapsed) / 1000);
+      const remainingMinutes = Math.ceil(remainingSeconds / 60);
+      return {
+        success: false,
+        cooldownRemainingSeconds: remainingSeconds,
+        error: `PIN was recently updated. Please wait ${remainingMinutes} minute(s) before changing again.`,
+      };
+    }
+  }
+
   const updatedPrefs = {
     ...currentPrefs,
     staff_pins: {
       kitchenPin: pins.kitchenPin.trim(),
       waiterPin: pins.waiterPin.trim(),
       updatedAtDate: today,
+      lastResetTimestamp: now,
     },
   };
 
@@ -122,7 +154,11 @@ export async function saveRestaurantStaffPins(
     .update({ menu_preferences: updatedPrefs })
     .eq("restaurant_id", restaurantId);
 
-  return !error;
+  if (error) {
+    return { success: false, error: "Database error updating staff PINs." };
+  }
+
+  return { success: true, lastResetTimestamp: now };
 }
 
 export async function verifyAndCreateStaffSession(

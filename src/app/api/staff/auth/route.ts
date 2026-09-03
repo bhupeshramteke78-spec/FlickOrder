@@ -93,11 +93,17 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Only owners and managers can update staff PINs." }, { status: 403 });
   }
 
-  const success = await saveRestaurantStaffPins(supabase, context.selected.restaurantId, payload.data);
+  const result = await saveRestaurantStaffPins(supabase, context.selected.restaurantId, payload.data);
 
-  if (!success) {
-    return NextResponse.json({ error: "Failed to update staff PINs." }, { status: 500 });
+  if (!result.success) {
+    return NextResponse.json(
+      {
+        error: result.error ?? "Failed to update staff PINs.",
+        cooldownRemainingSeconds: result.cooldownRemainingSeconds,
+      },
+      { status: result.cooldownRemainingSeconds ? 429 : 500 },
+    );
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, lastResetTimestamp: result.lastResetTimestamp });
 }

@@ -1,25 +1,33 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChefHat, Copy, Download, KeyRound, RefreshCw, Utensils } from "lucide-react";
+import { ChefHat, Clock, Copy, Download, KeyRound, RefreshCw, Utensils } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { RestaurantStaffPins } from "@/lib/staff-auth";
+import { PIN_RESET_COOLDOWN_MS, type RestaurantStaffPins } from "@/lib/staff-auth-types";
 
 export function StaffAccessManager({
   restaurantSlug,
   initialPins,
+  lastResetTimestamp: initialLastReset = null,
 }: {
   restaurantId?: string;
   restaurantSlug: string;
   initialPins: RestaurantStaffPins;
+  lastResetTimestamp?: number | null;
 }) {
   const router = useRouter();
   const [kitchenPin, setKitchenPin] = useState(initialPins.kitchenPin);
   const [waiterPin, setWaiterPin] = useState(initialPins.waiterPin);
+  const [lastReset, setLastReset] = useState<number | null>(initialLastReset);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(() => {
+    if (!initialLastReset) return 0;
+    const elapsed = Date.now() - initialLastReset;
+    return Math.max(0, Math.ceil((PIN_RESET_COOLDOWN_MS - elapsed) / 1000));
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const kitchenQrRef = useRef<HTMLDivElement>(null);
@@ -29,7 +37,36 @@ export function StaffAccessManager({
   const kitchenUrl = `${origin}/kitchen?slug=${restaurantSlug}`;
   const waiterUrl = `${origin}/waiter?slug=${restaurantSlug}`;
 
+  // Cooldown countdown timer (5-minute limit between manual resets)
+  useEffect(() => {
+    if (!lastReset) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastReset;
+      const remaining = Math.max(0, Math.ceil((PIN_RESET_COOLDOWN_MS - elapsed) / 1000));
+      setCooldownRemaining(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lastReset]);
+
+  function formatTime(seconds: number) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  }
+
   async function handleSavePins(nextKitchenPin: string, nextWaiterPin: string) {
+    if (cooldownRemaining > 0) {
+      toast.error(`Please wait ${formatTime(cooldownRemaining)} before changing the PIN again.`);
+      return;
+    }
+
     if (!/^\d{4,6}$/.test(nextKitchenPin) || !/^\d{4,6}$/.test(nextWaiterPin)) {
       toast.error("PINs must be 4 to 6 numeric digits.");
       return;
@@ -46,16 +83,31 @@ export function StaffAccessManager({
     });
     setIsSaving(false);
 
+    const body = (await response.json().catch(() => null)) as {
+      error?: string;
+      cooldownRemainingSeconds?: number;
+      lastResetTimestamp?: number;
+    } | null;
+
     if (!response.ok) {
-      toast.error("Failed to update staff PINs.");
+      if (body?.cooldownRemainingSeconds) {
+        setCooldownRemaining(body.cooldownRemainingSeconds);
+      }
+      toast.error(body?.error ?? "Failed to update staff PINs.");
       return;
     }
 
-    toast.success("Staff access PINs updated successfully!");
+    setLastReset(body?.lastResetTimestamp ?? Date.now());
+    toast.success("Staff access PINs updated successfully! (Next change available in 5 mins)");
     router.refresh();
   }
 
   function regeneratePin(role: "kitchen" | "waiter") {
+    if (cooldownRemaining > 0) {
+      toast.error(`PIN reset on cooldown. Please wait ${formatTime(cooldownRemaining)}.`);
+      return;
+    }
+
     const randomPin = String(Math.floor(1000 + Math.random() * 9000));
     if (role === "kitchen") {
       setKitchenPin(randomPin);
@@ -81,6 +133,8 @@ export function StaffAccessManager({
     toast.success("Staff QR code downloaded!");
   }
 
+  const isCooldownActive = cooldownRemaining > 0;
+
   return (
     <Card className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
@@ -90,12 +144,21 @@ export function StaffAccessManager({
             Kitchen & Waiter Staff Passcodes & QR Access
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Chefs and waiters can scan these QR codes and enter their 4-digit PIN to operate. PINs automatically rotate daily at midnight for security, or you can generate/customize them anytime below.
+            Chefs and waiters can scan these QR codes and enter their 4-digit PIN to operate. PINs automatically rotate daily at midnight for security.
           </p>
         </div>
-        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
-          Daily Auto-Rotation Active 🛡️
-        </span>
+        <div className="flex items-center gap-2">
+          {isCooldownActive ? (
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 border border-amber-200">
+              <Clock className="h-3.5 w-3.5 animate-pulse" />
+              Reset Cooldown: {formatTime(cooldownRemaining)}
+            </span>
+          ) : (
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+              Daily Auto-Rotation Active 🛡️
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
@@ -125,10 +188,19 @@ export function StaffAccessManager({
               size="sm"
               variant="secondary"
               onClick={() => regeneratePin("kitchen")}
-              disabled={isSaving}
-              className="h-8 flex-1 text-xs font-bold gap-1"
+              disabled={isSaving || isCooldownActive}
+              className="h-8 flex-1 text-xs font-bold gap-1 disabled:opacity-60"
+              title={isCooldownActive ? `Wait ${formatTime(cooldownRemaining)} before changing PIN` : "Generate new PIN"}
             >
-              <RefreshCw className="h-3 w-3" /> New PIN
+              {isCooldownActive ? (
+                <>
+                  <Clock className="h-3 w-3" /> Wait ({formatTime(cooldownRemaining)})
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3 w-3" /> New PIN
+                </>
+              )}
             </Button>
             <Button
               size="sm"
@@ -175,10 +247,19 @@ export function StaffAccessManager({
               size="sm"
               variant="secondary"
               onClick={() => regeneratePin("waiter")}
-              disabled={isSaving}
-              className="h-8 flex-1 text-xs font-bold gap-1"
+              disabled={isSaving || isCooldownActive}
+              className="h-8 flex-1 text-xs font-bold gap-1 disabled:opacity-60"
+              title={isCooldownActive ? `Wait ${formatTime(cooldownRemaining)} before changing PIN` : "Generate new PIN"}
             >
-              <RefreshCw className="h-3 w-3" /> New PIN
+              {isCooldownActive ? (
+                <>
+                  <Clock className="h-3 w-3" /> Wait ({formatTime(cooldownRemaining)})
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-3 w-3" /> New PIN
+                </>
+              )}
             </Button>
             <Button
               size="sm"
