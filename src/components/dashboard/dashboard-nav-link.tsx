@@ -66,7 +66,6 @@ export function DashboardNavLink({
   return (
     <Link
       href={href}
-      prefetch={false}
       onClick={onNavigate}
       className={cn(
         "dashboard-nav-link group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-xs font-semibold tracking-wide transition-all duration-200 active:scale-[0.98]",

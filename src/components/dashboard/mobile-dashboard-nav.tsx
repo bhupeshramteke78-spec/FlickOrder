@@ -172,7 +172,6 @@ export function MobileDashboardNav({
                   <Link
                     key={item.href}
                     href={item.href}
-                    prefetch={false}
                     onClick={closeMenu}
                     className={cn(
                       "dashboard-nav-link flex items-center gap-3 rounded-md px-3 py-3 text-sm transition",

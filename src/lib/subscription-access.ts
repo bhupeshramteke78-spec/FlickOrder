@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { getPlanRules, type PlanFeature, type PlanRules, type SubscriptionPlan } from "@/lib/billing-plans";
@@ -93,11 +94,12 @@ export async function getSubscriptionAccessForRestaurantSlug(
   return getSubscriptionAccessForRestaurantId(supabase, restaurant.id);
 }
 
-export async function getSubscriptionAccessForRestaurantId(
-  supabase: SupabaseClient<Database>,
-  restaurantId: string,
-): Promise<SubscriptionAccess> {
-  const [{ data: subscription }, { data: settings }, { data: restaurant }] = await Promise.all([
+export const getSubscriptionAccessForRestaurantId = cache(
+  async function getSubscriptionAccessForRestaurantId(
+    supabase: SupabaseClient<Database>,
+    restaurantId: string,
+  ): Promise<SubscriptionAccess> {
+    const [{ data: subscription }, { data: settings }, { data: restaurant }] = await Promise.all([
     supabase
       .from("subscriptions")
       .select("plan,status,trial_ends_at,current_period_ends_at")
@@ -161,8 +163,9 @@ export async function getSubscriptionAccessForRestaurantId(
       : verificationStatus !== "APPROVED"
         ? getVerificationMessage(verificationStatus)
       : null,
-  });
-}
+    });
+  },
+);
 
 export function isSubscriptionLocked(access: SubscriptionAccess | null) {
   return !access?.canManageRestaurant;
