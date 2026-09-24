@@ -7,15 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export function HomeHero() {
   return (
-    <section className="relative overflow-hidden pt-6 pb-16 lg:pt-10 lg:pb-24">
-      {/* Horizon Sunset Glow Gradient */}
-      <div 
-        className="pointer-events-none absolute inset-x-0 top-0 h-[480px] opacity-90"
-        style={{
-          background: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(249, 115, 22, 0.45), rgba(239, 68, 68, 0.25) 45%, rgba(15, 23, 42, 0) 85%)",
-        }}
-        aria-hidden="true"
-      />
+    <section className="relative z-10 pt-4 pb-16 lg:pt-8 lg:pb-24">
 
       <div className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8">
         {/* Eyebrow Badge */}

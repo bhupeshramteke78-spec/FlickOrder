@@ -76,12 +76,12 @@ export function MarketingNav() {
 
   return (
     <>
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-2.5 font-semibold text-white transition-opacity hover:opacity-90">
           <KhaoScanLogo className="h-8 w-8 rounded-lg" priority />
-          KhaoScan
+          <span className="text-lg font-bold tracking-tight">KhaoScan</span>
         </Link>
-        <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">
+        <nav className="hidden items-center gap-8 text-sm font-medium text-zinc-300 md:flex">
           {navItems.map((item) => (
             <motion.a
               key={item.href}
@@ -94,16 +94,23 @@ export function MarketingNav() {
             >
               {item.label}
               <motion.span
-                className="absolute inset-x-0 -bottom-1 mx-auto h-px w-0 bg-orange-300"
+                className="absolute inset-x-0 -bottom-1 mx-auto h-px w-0 bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]"
                 whileHover={{ width: "100%" }}
                 transition={{ duration: 0.2 }}
               />
             </motion.a>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/auth/owner?mode=login">
-            <Button variant="glass" size="sm">Login</Button>
+            <Button variant="ghost" size="sm" className="text-zinc-300 hover:text-white hover:bg-white/10 text-xs sm:text-sm">
+              Login
+            </Button>
+          </Link>
+          <Link href="/auth/owner?mode=register">
+            <Button size="sm" className="rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold text-xs sm:text-sm px-4 shadow-md shadow-orange-500/20 hover:opacity-95">
+              Get Started
+            </Button>
           </Link>
         </div>
       </header>
