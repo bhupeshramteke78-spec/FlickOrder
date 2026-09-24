@@ -36,7 +36,7 @@ export async function GET(request: Request) {
             url: item.image_url,
             thumbnailUrl: item.image_url,
             title: item.name,
-            source: "FlickOrder Restaurant Network",
+            source: "KhaoScan Restaurant Network",
           });
         }
       }

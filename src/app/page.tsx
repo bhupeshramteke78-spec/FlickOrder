@@ -11,12 +11,12 @@ export default async function Page() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "FlickOrder",
+    name: "KhaoScan",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     url: siteUrl,
     description:
-      "In-restaurant QR ordering, menu management, live order operations, UPI payment verification, and restaurant analytics for modern restaurants.",
+      "In-restaurant QR ordering, menu management, live kitchen & waiter operations, UPI payment verification, and restaurant analytics for modern dining.",
     offers: [
       { "@type": "Offer", name: "Basic", price: "299", priceCurrency: "INR" },
       { "@type": "Offer", name: "Growth", price: "799", priceCurrency: "INR" },

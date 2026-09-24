@@ -1,9 +1,9 @@
 self.addEventListener("push", (event) => {
   let data = {
-    title: "FlickOrder update",
-    body: "Open FlickOrder to view the latest update.",
+    title: "KhaoScan update",
+    body: "Open KhaoScan to view the latest update.",
     url: "/dashboard/orders",
-    tag: "flickorder-update",
+    tag: "khaoscan-update",
   };
 
   if (event.data) {
@@ -18,8 +18,8 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(data.title, {
       body: data.body,
       tag: data.tag,
-      icon: "/flickorder-logo.png",
-      badge: "/flickorder-logo.png",
+      icon: "/khaoscan-logo.png",
+      badge: "/khaoscan-logo.png",
       data: {
         url: data.url,
       },

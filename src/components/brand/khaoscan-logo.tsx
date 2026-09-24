@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-export function FlickOrderLogo({
+export function KhaoScanLogo({
   className,
   priority = false,
 }: {
@@ -22,4 +22,4 @@ export function FlickOrderLogo({
   );
 }
 
-export const KhaoScanLogo = FlickOrderLogo;
+export const FlickOrderLogo = KhaoScanLogo;

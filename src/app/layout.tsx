@@ -16,31 +16,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://flick-order.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khaoscan.vercel.app"),
   title: {
-    default: "FlickOrder",
-    template: "%s | FlickOrder",
+    default: "KhaoScan - Modern QR Restaurant Ordering & Operations",
+    template: "%s | KhaoScan",
   },
   description:
-    "Premium in-restaurant ordering, service, payment, and operations platform for modern restaurants.",
+    "Premium in-restaurant QR ordering, kitchen management, UPI payments, and dining operations platform.",
   keywords: [
     "restaurant QR ordering",
     "restaurant management software",
     "UPI restaurant payments",
     "dine-in ordering",
-    "FlickOrder",
+    "KhaoScan",
   ],
   openGraph: {
-    title: "FlickOrder",
-    description: "Premium in-restaurant QR ordering, service, payment, and operations platform.",
+    title: "KhaoScan",
+    description: "Premium in-restaurant QR ordering, kitchen management, UPI payments, and dining operations platform.",
     url: "/",
-    siteName: "FlickOrder",
+    siteName: "KhaoScan",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FlickOrder",
-    description: "Premium in-restaurant QR ordering, service, payment, and operations platform.",
+    title: "KhaoScan",
+    description: "Premium in-restaurant QR ordering, kitchen management, UPI payments, and dining operations platform.",
   },
 };
 

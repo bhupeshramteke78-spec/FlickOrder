@@ -26,7 +26,7 @@ export default async function OwnerAuthPage({
             <p className="mx-auto mt-4 max-w-2xl text-zinc-400">
               {isRegisterMode
                 ? "Registration creates your owner profile, restaurant, membership, subscription, and settings in one validated flow."
-                : "Use your FlickOrder owner credentials to access orders, menus, tables, payments, and restaurant settings."}
+                : "Use your KhaoScan owner credentials to access orders, menus, tables, payments, and restaurant settings."}
             </p>
           </div>
 
@@ -71,7 +71,7 @@ export default async function OwnerAuthPage({
               <div className="auth-panel-motion auth-panel-login">
                 <h2 className="auth-title-pulse text-2xl font-semibold text-emerald-700">Owner login</h2>
                 <p className="mt-2 text-sm leading-6 text-zinc-500">
-                  Use Supabase Auth credentials. Passwords are never stored in FlickOrder tables.
+                  Use Supabase Auth credentials. Passwords are never stored in KhaoScan tables.
                 </p>
                 <div className="mt-6">
                   <LoginForm />

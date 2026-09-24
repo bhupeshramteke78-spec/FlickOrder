@@ -23,7 +23,7 @@ export default function Error({
         <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
           <RotateCcw className="h-6 w-6" />
         </div>
-        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">FlickOrder Safe Mode</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">KhaoScan Safe Mode</p>
         <h1 className="mt-2 text-2xl font-black tracking-tight text-white">Temporary Glitch Detected</h1>
         <p className="mt-3 text-xs leading-relaxed text-zinc-400">
           Our automated diagnostic system has recorded this event. Tap below to refresh and resume your session immediately.

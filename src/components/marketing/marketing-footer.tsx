@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Scale } from "lucide-react";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 
 const footerColumns = [
   {
@@ -24,8 +24,8 @@ const footerColumns = [
   {
     title: "Information",
     links: [
-      { label: "Support", href: "mailto:support@flickorder.in" },
-      { label: "Contact", href: "mailto:hello@flickorder.in" },
+      { label: "Support", href: "mailto:support@khaoscan.com" },
+      { label: "Contact", href: "mailto:hello@khaoscan.com" },
       { label: "Book a demo", href: "/auth/owner?mode=register" },
       { label: "Restaurant trial", href: "/auth/owner?mode=register" },
     ],
@@ -47,8 +47,8 @@ export function MarketingFooter() {
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1.35fr_3fr]">
         <div>
           <Link href="/" className="inline-flex items-center gap-3">
-            <FlickOrderLogo className="h-10 w-10 rounded-xl shadow-lg shadow-orange-500/20" />
-            <span className="text-xl font-black tracking-tight">FlickOrder</span>
+            <KhaoScanLogo className="h-10 w-10 rounded-xl shadow-lg shadow-orange-500/20" />
+            <span className="text-xl font-black tracking-tight">KhaoScan</span>
           </Link>
           <p className="mt-5 max-w-sm text-sm leading-6 text-zinc-400">
             In-restaurant QR ordering, live operations, UPI payments, and restaurant management in one premium platform.
@@ -79,7 +79,7 @@ export function MarketingFooter() {
       </div>
 
       <div className="mx-auto mt-14 flex max-w-7xl flex-col gap-3 border-t border-white/10 pt-8 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-        <p>(c) 2026 FlickOrder. All rights reserved.</p>
+        <p>(c) 2026 KhaoScan. All rights reserved.</p>
         <p>Premium dine-in ordering and restaurant operations platform.</p>
       </div>
     </footer>

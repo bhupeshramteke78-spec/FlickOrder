@@ -20,7 +20,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 
@@ -212,7 +212,7 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
   async function updateVerification(restaurant: SuperAdminRestaurant, status: "APPROVED" | "REJECTED" | "MORE_INFO_REQUIRED") {
     const note =
       status === "APPROVED"
-        ? "Verified by FlickOrder super admin."
+        ? "Verified by KhaoScan super admin."
         : status === "REJECTED"
           ? "Restaurant proof could not be verified."
           : "More restaurant proof is required before approval.";
@@ -261,9 +261,9 @@ export function SuperAdminControlPanel({ data }: { data: SuperAdminDashboardData
         <div className="relative mx-auto grid max-w-7xl gap-7 px-5 py-7 lg:grid-cols-[1fr_340px]">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <FlickOrderLogo className="h-11 w-11 rounded-xl" priority />
+              <KhaoScanLogo className="h-11 w-11 rounded-xl" priority />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">FlickOrder Command</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">KhaoScan Command</p>
                 <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">Platform operations desk</h1>
               </div>
             </div>

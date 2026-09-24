@@ -252,14 +252,14 @@ function getExpiredMessage(plan: SubscriptionPlan, currentPeriodEndsAt: string |
 
 function getVerificationMessage(status: SubscriptionAccess["verificationStatus"]) {
   if (status === "REJECTED") {
-    return "Restaurant verification was rejected. Contact FlickOrder support before using live operations.";
+    return "Restaurant verification was rejected. Contact KhaoScan support before using live operations.";
   }
 
   if (status === "MORE_INFO_REQUIRED") {
-    return "Restaurant verification needs more information. Update your proof details or contact FlickOrder support.";
+    return "Restaurant verification needs more information. Update your proof details or contact KhaoScan support.";
   }
 
-  return "Restaurant verification is pending. FlickOrder will review your business proof before enabling live operations.";
+  return "Restaurant verification is pending. KhaoScan will review your business proof before enabling live operations.";
 }
 
 function getComputedStatus(

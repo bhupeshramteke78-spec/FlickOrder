@@ -1,7 +1,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { LogOut } from "lucide-react";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { DashboardNavLink, type DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
@@ -96,8 +96,8 @@ export async function DashboardShell({
       />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[244px_1fr]">
         <aside className="hidden bg-[#071117] p-4 text-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden">
-          <Link href="/" prefetch={false} className="mb-7 inline-flex shrink-0 px-2" aria-label="Go to FlickOrder homepage">
-            <FlickOrderLogo className="h-10 w-10 rounded-xl" priority />
+          <Link href="/" prefetch={false} className="mb-7 inline-flex shrink-0 px-2" aria-label="Go to KhaoScan homepage">
+            <KhaoScanLogo className="h-10 w-10 rounded-xl" priority />
           </Link>
           <div className="mb-5 shrink-0 rounded-lg border border-white/10 bg-white/[0.04] p-3">
             <div className="flex items-center gap-3">

@@ -138,7 +138,7 @@ export function SubscriptionUpgradePanel({
     setSelectedRequest(body.request);
     setPayment(null);
     setTransactionId("");
-    toast.success("Payment submitted. Your plan will activate after FlickOrder verifies the transaction.");
+    toast.success("Payment submitted. Your plan will activate after KhaoScan verifies the transaction.");
     router.refresh();
   }
 
@@ -151,7 +151,7 @@ export function SubscriptionUpgradePanel({
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Subscription plans</p>
         <h3 className="mt-2 text-2xl font-bold text-zinc-950">Choose a plan and pay through UPI</h3>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-500">
-          The payment QR fills the exact plan amount automatically. Your subscription activates as soon as FlickOrder
+          The payment QR fills the exact plan amount automatically. Your subscription activates as soon as KhaoScan
           verifies the UPI transaction.
         </p>
       </div>
@@ -217,7 +217,7 @@ export function SubscriptionUpgradePanel({
             </div>
             <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
               <ShieldCheck className="h-5 w-5" />
-              Waiting for FlickOrder approval
+              Waiting for KhaoScan approval
             </div>
           </div>
         </div>

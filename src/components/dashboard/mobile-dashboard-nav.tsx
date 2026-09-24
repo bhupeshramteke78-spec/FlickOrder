@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import type { DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
@@ -72,9 +72,9 @@ export function MobileDashboardNav({
               href="/"
               prefetch={false}
               className="inline-flex shrink-0"
-              aria-label="Go to FlickOrder homepage"
+              aria-label="Go to KhaoScan homepage"
             >
-              <FlickOrderLogo className="h-9 w-9 rounded-xl" priority />
+              <KhaoScanLogo className="h-9 w-9 rounded-xl" priority />
             </Link>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{restaurantName}</p>
@@ -126,9 +126,9 @@ export function MobileDashboardNav({
                 prefetch={false}
                 onClick={closeMenu}
                 className="inline-flex shrink-0"
-                aria-label="Go to FlickOrder homepage"
+                aria-label="Go to KhaoScan homepage"
               >
-                <FlickOrderLogo className="h-9 w-9 rounded-xl" />
+                <KhaoScanLogo className="h-9 w-9 rounded-xl" />
               </Link>
               <button
                 type="button"

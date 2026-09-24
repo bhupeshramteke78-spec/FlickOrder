@@ -22,8 +22,8 @@ export function createManualSubscriptionPayment({
     return null;
   }
 
-  const upiId = process.env.FLICKORDER_UPI_ID?.trim();
-  const payeeName = process.env.FLICKORDER_UPI_DISPLAY_NAME?.trim() || "FlickOrder";
+  const upiId = process.env.KHAOSCAN_UPI_ID?.trim() || process.env.FLICKORDER_UPI_ID?.trim();
+  const payeeName = process.env.KHAOSCAN_UPI_DISPLAY_NAME?.trim() || process.env.FLICKORDER_UPI_DISPLAY_NAME?.trim() || "KhaoScan";
 
   if (!upiId) {
     return null;

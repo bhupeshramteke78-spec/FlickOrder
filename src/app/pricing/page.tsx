@@ -77,7 +77,7 @@ const comparisonRows = [
 
 const faqs = [
   {
-    question: "Can I test FlickOrder before paying?",
+    question: "Can I test KhaoScan before paying?",
     answer: "Yes. Every restaurant starts with a 3-day trial so you can set up menus, tables, QR codes, and live orders first.",
   },
   {
@@ -86,11 +86,11 @@ const faqs = [
   },
   {
     question: "How are restaurant payments handled?",
-    answer: "Customer payments go directly to the restaurant through UPI, cash, or card-machine workflows. Staff confirm payment status in FlickOrder.",
+    answer: "Customer payments go directly to the restaurant through UPI, cash, or card-machine workflows. Staff confirm payment status in KhaoScan.",
   },
   {
     question: "How do subscription upgrades work?",
-    answer: "Restaurant subscriptions use a prefilled UPI payment link. FlickOrder activates the selected plan only after the super admin verifies the submitted transaction ID.",
+    answer: "Restaurant subscriptions use a prefilled UPI payment link. KhaoScan activates the selected plan only after the super admin verifies the submitted transaction ID.",
   },
   {
     question: "Can I choose yearly billing to get a discount?",
@@ -143,7 +143,7 @@ export default function PricingPage() {
                 <div>
                   <h2 className="text-xl font-semibold">No fake promises</h2>
                   <p className="mt-2 text-sm leading-6 text-zinc-300">
-                    Plan details below describe features currently implemented in FlickOrder.
+                    Plan details below describe features currently implemented in KhaoScan.
                   </p>
                 </div>
               </div>

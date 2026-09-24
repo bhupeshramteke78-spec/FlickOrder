@@ -171,7 +171,7 @@ export function SettingsForm({
       return;
     }
 
-    toast.success("Deletion request sent to FlickOrder super admin.");
+    toast.success("Deletion request sent to KhaoScan super admin.");
     setDeleteName("");
     setDeleteReason("");
     router.refresh();
@@ -262,7 +262,7 @@ export function SettingsForm({
                 placeholder="https://maps.app.goo.gl/..."
               />
               <span className="mt-1 block text-xs text-zinc-500">
-                Customers use this for directions, and FlickOrder uses it during restaurant verification.
+                Customers use this for directions, and KhaoScan uses it during restaurant verification.
               </span>
             </Field>
             <div className="md:col-span-2">
@@ -418,7 +418,7 @@ export function SettingsForm({
           <div>
             <CardTitle>Account Delete</CardTitle>
             <CardDescription>
-              Request restaurant account deletion. FlickOrder hides the restaurant and pauses QR ordering immediately, then super admin reviews the request.
+              Request restaurant account deletion. KhaoScan hides the restaurant and pauses QR ordering immediately, then super admin reviews the request.
             </CardDescription>
           </div>
           <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700">
@@ -477,7 +477,7 @@ export function SettingsForm({
         ) : (
           <div className="flex flex-col gap-3 rounded-lg border border-rose-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-zinc-600">
-              Open this only if the restaurant wants FlickOrder to review account deletion.
+              Open this only if the restaurant wants KhaoScan to review account deletion.
             </p>
             <Button
               type="button"

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { Button } from "@/components/ui/button";
 
 type NavItem = {
@@ -78,8 +78,8 @@ export function MarketingNav() {
     <>
       <header className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <FlickOrderLogo className="h-8 w-8 rounded-lg" priority />
-          FlickOrder
+          <KhaoScanLogo className="h-8 w-8 rounded-lg" priority />
+          KhaoScan
         </Link>
         <nav className="hidden items-center gap-8 text-sm text-zinc-300 md:flex">
           {navItems.map((item) => (

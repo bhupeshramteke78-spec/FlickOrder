@@ -21,7 +21,7 @@ export default function GlobalError({
           <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-xl">
             ⚡
           </div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">FlickOrder Safe Mode</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-400">KhaoScan Safe Mode</p>
           <h1 className="mt-2 text-2xl font-black tracking-tight text-white">Application Recovery</h1>
           <p className="mt-3 text-xs leading-relaxed text-zinc-400">
             A critical error occurred. Sentry has captured this crash for the development team. Tap below to reload.

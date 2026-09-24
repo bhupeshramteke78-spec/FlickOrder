@@ -69,7 +69,7 @@ export async function notifyRestaurantNewOrder(
   const customerName = order.customer_name?.trim() || "Customer";
   const total = formatCurrency(Number(order.total ?? 0));
   const payload = JSON.stringify({
-    title: "New FlickOrder order",
+    title: "New KhaoScan order",
     body: `${orderNumber} - ${tableLabel} - ${customerName} - ${total}`,
     url: "/dashboard/orders",
     tag: `new-order-${order.id}`,

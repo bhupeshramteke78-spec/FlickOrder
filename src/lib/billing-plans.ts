@@ -128,7 +128,7 @@ export function getPlanAmount(plan: PaidSubscriptionPlan, interval: Subscription
 
 export function getPlatformUpiDetails() {
   return {
-    upiId: process.env.FLICKORDER_UPI_ID?.trim() || null,
-    upiDisplayName: process.env.FLICKORDER_UPI_DISPLAY_NAME?.trim() || "FlickOrder",
+    upiId: process.env.KHAOSCAN_UPI_ID?.trim() || process.env.FLICKORDER_UPI_ID?.trim() || null,
+    upiDisplayName: process.env.KHAOSCAN_UPI_DISPLAY_NAME?.trim() || process.env.FLICKORDER_UPI_DISPLAY_NAME?.trim() || "KhaoScan",
   };
 }

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const customerName = order.customer_name?.trim() || payload.data.customerName;
-  const transactionNote = `FlickOrder ${order.order_number} - ${customerName}`;
+  const transactionNote = `KhaoScan ${order.order_number} - ${customerName}`;
   const { data: payment, error: paymentError } = await supabase
     .from("payments")
     .insert({

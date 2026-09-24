@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 const AboutSection = dynamic(() => import("@/components/marketing/about-section").then((mod) => mod.AboutSection), {
-  loading: () => <SectionSkeleton eyebrow="About FlickOrder" title="Built for better dining" />,
+  loading: () => <SectionSkeleton eyebrow="About KhaoScan" title="Built for better dining" />,
 });
 
 const TrialSection = dynamic(() => import("@/components/marketing/trial-section").then((mod) => mod.TrialSection), {

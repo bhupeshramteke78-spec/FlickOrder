@@ -4,7 +4,7 @@ import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -40,9 +40,9 @@ export function SuperAdminUnlockForm({ adminName }: { adminName: string }) {
         <div className="grid lg:grid-cols-[1fr_420px]">
           <div className="p-7 sm:p-9">
             <div className="flex items-center gap-3">
-              <FlickOrderLogo className="h-11 w-11 rounded-xl" priority />
+              <KhaoScanLogo className="h-11 w-11 rounded-xl" priority />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">FlickOrder Command</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200">KhaoScan Command</p>
                 <h1 className="text-2xl font-semibold">Protected operations desk</h1>
               </div>
             </div>

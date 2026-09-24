@@ -7,7 +7,7 @@ export function RouteLoading() {
             <span key={index} />
           ))}
         </div>
-        <p>Loading FlickOrder</p>
+        <p>Loading KhaoScan</p>
       </div>
     </div>
   );

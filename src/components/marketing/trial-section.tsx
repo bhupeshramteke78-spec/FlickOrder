@@ -14,7 +14,7 @@ export function TrialSection() {
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orange-300">For restaurants</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">Try FlickOrder free for 3 days.</h2>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">Try KhaoScan free for 3 days.</h2>
           <p className="mt-4 text-sm leading-7 text-zinc-300">
             Register your restaurant, generate table QR menus, manage orders, and explore the owner dashboard before
             choosing a paid plan.

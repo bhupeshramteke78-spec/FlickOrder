@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { FlickOrderLogo } from "@/components/brand/flickorder-logo";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { OrderDetail, OrderStatusTracker } from "@/components/customer/order-status-tracker";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,8 +19,8 @@ export default async function OrderStatusPage({
       <header className="border-b border-zinc-200 bg-white shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 font-bold text-zinc-900">
-            <FlickOrderLogo className="h-8 w-8 rounded-lg shadow-sm" priority />
-            <span className="text-lg">FlickOrder</span>
+            <KhaoScanLogo className="h-8 w-8 rounded-lg shadow-sm" priority />
+            <span className="text-lg">KhaoScan</span>
           </Link>
           <div className="flex items-center gap-3">
             {order?.restaurantSlug && order?.tableNumber ? (

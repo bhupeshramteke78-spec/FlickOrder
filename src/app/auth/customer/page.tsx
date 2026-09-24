@@ -27,7 +27,7 @@ export default async function CustomerAuthPage({
           <Link href="/restaurants/search" className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-white">
             <ArrowLeft className="h-4 w-4" />Explore restaurants
           </Link>
-          <p className="mt-8 text-sm font-semibold uppercase text-orange-400">FlickOrder for diners</p>
+          <p className="mt-8 text-sm font-semibold uppercase text-orange-400">KhaoScan for diners</p>
           <h2 className="mt-3 max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">Your dining orders, available wherever you sign in.</h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-400">
             Create one customer account to view live orders, track receipts, and enjoy seamless contactless dining across all verified restaurants.
