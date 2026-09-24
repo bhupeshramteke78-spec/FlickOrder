@@ -102,96 +102,131 @@ export default function PricingPage() {
   const [interval, setInterval] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
 
   return (
-    <main className="customer-surface min-h-screen text-white">
-      <MarketingNav />
+    <main className="min-h-screen bg-[#071117] text-white selection:bg-orange-500/30">
+      {/* Top Header & Hero Container with Seamless Horizon Sunset Glow */}
+      <div className="relative overflow-hidden">
+        {/* Radiant Sunset Horizon Glow behind Navbar and Hero */}
+        <div 
+          className="pointer-events-none absolute inset-x-0 -top-32 h-[750px] opacity-90"
+          style={{
+            background: "radial-gradient(ellipse 90% 65% at 50% -5%, rgba(249, 115, 22, 0.45), rgba(239, 68, 68, 0.25) 50%, rgba(7, 17, 23, 0) 90%)",
+          }}
+          aria-hidden="true"
+        />
+        <div 
+          className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 w-[900px] h-[380px] rounded-full blur-[110px] opacity-40 bg-gradient-to-b from-amber-400 via-orange-500 to-rose-600"
+          aria-hidden="true"
+        />
 
-      <section className="mx-auto max-w-7xl px-5 pb-16 pt-10">
-        <div className="grid gap-8 lg:grid-cols-[1fr_0.72fr] lg:items-end">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-orange-300/20 bg-orange-400/10 px-3 py-1 text-sm font-semibold text-orange-200">
-              <Sparkles className="h-4 w-4" />
-              Transparent restaurant pricing
-            </p>
-            <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[1.03] tracking-tight sm:text-6xl">
-              Choose the plan that matches your dine-in flow.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300">
-              Start with a 3-day trial, run real table orders, and upgrade when your restaurant needs more analytics,
-              history, and operational visibility.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/auth/owner?mode=register">
-                <Button variant="glass" className="border-orange-200/40 bg-orange-500/40">
-                  Start free trial
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="#compare">
-                <Button variant="glass" className="border-white/15 bg-white/10">
-                  Compare plans
-                </Button>
-              </Link>
-            </div>
-          </div>
+        <MarketingNav />
 
-          <Card className="border-white/10 bg-white/[0.055] p-5 text-white shadow-2xl shadow-black/20 backdrop-blur">
-            <div className="grid gap-4">
-              <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-400/10 text-emerald-200">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold">No fake promises</h2>
-                  <p className="mt-2 text-sm leading-6 text-zinc-300">
-                    Plan details below describe features currently implemented in KhaoScan.
-                  </p>
-                </div>
+        <section className="relative z-10 mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-orange-300 backdrop-blur-md">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <span>Transparent Restaurant Pricing</span>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                {["Trial", "Live QR", "Paid analytics"].map((item) => (
-                  <div key={item} className="rounded-xl border border-white/10 bg-white/[0.055] px-3 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-400">{item}</p>
-                    <p className="mt-2 text-sm font-semibold text-white">Included</p>
+              <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-white">
+                Choose the plan that matches{" "}
+                <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 bg-clip-text text-transparent">
+                  your dine-in flow.
+                </span>
+              </h1>
+              <p className="mt-5 max-w-2xl text-base sm:text-lg leading-relaxed text-zinc-300">
+                Start with a 3-day trial, run real table orders, and upgrade when your restaurant needs more analytics,
+                history, and operational visibility.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Link href="/auth/owner?mode=register">
+                  <Button 
+                    size="lg" 
+                    className="h-12 px-7 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white font-bold text-sm shadow-lg shadow-orange-500/25 hover:opacity-95 hover:scale-105 active:scale-95 transition"
+                  >
+                    Start Free Trial
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
+                  </Button>
+                </Link>
+                <Link href="#compare">
+                  <Button 
+                    variant="glass" 
+                    size="lg" 
+                    className="h-12 px-6 rounded-full border-white/20 bg-white/[0.06] text-white font-semibold text-sm hover:bg-white/10 hover:border-white/30 backdrop-blur-md transition"
+                  >
+                    Compare Plans
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <Card className="rounded-[28px] border border-white/10 bg-[#0a1822]/90 p-6 text-white shadow-2xl shadow-black/50 backdrop-blur-xl">
+              <div className="grid gap-5">
+                <div className="flex items-start gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 text-emerald-300 shadow-md">
+                    <ShieldCheck className="h-6 w-6" />
                   </div>
-                ))}
+                  <div>
+                    <h2 className="text-lg font-bold text-white">No Hidden Fees • 0% Commission</h2>
+                    <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+                      All direct UPI payments go straight to your restaurant&apos;s bank account.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2.5 text-center">
+                  {["3-Day Trial", "Live QR Menu", "Revenue Stats"].map((item) => (
+                    <div key={item} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-orange-300">{item}</p>
+                      <p className="mt-1.5 text-xs font-bold text-white">Included</p>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        </section>
+      </div>
+
+      <section className="relative mx-auto max-w-7xl px-5 sm:px-6 lg:px-8 pb-20">
+        {/* Subtle Ambient Sunset Orb */}
+        <div 
+          className="pointer-events-none absolute left-1/2 -top-20 -translate-x-1/2 h-80 w-[600px] rounded-full bg-gradient-to-b from-orange-500/15 to-transparent blur-3xl"
+          aria-hidden="true"
+        />
 
         {/* Interactive Billing Cycle Toggle */}
-        <div className="mt-12 flex flex-col items-center justify-center gap-3">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Billing Cycle</p>
-          <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 p-1.5 backdrop-blur">
+        <div className="mt-8 flex flex-col items-center justify-center gap-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Select Billing Cycle</p>
+          <div className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.06] p-1.5 backdrop-blur-xl shadow-lg">
             <button
               type="button"
               onClick={() => setInterval("MONTHLY")}
-              className={`rounded-full px-5 py-2 text-xs font-bold transition ${
+              className={`rounded-full px-6 py-2.5 text-xs sm:text-sm font-bold transition ${
                 interval === "MONTHLY"
                   ? "bg-white text-zinc-950 shadow-md"
-                  : "text-zinc-300 hover:text-white"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              Monthly billing
+              Monthly Billing
             </button>
             <button
               type="button"
               onClick={() => setInterval("YEARLY")}
-              className={`flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-full px-6 py-2.5 text-xs sm:text-sm font-bold transition ${
                 interval === "YEARLY"
-                  ? "bg-emerald-500 text-zinc-950 shadow-md"
-                  : "text-zinc-300 hover:text-white"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md shadow-orange-500/25"
+                  : "text-zinc-400 hover:text-white"
               }`}
             >
-              <span>Annual billing</span>
-              <span className="rounded-full bg-orange-400 px-2 py-0.5 text-[10px] font-black text-zinc-950">
+              <span>Annual Billing</span>
+              <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black text-orange-600">
                 2 Months Free 🎉
               </span>
             </button>
           </div>
         </div>
 
-        <section className="mt-8 grid gap-4 lg:grid-cols-3">
+        {/* Pricing Cards Grid */}
+        <div className="mt-12 grid gap-8 lg:grid-cols-3">
           {pricingPlans.map((plan) => {
             const isYearly = interval === "YEARLY";
             const price = isYearly ? plan.yearlyPrice : plan.monthlyPrice;
@@ -199,29 +234,35 @@ export default function PricingPage() {
             return (
               <Card
                 key={plan.name}
-                className={`relative flex min-h-[520px] flex-col overflow-hidden border-white/10 bg-gradient-to-br ${plan.accent} p-6 text-white shadow-2xl shadow-black/15 transition duration-300 hover:-translate-y-1 hover:border-emerald-300/30`}
+                className={`relative flex min-h-[540px] flex-col overflow-hidden rounded-[28px] border p-8 text-white shadow-2xl backdrop-blur-xl transition duration-300 hover:-translate-y-1.5 ${
+                  plan.highlight
+                    ? "border-orange-500/50 bg-gradient-to-b from-[#12222d] via-[#0c1822] to-[#140e12] shadow-orange-950/40 hover:border-orange-400 hover:shadow-orange-500/20"
+                    : "border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-black/40 hover:border-white/25 hover:shadow-2xl"
+                }`}
               >
                 {plan.highlight ? (
-                  <span className="absolute right-5 top-5 rounded-full bg-orange-400 px-3 py-1 text-xs font-black uppercase tracking-wide text-zinc-950">
-                    Most chosen
+                  <span className="absolute right-6 top-6 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-1 text-xs font-black uppercase tracking-wider text-zinc-950 shadow-md">
+                    Most Popular
                   </span>
                 ) : null}
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">{plan.name}</p>
+                <p className={`text-xs font-bold uppercase tracking-wider ${plan.highlight ? "text-amber-400" : "text-zinc-400"}`}>
+                  {plan.name}
+                </p>
                 <div className="mt-5 flex items-end gap-2">
-                  <span className="text-5xl font-black tracking-tight">{price}</span>
+                  <span className="text-5xl font-black tracking-tight text-white">{price}</span>
                   <span className="pb-2 text-sm text-zinc-400">/{isYearly ? "year" : "month"}</span>
                 </div>
                 {isYearly ? (
-                  <p className="mt-1 text-xs font-bold text-emerald-300">
+                  <p className="mt-1 text-xs font-bold text-emerald-400">
                     ~{plan.yearlyMonthlyEquivalent}/month · Save {plan.yearlySavings}/year
                   </p>
                 ) : null}
-                <p className="mt-4 min-h-14 text-sm leading-6 text-zinc-300">{plan.description}</p>
+                <p className="mt-4 min-h-12 text-sm leading-relaxed text-zinc-300">{plan.description}</p>
 
-                <div className="mt-6 grid gap-3">
+                <div className="mt-6 grid gap-3 border-t border-white/10 pt-6">
                   {plan.features.map((feature) => (
                     <div key={feature} className="flex items-start gap-3 text-sm text-zinc-200">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
                       <span>{feature}</span>
                     </div>
                   ))}
@@ -232,58 +273,64 @@ export default function PricingPage() {
                   className="mt-auto pt-8"
                 >
                   <Button
-                    variant="glass"
-                    className={`w-full ${plan.highlight ? "border-orange-200/50 bg-orange-500/45" : "border-emerald-300/30 bg-emerald-700/35"}`}
+                    size="lg"
+                    className={`w-full rounded-full font-bold text-sm h-12 transition ${
+                      plan.highlight
+                        ? "bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/25 hover:opacity-95"
+                        : "border border-white/15 bg-white/[0.06] text-white hover:bg-white/10"
+                    }`}
                   >
                     Choose {plan.name} {isYearly ? "(Annual)" : ""}
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4 ml-1.5" />
                   </Button>
                 </Link>
               </Card>
             );
           })}
-        </section>
+        </div>
 
-        <section className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        {/* Included Features 4-Column Grid */}
+        <section className="mt-16 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {includedFeatures.map((feature) => (
-            <Card key={feature.title} className="border-white/10 bg-white/[0.045] p-5 text-white">
-              <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-orange-200">
-                <feature.icon className="h-5 w-5" />
+            <Card key={feature.title} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-white backdrop-blur-md shadow-xl hover:border-orange-500/30 transition">
+              <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-orange-500/15 border border-orange-500/30 text-amber-400 shadow-md">
+                <feature.icon className="h-6 w-6" />
               </div>
-              <h2 className="font-semibold">{feature.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">{feature.text}</p>
+              <h2 className="font-bold text-white text-base">{feature.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">{feature.text}</p>
             </Card>
           ))}
         </section>
 
-        <section id="compare" className="mt-12 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
-          <div className="grid gap-4 border-b border-white/10 p-5 md:grid-cols-[1fr_auto] md:items-end">
+        {/* Plan Comparison Table */}
+        <section id="compare" className="mt-16 overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.02] backdrop-blur-xl shadow-2xl">
+          <div className="grid gap-4 border-b border-white/10 p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-end">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orange-200">Compare plans</p>
-              <h2 className="mt-2 text-2xl font-semibold">A clear view before the restaurant pays.</h2>
+              <p className="text-xs font-bold uppercase tracking-wider text-orange-400">Feature Comparison</p>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-bold text-white">A clear view before you pay.</h2>
             </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-100">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-3.5 py-1.5 text-xs font-bold text-emerald-300">
               <Clock3 className="h-4 w-4" />
-              3-day trial on every plan
+              3-day free trial on every plan
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="border-b border-white/10 text-zinc-400">
+              <thead className="border-b border-white/10 text-xs uppercase tracking-wider text-zinc-400 bg-white/[0.02]">
                 <tr>
-                  <th className="px-5 py-4 font-semibold">Feature</th>
-                  <th className="px-5 py-4 font-semibold">Basic</th>
-                  <th className="px-5 py-4 font-semibold">Growth</th>
-                  <th className="px-5 py-4 font-semibold">Pro</th>
+                  <th className="px-6 py-4 font-bold">Feature</th>
+                  <th className="px-6 py-4 font-bold text-white">Basic</th>
+                  <th className="px-6 py-4 font-bold text-amber-400">Growth</th>
+                  <th className="px-6 py-4 font-bold text-white">Pro</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10 text-zinc-200">
+              <tbody className="divide-y divide-white/10 text-zinc-300">
                 {comparisonRows.map(([feature, basic, growth, pro]) => (
-                  <tr key={feature} className="transition hover:bg-white/[0.035]">
-                    <td className="px-5 py-4 font-medium text-white">{feature}</td>
-                    <td className="px-5 py-4">{basic}</td>
-                    <td className="px-5 py-4">{growth}</td>
-                    <td className="px-5 py-4">{pro}</td>
+                  <tr key={feature} className="transition hover:bg-white/[0.04]">
+                    <td className="px-6 py-4 font-semibold text-white">{feature}</td>
+                    <td className="px-6 py-4">{basic}</td>
+                    <td className="px-6 py-4 font-medium text-amber-200">{growth}</td>
+                    <td className="px-6 py-4">{pro}</td>
                   </tr>
                 ))}
               </tbody>
@@ -291,48 +338,57 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="mt-12 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="border-white/10 bg-gradient-to-br from-emerald-500/12 to-orange-500/10 p-6 text-white">
-            <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-emerald-200">
-              <History className="h-5 w-5" />
+        {/* Not Sure & FAQs Grid */}
+        <section className="mt-16 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Card className="relative overflow-hidden rounded-[28px] border border-orange-500/30 bg-gradient-to-br from-[#12222d] via-[#0c1822] to-[#140e12] p-8 text-white shadow-2xl backdrop-blur-xl">
+            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/15 border border-orange-500/30 text-amber-400 shadow-md">
+              <History className="h-6 w-6" />
             </div>
-            <h2 className="text-3xl font-bold tracking-tight">Not sure which plan fits?</h2>
-            <p className="mt-3 text-sm leading-6 text-zinc-300">
-              Start with the trial, process real orders, then choose a plan from the Subscription page when your data
-              shows what the restaurant actually needs.
+            <h2 className="text-3xl font-black tracking-tight text-white">Not sure which plan fits?</h2>
+            <p className="mt-4 text-sm sm:text-base leading-relaxed text-zinc-300">
+              Start with the 3-day trial, process real orders, and choose a plan from the Subscription page when your data
+              shows what your restaurant actually needs.
             </p>
             <Link href="/auth/owner?mode=register">
-              <Button variant="glass" className="mt-6 w-full border-orange-200/40 bg-orange-500/40 sm:w-auto">
-                Create restaurant account
+              <Button 
+                size="lg" 
+                className="mt-8 w-full sm:w-auto rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm px-7 py-3 shadow-lg shadow-orange-500/25 hover:opacity-95"
+              >
+                Create Free Account
+                <ArrowRight className="h-4 w-4 ml-1.5" />
               </Button>
             </Link>
           </Card>
 
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {faqs.map((faq) => (
-              <Card key={faq.question} className="border-white/10 bg-white/[0.045] p-5 text-white">
-                <h3 className="font-semibold">{faq.question}</h3>
-                <p className="mt-2 text-sm leading-6 text-zinc-400">{faq.answer}</p>
+              <Card key={faq.question} className="rounded-[24px] border border-white/10 bg-white/[0.03] p-6 text-white backdrop-blur-md hover:border-white/20 transition">
+                <h3 className="font-bold text-white text-base">{faq.question}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{faq.answer}</p>
               </Card>
             ))}
           </div>
         </section>
 
-        <section className="mt-12 rounded-2xl border border-white/10 bg-[#070a0c] p-6 md:p-8">
+        {/* Bottom CTA Banner */}
+        <section className="mt-16 rounded-[32px] border border-orange-500/30 bg-gradient-to-r from-[#0c1822] via-[#101e28] to-[#140c10] p-8 sm:p-12 shadow-2xl backdrop-blur-xl">
           <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
             <div>
-              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-orange-200">
-                <Store className="h-5 w-5" />
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/15 border border-orange-500/30 text-amber-400 shadow-md">
+                <Store className="h-6 w-6" />
               </div>
-              <h2 className="text-3xl font-bold tracking-tight">Ready to modernize dine-in service?</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-300">
-                Register the restaurant, set up tables and menu items, and let guests order directly from the table QR.
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white">Ready to modernize your dine-in service?</h2>
+              <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed text-zinc-300">
+                Register your restaurant, set up tables and menu items, and let guests order directly from the table QR.
               </p>
             </div>
             <Link href="/auth/owner?mode=register">
-              <Button variant="glass" className="w-full border-emerald-200/40 bg-emerald-700/40 lg:w-auto">
-                Start the trial
-                <ArrowRight className="h-4 w-4" />
+              <Button 
+                size="lg" 
+                className="w-full lg:w-auto rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 px-8 py-4 text-sm font-bold text-white shadow-lg shadow-orange-500/30 hover:opacity-95 hover:scale-105 transition"
+              >
+                Start Free 3-Day Trial
+                <ArrowRight className="h-4 w-4 ml-1.5" />
               </Button>
             </Link>
           </div>

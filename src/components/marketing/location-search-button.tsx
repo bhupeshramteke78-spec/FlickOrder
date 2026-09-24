@@ -33,9 +33,15 @@ export function LocationSearchButton() {
 
   return (
     <div className="grid gap-1">
-      <Button type="button" variant="secondary" onClick={useLocation} disabled={status === "loading"}>
-        <LocateFixed className="h-4 w-4" />
-        {status === "loading" ? "Locating" : "Use my location"}
+      <Button 
+        type="button" 
+        variant="glass" 
+        onClick={useLocation} 
+        disabled={status === "loading"}
+        className="rounded-xl border-white/10 bg-white/[0.06] text-zinc-200 hover:bg-white/10 hover:text-white text-xs sm:text-sm"
+      >
+        <LocateFixed className="h-4 w-4 text-amber-400 mr-1.5" />
+        {status === "loading" ? "Locating..." : "Use my location"}
       </Button>
       {status === "failed" && message ? (
         <p className="max-w-xs text-xs leading-5 text-orange-200">{message}</p>
