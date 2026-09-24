@@ -7,7 +7,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3,
   BellRing,
-  CalendarDays,
   ChefHat,
   CreditCard,
   History,
@@ -22,7 +21,6 @@ import { cn } from "@/lib/utils";
 export type DashboardNavIconKey =
   | "overview"
   | "orders"
-  | "bookings"
   | "history"
   | "menu"
   | "tables"
@@ -35,7 +33,6 @@ export type DashboardNavIconKey =
 const dashboardNavIcons: Record<DashboardNavIconKey, LucideIcon> = {
   overview: LayoutDashboard,
   orders: ListOrdered,
-  bookings: CalendarDays,
   history: History,
   menu: Utensils,
   tables: QrCode,

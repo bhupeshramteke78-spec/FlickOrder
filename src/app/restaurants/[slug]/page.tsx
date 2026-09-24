@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, ExternalLink, MapPin, Star, Table2, Utensils } from "lucide-react";
+import { ArrowLeft, Clock, ExternalLink, MapPin, Star, Table2, Utensils } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ type RestaurantDetail = {
   reviewCount: number;
   isOpen: boolean;
   openingHours: OpeningHours | null;
-  bookingEnabled: boolean;
   availability: RestaurantAvailability;
   directionsUrl: string;
   menuItems: MenuPreviewItem[];
@@ -72,7 +71,6 @@ export default async function RestaurantDetailsPage({ params }: { params: Promis
                 <Button variant="secondary"><ExternalLink className="h-4 w-4" />Directions</Button>
               </a>
               <Link href={`/menu/${slug}/table/1?preview=true`}><Button variant="secondary"><Utensils className="h-4 w-4" />View menu</Button></Link>
-              {restaurant.bookingEnabled ? <Link href={`/restaurants/${slug}/book`}><Button><CalendarDays className="h-4 w-4" />Book a table</Button></Link> : null}
             </div>
           </div>
         </div>
@@ -111,9 +109,8 @@ export default async function RestaurantDetailsPage({ params }: { params: Promis
             <p className="mt-2 text-sm leading-6 text-zinc-600">{restaurant.address}, {restaurant.city}, {restaurant.state}</p>
             <div className={`mt-4 rounded-lg border p-4 ${restaurant.availability.isFull ? "border-rose-200 bg-rose-50" : "border-emerald-200 bg-emerald-50"}`}>
               <p className="text-sm font-semibold">{restaurant.availability.isFull ? "No walk-in tables right now" : restaurant.availability.label}</p>
-              <p className="mt-1 text-xs leading-5 text-zinc-600">Live seating can change while you travel. Reserve ahead when booking is available.</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-600">Live seating updates in real-time. Scan table QR upon arrival to place your order.</p>
             </div>
-            {restaurant.bookingEnabled ? <Link href={`/restaurants/${slug}/book`} className="mt-4 block"><Button className="w-full">Check booking times</Button></Link> : null}
           </aside>
         </div>
       </section>
@@ -132,7 +129,7 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
   if (error || !data) return null;
 
   const [settingsResult, availabilityMap, reviewsResult, categoriesResult, itemsResult] = await Promise.all([
-    supabase.from("restaurant_settings").select("opening_hours,booking_enabled").eq("restaurant_id", data.id).maybeSingle(),
+    supabase.from("restaurant_settings").select("opening_hours").eq("restaurant_id", data.id).maybeSingle(),
     getRestaurantAvailabilityMap(supabase, [data.id]),
     supabase.from("reviews").select("id").eq("restaurant_id", data.id),
     supabase.from("categories").select("id,name").eq("restaurant_id", data.id),
@@ -154,7 +151,6 @@ async function getRestaurant(slug: string): Promise<RestaurantDetail | null> {
     reviewCount: reviewsResult.data?.length ?? 0,
     isOpen: data.is_open,
     openingHours: normalizeOpeningHours(settingsResult.data?.opening_hours ?? null),
-    bookingEnabled: settingsResult.data?.booking_enabled ?? false,
     availability: availabilityMap.get(data.id) ?? emptyAvailability(),
     directionsUrl: buildDirectionsUrl({ googleMapsUrl: data.google_maps_url, name: data.name, address: data.address, city: data.city, state: data.state }),
     menuItems: (itemsResult.data ?? []).map((item) => ({

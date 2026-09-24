@@ -18,7 +18,6 @@ const restaurantScopedTables = [
   "menu_items",
   "service_requests",
   "notifications",
-  "restaurant_bookings",
 ] as const;
 
 const notifiedOrderStorageKey = "flickorder_notified_order_ids";
@@ -28,13 +27,6 @@ type RealtimeOrderRow = {
   order_number: string | null;
   status: string | null;
   total: number | null;
-};
-
-type RealtimeBookingRow = {
-  id: string;
-  customer_name: string | null;
-  party_size: number | null;
-  booking_time: string | null;
 };
 
 type RealtimeServiceRequestRow = {
@@ -151,26 +143,6 @@ export function DashboardRealtimeRefresh({ restaurantId }: DashboardRealtimeRefr
           description: "Guest needs staff service at their table.",
         });
         await playNotificationChime("bell");
-        scheduleRefresh();
-      },
-    );
-
-    // 4. Table Bookings
-    channel.on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "restaurant_bookings",
-        filter: `restaurant_id=eq.${restaurantId}`,
-      },
-      async (payload) => {
-        const booking = payload.new as RealtimeBookingRow;
-        toast.success("New table booking 📅", {
-          description: `${booking.customer_name ?? "Guest"} · ${booking.party_size ?? 1} guests${booking.booking_time ? ` · ${booking.booking_time.slice(0, 5)}` : ""}`,
-          action: { label: "Open", onClick: () => router.push("/dashboard/bookings") },
-        });
-        await playNotificationChime("order");
         scheduleRefresh();
       },
     );

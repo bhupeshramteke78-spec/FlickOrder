@@ -25,7 +25,6 @@ const navItems: Array<{
 }> = [
   { href: "/dashboard", label: "Overview", iconKey: "overview", permission: "viewOverview" },
   { href: "/dashboard/orders", label: "Orders", iconKey: "orders", permission: "viewOrders" },
-  { href: "/dashboard/bookings", label: "Bookings", iconKey: "bookings", permission: "viewBookings" },
   { href: "/dashboard/order-history", label: "Order History", iconKey: "history", permission: "viewOrderHistory" },
   { href: "/dashboard/menu", label: "Menu", iconKey: "menu", permission: "viewMenu" },
   { href: "/dashboard/tables", label: "Tables", iconKey: "tables", permission: "viewTables" },

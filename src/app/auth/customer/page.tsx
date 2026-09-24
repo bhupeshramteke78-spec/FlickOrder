@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, CalendarCheck2, QrCode, ShieldCheck } from "lucide-react";
+import { ArrowLeft, QrCode, ShieldCheck, Utensils } from "lucide-react";
 import { CustomerAuthPanel } from "@/components/auth/customer-auth-panel";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { createClient } from "@/lib/supabase/server";
@@ -28,14 +28,14 @@ export default async function CustomerAuthPage({
             <ArrowLeft className="h-4 w-4" />Explore restaurants
           </Link>
           <p className="mt-8 text-sm font-semibold uppercase text-orange-400">FlickOrder for diners</p>
-          <h2 className="mt-3 max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">Your table plans, available wherever you sign in.</h2>
+          <h2 className="mt-3 max-w-xl text-4xl font-semibold leading-tight sm:text-5xl">Your dining orders, available wherever you sign in.</h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-zinc-400">
-            Create one customer account to reserve tables and follow every confirmation from your phone or desktop.
+            Create one customer account to view live orders, track receipts, and enjoy seamless contactless dining across all verified restaurants.
           </p>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <Feature icon={CalendarCheck2} title="Private bookings" />
-            <Feature icon={ShieldCheck} title="Secure history" />
-            <Feature icon={QrCode} title="QR ordering stays open" />
+            <Feature icon={Utensils} title="Live Menu Access" />
+            <Feature icon={ShieldCheck} title="Verified Payments" />
+            <Feature icon={QrCode} title="Instant QR Ordering" />
           </div>
         </div>
         <CustomerAuthPanel initialMode={mode} redirectTo={redirectTo} />
@@ -45,7 +45,7 @@ export default async function CustomerAuthPage({
   );
 }
 
-function Feature({ icon: Icon, title }: { icon: typeof CalendarCheck2; title: string }) {
+function Feature({ icon: Icon, title }: { icon: typeof Utensils; title: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
       <Icon className="h-5 w-5 text-emerald-300" />

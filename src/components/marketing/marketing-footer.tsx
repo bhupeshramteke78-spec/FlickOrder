@@ -7,7 +7,6 @@ const footerColumns = [
     title: "Product",
     links: [
       { label: "Restaurants", href: "/restaurants/search" },
-      { label: "Table bookings", href: "/bookings" },
       { label: "Pricing", href: "/pricing" },
       { label: "About", href: "/#about" },
       { label: "Owner login", href: "/auth/owner?mode=login" },

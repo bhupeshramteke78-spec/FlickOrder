@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin;
-  const nextPath = payload.data.redirectTo ?? "/customer/bookings";
+  const nextPath = payload.data.redirectTo ?? "/restaurants/search";
   const { data: authUser, error: authError } = await authClient.auth.signUp({
     email: payload.data.email,
     password: payload.data.password,

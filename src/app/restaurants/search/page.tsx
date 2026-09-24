@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Clock3, MapPin, Search, Star, Table2, Utensils } from "lucide-react";
+import { MapPin, Search, Star, Table2, Utensils } from "lucide-react";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { LocationSearchButton } from "@/components/marketing/location-search-button";
@@ -57,14 +57,11 @@ export default async function RestaurantSearchPage({
           <p className="text-sm font-semibold uppercase text-orange-400">Dine out with confidence</p>
           <div className="mt-2 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="max-w-2xl text-3xl font-semibold sm:text-4xl">Find a table, browse the menu, then dine your way.</h1>
+              <h1 className="max-w-2xl text-3xl font-semibold sm:text-4xl">Find a restaurant, explore the menu, and dine your way.</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">
-                Search verified restaurants, check live seating, reserve a table, or scan the restaurant QR when you arrive.
+                Search verified restaurants, check live floor seating, and scan the table QR code to order seamlessly.
               </p>
             </div>
-            <Link href="/customer/bookings" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-300">
-              My bookings <ChevronRight className="h-4 w-4" />
-            </Link>
           </div>
 
           <form action="/restaurants/search" className="mt-7 grid gap-2 rounded-lg bg-white p-2 sm:grid-cols-[1fr_auto_auto]">
@@ -103,26 +100,29 @@ export default async function RestaurantSearchPage({
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-5 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="mx-auto max-w-7xl px-5 py-10">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">{query ? `Results for "${query}"` : userLocation ? "Restaurants near you" : "Explore restaurants"}</h2>
-            <p className="mt-1 text-sm text-zinc-400">{restaurants.length} verified {restaurants.length === 1 ? "restaurant" : "restaurants"}</p>
+            <h2 className="text-2xl font-semibold">Restaurants</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              {restaurants.length} {restaurants.length === 1 ? "restaurant" : "restaurants"} available
+            </p>
           </div>
-          {userLocation ? <p className="inline-flex items-center gap-2 text-sm text-emerald-300"><MapPin className="h-4 w-4" />Sorted by distance</p> : null}
         </div>
 
-        {restaurants.length > 0 ? (
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {restaurants.map((restaurant) => <RestaurantCard key={restaurant.slug} restaurant={restaurant} />)}
-          </div>
-        ) : (
-          <div className="mt-6">
+        {restaurants.length === 0 ? (
+          <div className="mt-8 rounded-lg border border-white/10 bg-white/[0.03] p-8">
             <EmptyState
               icon={Search}
-              title="No restaurants found"
-              description="Try a different restaurant name, cuisine, city, area, or category."
+              title="No restaurants matched your search"
+              description="Try another area, city, cuisine, or category keyword."
             />
+          </div>
+        ) : (
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {restaurants.map((restaurant) => (
+              <RestaurantCard key={restaurant.id} restaurant={restaurant} />
+            ))}
           </div>
         )}
       </section>
@@ -133,10 +133,10 @@ export default async function RestaurantSearchPage({
 
 function RestaurantCard({ restaurant }: { restaurant: SearchRestaurant }) {
   return (
-    <article className="overflow-hidden rounded-lg border border-white/10 bg-white text-zinc-950 shadow-xl shadow-black/20">
+    <article className="overflow-hidden rounded-lg border border-zinc-200 bg-white text-zinc-950 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       <Link href={`/restaurants/${restaurant.slug}`} className="block">
         <div
-          className="relative aspect-[16/9] bg-zinc-200 bg-cover bg-center"
+          className="relative h-44 bg-zinc-100 bg-cover bg-center"
           style={restaurant.coverUrl ? { backgroundImage: `url("${restaurant.coverUrl}")` } : undefined}
         >
           {!restaurant.coverUrl ? <div className="restaurant-photo absolute inset-0" /> : null}
@@ -164,12 +164,9 @@ function RestaurantCard({ restaurant }: { restaurant: SearchRestaurant }) {
           </div>
         </div>
       </Link>
-      <div className="grid grid-cols-2 border-t border-zinc-200">
-        <Link href={`/restaurants/${restaurant.slug}`} className="inline-flex h-12 items-center justify-center gap-2 text-sm font-semibold hover:bg-zinc-50">
-          <Utensils className="h-4 w-4" /> View menu
-        </Link>
-        <Link href={`/restaurants/${restaurant.slug}/book`} className="inline-flex h-12 items-center justify-center gap-2 border-l border-zinc-200 bg-emerald-700 text-sm font-semibold text-white hover:bg-emerald-800">
-          <Clock3 className="h-4 w-4" /> Book table
+      <div className="grid grid-cols-1 border-t border-zinc-200">
+        <Link href={`/restaurants/${restaurant.slug}`} className="inline-flex h-12 items-center justify-center gap-2 text-sm font-semibold text-emerald-800 hover:bg-zinc-50">
+          <Utensils className="h-4 w-4" /> View Menu & Details
         </Link>
       </div>
     </article>
@@ -218,35 +215,55 @@ async function getRestaurants(query: string, category: string, userLocation: Coo
       reviewCount: reviewCounts.get(restaurant.id) ?? 0,
       latitude: restaurant.latitude,
       longitude: restaurant.longitude,
-      distanceKm: userLocation && hasCoordinates(restaurant) ? getDistanceKm(userLocation, restaurant) : null,
+      distanceKm:
+        userLocation && hasCoordinates(restaurant)
+          ? getDistanceKm(userLocation, { latitude: restaurant.latitude, longitude: restaurant.longitude })
+          : null,
       isOpen: restaurant.is_open,
       hasOffers: offerIds.has(restaurant.id),
       availability: availability.get(restaurant.id) ?? emptyAvailability(),
     }))
     .filter((restaurant) => {
-      const text = [restaurant.name, restaurant.type, restaurant.city, restaurant.state, restaurant.address, ...restaurant.cuisine].join(" ").toLowerCase();
-      return (!normalizedQuery || text.includes(normalizedQuery)) && (category === "All" || text.includes(normalizedCategory));
-    })
-    .sort((first, second) => userLocation ? (first.distanceKm ?? Number.MAX_VALUE) - (second.distanceKm ?? Number.MAX_VALUE) : 0);
+      if (normalizedCategory !== "all") {
+        const matchesCategory =
+          restaurant.type.toLowerCase().includes(normalizedCategory) ||
+          restaurant.cuisine.some((item) => item.toLowerCase().includes(normalizedCategory));
+        if (!matchesCategory) return false;
+      }
+
+      if (!normalizedQuery) return true;
+
+      return (
+        restaurant.name.toLowerCase().includes(normalizedQuery) ||
+        restaurant.city.toLowerCase().includes(normalizedQuery) ||
+        restaurant.state.toLowerCase().includes(normalizedQuery) ||
+        restaurant.address.toLowerCase().includes(normalizedQuery) ||
+        restaurant.type.toLowerCase().includes(normalizedQuery) ||
+        restaurant.cuisine.some((item) => item.toLowerCase().includes(normalizedQuery))
+      );
+    });
 }
 
 function countByRestaurant(rows: Array<{ restaurant_id: string }>) {
-  const counts = new Map<string, number>();
-  for (const row of rows) counts.set(row.restaurant_id, (counts.get(row.restaurant_id) ?? 0) + 1);
-  return counts;
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    map.set(row.restaurant_id, (map.get(row.restaurant_id) ?? 0) + 1);
+  }
+  return map;
+}
+
+function buildCategoryHref(category: string, query: string, userLocation: Coordinates | null) {
+  const params = new URLSearchParams();
+  if (category !== "All") params.set("category", category);
+  if (query) params.set("q", query);
+  if (userLocation) {
+    params.set("lat", userLocation.latitude.toString());
+    params.set("lng", userLocation.longitude.toString());
+  }
+  const serialized = params.toString();
+  return serialized ? `/restaurants/search?${serialized}` : "/restaurants/search";
 }
 
 function getParam(value: string | string[] | undefined) {
-  return (Array.isArray(value) ? value[0] : value)?.trim() ?? "";
-}
-
-function buildCategoryHref(category: string, query: string, location: Coordinates | null) {
-  const params = new URLSearchParams();
-  if (query) params.set("q", query);
-  if (category !== "All") params.set("category", category);
-  if (location) {
-    params.set("lat", String(location.latitude));
-    params.set("lng", String(location.longitude));
-  }
-  return `/restaurants/search${params.size ? `?${params}` : ""}`;
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
