@@ -700,7 +700,7 @@ export function MenuManagementClient({
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={suggestion.url}
-                                alt={suggestion.label}
+                                alt={suggestion.title}
                                 className="h-full w-full object-cover"
                                 loading="lazy"
                               />
@@ -711,7 +711,7 @@ export function MenuManagementClient({
                               ) : null}
                             </div>
                             <p className="truncate bg-white p-1.5 text-center text-[10px] font-semibold text-zinc-700">
-                              {suggestion.label}
+                              {suggestion.title}
                             </p>
                           </div>
                         );
