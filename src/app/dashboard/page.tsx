@@ -250,7 +250,7 @@ export default async function DashboardPage() {
                                 <Link href="/dashboard/orders">
                                   <Button
                                     size="sm"
-                                    variant={order.status === "PENDING" ? "default" : "secondary"}
+                                    variant={order.status === "PENDING" ? "primary" : "secondary"}
                                     className={`h-7 px-3 text-xs font-bold rounded-lg ${
                                       order.status === "PENDING"
                                         ? "bg-rose-600 hover:bg-rose-700 text-white"
