@@ -11,6 +11,7 @@ import {
   QrCode,
   Sparkles,
   Table2,
+  Trash2,
   Users,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
@@ -134,7 +135,7 @@ export function TableManagementClient({
           {/* Table Cards Grid */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {tables.map((table) => (
-              <TableCard key={table.id} table={table} />
+              <TableCard key={table.id} table={table} canManage={canManage} />
             ))}
           </div>
 
@@ -173,8 +174,10 @@ export function TableManagementClient({
   );
 }
 
-function TableCard({ table }: { table: TableRow }) {
+function TableCard({ table, canManage }: { table: TableRow; canManage: boolean }) {
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isOccupied = table.status === "OCCUPIED" || table.status === "BILLING";
 
   async function copyUrl() {
@@ -205,6 +208,46 @@ function TableCard({ table }: { table: TableRow }) {
     window.print();
   }
 
+  async function deleteTable() {
+    if (!canManage) {
+      toast.error("Choose a plan to continue managing tables.");
+      return;
+    }
+
+    if (isOccupied) {
+      toast.error("Cannot delete an occupied or billing table. Please settle all orders first.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete Table ${table.tableNumber}? This will remove its QR code.`
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch("/api/tables", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tableId: table.id }),
+      });
+
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        toast.error(data?.error ?? "Failed to delete table.");
+        return;
+      }
+
+      toast.success(`Table ${table.tableNumber} deleted successfully.`);
+      router.refresh();
+    } catch {
+      toast.error("Network error while deleting table.");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <Card
       className={`p-5 transition-all duration-200 hover:-translate-y-0.5 ${
@@ -224,15 +267,35 @@ function TableCard({ table }: { table: TableRow }) {
           </p>
         </div>
 
-        <span
-          className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-            isOccupied
-              ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-              : "bg-zinc-100 text-zinc-600 border border-zinc-200"
-          }`}
-        >
-          {isOccupied ? "Occupied" : "Available"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+              isOccupied
+                ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+            }`}
+          >
+            {isOccupied ? "Occupied" : "Available"}
+          </span>
+          {canManage && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={isDeleting || isOccupied}
+              onClick={deleteTable}
+              className="h-7 w-7 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title={isOccupied ? "Cannot delete occupied table" : `Delete Table ${table.tableNumber}`}
+              aria-label={`Delete Table ${table.tableNumber}`}
+            >
+              {isDeleting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-red-600" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* QR Code Container */}
