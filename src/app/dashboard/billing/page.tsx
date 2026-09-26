@@ -334,7 +334,7 @@ async function getPendingUpgradeRequest(): Promise<SubscriptionUpgradeRequestVie
 
   const { data: request } = await supabase
     .from("subscription_upgrade_requests")
-    .select("id,target_plan,amount,billing_interval,status,transaction_note,transaction_id,payment_submitted_at,created_at")
+    .select("id,plan,amount,billing_interval,status,transaction_note,transaction_id,payment_submitted_at,created_at")
     .eq("restaurant_id", context.selected.restaurantId)
     .in("status", ["PENDING_PAYMENT", "VERIFICATION_PENDING"])
     .order("created_at", { ascending: false })
@@ -347,9 +347,9 @@ async function getPendingUpgradeRequest(): Promise<SubscriptionUpgradeRequestVie
 
   return {
     id: request.id,
-    plan: request.target_plan as SubscriptionUpgradeRequestView["plan"],
+    plan: request.plan as SubscriptionUpgradeRequestView["plan"],
     amount: Number(request.amount),
-    interval: request.billing_interval as SubscriptionUpgradeRequestView["interval"],
+    interval: (request.billing_interval ?? "MONTHLY") as SubscriptionUpgradeRequestView["interval"],
     status: request.status as SubscriptionUpgradeRequestView["status"],
     transactionNote: request.transaction_note ?? "",
     transactionId: request.transaction_id,
