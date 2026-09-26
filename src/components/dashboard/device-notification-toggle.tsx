@@ -26,10 +26,7 @@ export function DeviceNotificationToggle({ restaurantId, className }: DeviceNoti
     let isMounted = true;
 
     async function syncDeviceNotificationState() {
-      const supported = typeof window !== "undefined" && ("Notification" in window || "AudioContext" in window);
-
       if (!isMounted) return;
-      setIsSupported(supported);
 
       if (typeof window !== "undefined") {
         const savedAlertPref = localStorage.getItem(`khaoscan_alerts_${restaurantId}`);

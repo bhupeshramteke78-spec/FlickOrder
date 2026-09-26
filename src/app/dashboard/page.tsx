@@ -566,7 +566,7 @@ async function getTopDishesForRestaurant(
   const orderIds = orders.map((o) => o.id);
   const { data: items } = await supabase
     .from("order_items")
-    .select("name_snapshot,quantity,price_snapshot")
+    .select("name_snapshot,quantity,unit_price,total")
     .in("order_id", orderIds);
 
   if (!items || items.length === 0) {
@@ -578,7 +578,8 @@ async function getTopDishesForRestaurant(
     const name = item.name_snapshot || "Item";
     const existing = dishMap.get(name) ?? { quantity: 0, totalRevenue: 0 };
     existing.quantity += item.quantity;
-    existing.totalRevenue += Number(item.price_snapshot || 0) * item.quantity;
+    const itemRevenue = Number(item.total ?? Number(item.unit_price || 0) * item.quantity);
+    existing.totalRevenue += itemRevenue;
     dishMap.set(name, existing);
   }
 
