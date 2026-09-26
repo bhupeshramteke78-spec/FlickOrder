@@ -1,6 +1,6 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Crown, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { DashboardNavLink, type DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
@@ -156,25 +156,6 @@ export async function DashboardShell({
               </div>
             )}
           </nav>
-
-          {/* Bottom Upgrade Card */}
-          <div className="mt-auto shrink-0 pt-3">
-            <div className="rounded-xl bg-[#090e17] p-3.5 text-white shadow-sm">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
-                <Crown className="h-3.5 w-3.5" />
-                <span>Pro Plan</span>
-              </div>
-              <p className="mt-1 text-xs font-semibold text-zinc-200">Upgrade for more QR features</p>
-              <Link href="/dashboard/billing">
-                <button
-                  type="button"
-                  className="mt-2.5 w-full rounded-lg bg-rose-600 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700 active:scale-98 shadow-xs"
-                >
-                  View Plans
-                </button>
-              </Link>
-            </div>
-          </div>
         </aside>
 
         {/* Main Content Area */}

@@ -12,8 +12,25 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Utensils } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
+
+export type CategorySalesShare = {
+  name: string;
+  value: number; // percentage (0-100)
+  sales: number; // in ₹
+  count: number;
+  color: string;
+};
+
+export type DayHourlyTraffic = {
+  day: string;
+  slots: Array<{
+    hourLabel: string;
+    ordersCount: number;
+  }>;
+};
 
 export type AnalyticsChartData = {
   revenueByDay: Array<{
@@ -28,14 +45,9 @@ export type AnalyticsChartData = {
     label: string;
     orders: number;
   }>;
+  categoryDistribution: CategorySalesShare[];
+  weeklyHeatmap: DayHourlyTraffic[];
 };
-
-const categoryData = [
-  { name: "Main Course", value: 45, color: "#f43f5e" },
-  { name: "Beverages", value: 25, color: "#0f172a" },
-  { name: "Appetizers", value: 20, color: "#475569" },
-  { name: "Desserts", value: 10, color: "#cbd5e1" },
-];
 
 export function AnalyticsCharts({ data, rangeDays }: { data: AnalyticsChartData; rangeDays: number }) {
   function formatTooltipCurrency(value: unknown) {
@@ -43,15 +55,18 @@ export function AnalyticsCharts({ data, rangeDays }: { data: AnalyticsChartData;
     return [formatCurrency(Number.isFinite(numericValue) ? numericValue : 0), "Revenue"] as const;
   }
 
+  const hasCategories = data.categoryDistribution && data.categoryDistribution.length > 0;
+  const heatmapRows = data.weeklyHeatmap || [];
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        {/* Revenue Growth Line/Area Chart matching Page 4 */}
+        {/* Revenue Growth Line/Area Chart */}
         <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
             <div>
               <h2 className="text-base font-black text-zinc-950">Revenue Growth</h2>
-              <p className="text-xs text-zinc-500 font-medium">Verified sales revenue for the last {rangeDays} days</p>
+              <p className="text-xs text-zinc-500 font-medium">Real sales revenue over the last {rangeDays} days</p>
             </div>
             <span className="rounded-full bg-rose-50 border border-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
               INR (₹)
@@ -103,101 +118,115 @@ export function AnalyticsCharts({ data, rangeDays }: { data: AnalyticsChartData;
           </div>
         </Card>
 
-        {/* Sales by Category Donut Chart matching Page 4 */}
-        <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+        {/* Real Sales by Category Donut Chart */}
+        <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm flex flex-col justify-between">
           <div className="mb-2 flex items-center justify-between border-b border-zinc-100 pb-3">
             <div>
               <h2 className="text-base font-black text-zinc-950">Sales by Category</h2>
-              <p className="text-xs text-zinc-500 font-medium">Distribution of ordered food items</p>
+              <p className="text-xs text-zinc-500 font-medium">Real category revenue distribution from orders</p>
             </div>
           </div>
 
-          <div className="h-52 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val) => [`${val}%`, "Share"]}
-                  contentStyle={{
-                    borderRadius: 12,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-xs font-black text-zinc-800">100% Total</span>
-            </div>
-          </div>
-
-          {/* Category Legend */}
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-zinc-50">
-            {categoryData.map((item) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-zinc-600 font-medium">{item.name}</span>
-                <span className="font-bold text-zinc-900 ml-auto">{item.value}%</span>
+          {hasCategories ? (
+            <>
+              <div className="h-48 relative my-auto">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data.categoryDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={75}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {data.categoryDistribution.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(val, name, entry) => {
+                        const item = entry?.payload as CategorySalesShare;
+                        return [`${val}% (${formatCurrency(item?.sales || 0)})`, "Share"] as const;
+                      }}
+                      contentStyle={{
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 600,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[11px] font-black text-zinc-800">100% Total</span>
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Category Legend */}
+              <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-zinc-100 max-h-28 overflow-y-auto">
+                {data.categoryDistribution.map((item) => (
+                  <div key={item.name} className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-zinc-700 font-medium truncate text-[11px]">{item.name}</span>
+                    <span className="font-bold text-zinc-950 ml-auto text-[11px]">{item.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-zinc-400">
+              <Utensils className="h-8 w-8 text-zinc-300 mb-2" />
+              <p className="text-xs font-semibold text-zinc-600">No category sales data yet</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Category share will calculate automatically when orders are placed.</p>
+            </div>
+          )}
         </Card>
       </div>
 
-      {/* Peak Ordering Hours Heatmap matching Page 4 */}
+      {/* Real Peak Ordering Hours Heatmap */}
       <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
-            <h2 className="text-base font-black text-zinc-950">Peak Ordering Hours</h2>
-            <p className="text-xs text-zinc-500 font-medium">Hourly customer traffic density across weekdays</p>
+            <h2 className="text-base font-black text-zinc-950">Peak Ordering Hours &amp; Weekly Rush</h2>
+            <p className="text-xs text-zinc-500 font-medium">Real customer order density across weekdays and time slots</p>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-bold text-zinc-500">
-            <span>Low</span>
-            <div className="h-2.5 w-24 rounded-full bg-gradient-to-r from-rose-100 via-rose-300 to-rose-600" />
-            <span>High</span>
+            <span>0 Orders</span>
+            <div className="h-2.5 w-24 rounded-full bg-gradient-to-r from-zinc-100 via-rose-300 to-rose-600" />
+            <span>Rush</span>
           </div>
         </div>
 
         {/* Heatmap Grid */}
         <div className="overflow-x-auto pt-2">
           <div className="min-w-[540px] space-y-2">
-            {[
-              { day: "Fri", values: [35, 50, 65, 90, 75] },
-              { day: "Wed", values: [25, 45, 75, 95, 60] },
-              { day: "Mon", values: [20, 30, 40, 70, 50] },
-            ].map((row) => (
+            {heatmapRows.map((row) => (
               <div key={row.day} className="flex items-center gap-3">
-                <span className="w-10 text-xs font-bold text-zinc-500 text-right">{row.day}</span>
+                <span className="w-10 text-xs font-bold text-zinc-600 text-right">{row.day}</span>
                 <div className="grid grid-cols-5 gap-2 flex-1">
-                  {row.values.map((v, i) => {
+                  {row.slots.map((slot, i) => {
+                    const count = slot.ordersCount;
                     const bgClass =
-                      v > 80
+                      count >= 10
                         ? "bg-rose-600 text-white font-black"
-                        : v > 60
-                          ? "bg-rose-400 text-white font-bold"
-                          : v > 40
-                            ? "bg-rose-200 text-rose-950 font-semibold"
-                            : "bg-rose-50 text-rose-900 font-medium";
+                        : count >= 5
+                        ? "bg-rose-500 text-white font-bold"
+                        : count >= 3
+                        ? "bg-rose-300 text-rose-950 font-semibold"
+                        : count >= 1
+                        ? "bg-rose-100 text-rose-900 font-medium"
+                        : "bg-zinc-50 text-zinc-400 font-medium border border-zinc-100";
 
                     return (
                       <div
                         key={i}
-                        className={`h-14 rounded-xl flex items-center justify-center text-xs transition-transform hover:scale-105 shadow-xs ${bgClass}`}
+                        className={`h-12 rounded-xl flex flex-col items-center justify-center text-xs transition-transform hover:scale-105 shadow-xs ${bgClass}`}
+                        title={`${row.day} ${slot.hourLabel}: ${count} orders`}
                       >
-                        {v} orders
+                        <span className="font-bold leading-none">{count}</span>
+                        <span className="text-[10px] opacity-80 leading-none mt-0.5">{count === 1 ? "order" : "orders"}</span>
                       </div>
                     );
                   })}
@@ -205,15 +234,15 @@ export function AnalyticsCharts({ data, rangeDays }: { data: AnalyticsChartData;
               </div>
             ))}
 
-            {/* X-Axis Hours */}
-            <div className="flex items-center gap-3 pt-2">
+            {/* X-Axis Slot Labels */}
+            <div className="flex items-center gap-3 pt-2 border-t border-zinc-100">
               <span className="w-10" />
-              <div className="grid grid-cols-5 gap-2 flex-1 text-center text-xs font-bold text-zinc-500">
-                <span>12 PM</span>
-                <span>2 PM</span>
-                <span>4 PM</span>
-                <span>6 PM</span>
-                <span>8 PM</span>
+              <div className="grid grid-cols-5 gap-2 flex-1 text-center text-xs font-bold text-zinc-600">
+                <span>12 - 2 PM (Lunch)</span>
+                <span>2 - 4 PM (Afternoon)</span>
+                <span>4 - 6 PM (Evening)</span>
+                <span>6 - 8 PM (Dinner)</span>
+                <span>8 - 10 PM (Late)</span>
               </div>
             </div>
           </div>
