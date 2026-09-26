@@ -1,6 +1,6 @@
-import { Activity, ChefHat, Clock, ListOrdered, Sparkles } from "lucide-react";
+import { Activity, ChefHat, ListOrdered } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
-import { WorkflowOrderCard, formatStatus } from "@/components/dashboard/orders/workflow-order-card";
+import { WorkflowOrderCard } from "@/components/dashboard/orders/workflow-order-card";
 import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDashboardOrders } from "@/lib/dashboard-orders";

@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Camera,
   Check,
-  Edit2,
-  Image as ImageIcon,
   Loader2,
   Pencil,
   Plus,
@@ -25,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import type { FoodImageSuggestion } from "@/lib/food-images";
 import { getMatchingFoodImages } from "@/lib/food-images";
 import { parseItemVariants, serializeItemVariants, getItemDisplayPrice, type ItemPortion } from "@/lib/item-variants";
-import { formatCurrency } from "@/lib/utils";
 
 type FoodType = "VEG" | "NON_VEG" | "EGG";
 

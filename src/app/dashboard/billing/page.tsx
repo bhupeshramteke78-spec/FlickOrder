@@ -1,21 +1,14 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  CalendarCheck,
   Check,
-  CheckCircle2,
-  Clock,
   CreditCard,
   Crown,
   Download,
-  Receipt,
-  Sparkles,
-  XCircle,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { SubscriptionUpgradePanel, type SubscriptionUpgradeRequestView } from "@/components/dashboard/subscription/subscription-upgrade-panel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -99,8 +92,6 @@ function SubscriptionDetailsView({
   const isTrial = subscription.plan.toLowerCase() === "trial" || subscription.status === "TRIAL";
   const trial = getTrialStatus(subscription.trialEndsAt);
   const monthlyPrice = planPrices[subscription.plan.toLowerCase()] ?? 0;
-  const isPaidActive = !isTrial && (subscription.status === "ACTIVE" || subscription.status === "TRIAL");
-  const isExpired = subscription.status === "EXPIRED" || subscription.status === "PAST_DUE";
 
   return (
     <div className="space-y-6">

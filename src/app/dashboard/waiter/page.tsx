@@ -1,13 +1,6 @@
 import Link from "next/link";
 import {
-  BellRing,
-  Clock,
-  Plus,
-  Star,
-  TrendingUp,
-  UserCheck,
   UserPlus,
-  Users,
   Utensils,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";

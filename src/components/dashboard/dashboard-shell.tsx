@@ -1,15 +1,11 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import {
-  Bell,
-  ChefHat,
   Crown,
   LogOut,
   Search,
-  Sparkles,
   UtensilsCrossed,
 } from "lucide-react";
-import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { DashboardNavLink, type DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";

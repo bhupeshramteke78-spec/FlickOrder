@@ -1,22 +1,14 @@
 import Link from "next/link";
 import {
-  ArrowRight,
-  BarChart3,
   ChefHat,
-  Clock,
-  CreditCard,
-  ExternalLink,
   Flame,
   IndianRupee,
-  Layers,
   ListOrdered,
   Plus,
   QrCode,
-  Sparkles,
   Table2,
   TrendingUp,
   Users,
-  Utensils,
   Zap,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
@@ -25,7 +17,6 @@ import { PermissionLock } from "@/components/dashboard/permission-lock";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import type { OrderStatus, PaymentStatus } from "@/lib/database.types";
 import { hasPermission } from "@/lib/permissions";
@@ -83,7 +74,7 @@ const emptyMetrics: DashboardMetrics = {
 };
 
 export default async function DashboardPage() {
-  const { metrics, liveOrders, tables, role, access } = await getOverviewData();
+  const { metrics, liveOrders, role, access } = await getOverviewData();
   const trial = getTrialStatus(metrics.trialEndsAt);
   const shouldShowTrialBadge = metrics.subscriptionPlan === "trial" || metrics.subscriptionStatus === "TRIALING";
 
