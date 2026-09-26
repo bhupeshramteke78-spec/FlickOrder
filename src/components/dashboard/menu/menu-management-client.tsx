@@ -727,23 +727,126 @@ export function MenuManagementClient({
                 )}
               </div>
 
-              <label>
-                <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
-                  Regular Price (₹) *
-                </span>
-                <Input
-                  required
-                  min={0}
-                  step="0.01"
-                  type="number"
-                  value={form.price}
-                  onChange={(event) => updateField("price", event.target.value)}
-                  placeholder="299"
-                  className="rounded-xl"
-                />
-              </label>
+              {/* Portions / Half & Full Plate Configuration */}
+              <div className="sm:col-span-2 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-zinc-900 block">
+                      Half / Full Plate Pricing (Portions)
+                    </span>
+                    <span className="text-[11px] text-zinc-500 block">
+                      Enable if this dish has multiple portion sizes (e.g. Half Plate, Full Plate).
+                    </span>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={form.hasPortions}
+                      onChange={(event) => updateField("hasPortions", event.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-6 w-11 rounded-full bg-zinc-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-rose-600 peer-checked:after:translate-x-full" />
+                  </label>
+                </div>
 
-              <label>
+                {form.hasPortions ? (
+                  <div className="space-y-2.5 border-t border-zinc-200/60 pt-3">
+                    {form.portions.map((portion, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <Input
+                          value={portion.name}
+                          onChange={(e) => {
+                            const newPortions = [...form.portions];
+                            newPortions[idx] = { ...newPortions[idx], name: e.target.value };
+                            updateField("portions", newPortions);
+                          }}
+                          placeholder="Size (e.g. Half Plate)"
+                          className="h-9 flex-1 bg-white text-xs rounded-xl"
+                        />
+                        <div className="relative w-36">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400">₹</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="1"
+                            value={portion.price || ""}
+                            onChange={(e) => {
+                              const newPortions = [...form.portions];
+                              newPortions[idx] = { ...newPortions[idx], price: Number(e.target.value) || 0 };
+                              updateField("portions", newPortions);
+                            }}
+                            placeholder="Price"
+                            className="h-9 pl-7 bg-white text-xs rounded-xl"
+                          />
+                        </div>
+                        {form.portions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newPortions = form.portions.filter((_, i) => i !== idx);
+                              updateField("portions", newPortions);
+                            }}
+                            className="grid h-8 w-8 place-items-center rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 transition"
+                            title="Remove portion"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        updateField("portions", [...form.portions, { name: "Quarter / Large", price: 0 }]);
+                      }}
+                      className="h-8 gap-1.5 text-xs font-semibold rounded-xl border-dashed border-zinc-300 hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add Another Portion Size
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+
+              {!form.hasPortions && (
+                <>
+                  <label>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                      Regular Price (₹) *
+                    </span>
+                    <Input
+                      required={!form.hasPortions}
+                      min={0}
+                      step="0.01"
+                      type="number"
+                      value={form.price}
+                      onChange={(event) => updateField("price", event.target.value)}
+                      placeholder="299"
+                      className="rounded-xl"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
+                      Offer / Discounted Price (₹)
+                    </span>
+                    <Input
+                      min={0}
+                      step="0.01"
+                      type="number"
+                      value={form.offerPrice}
+                      onChange={(event) => updateField("offerPrice", event.target.value)}
+                      placeholder="Optional, e.g. 249"
+                      className="rounded-xl"
+                    />
+                  </label>
+                </>
+              )}
+
+              <label className={form.hasPortions ? "sm:col-span-2" : ""}>
                 <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-zinc-700">
                   Prep Time (Minutes) *
                 </span>
@@ -768,6 +871,18 @@ export function MenuManagementClient({
                   placeholder="Premium patty with cheddar cheese, caramelized onions, and house sauce."
                 />
               </label>
+
+              <div className="sm:col-span-2 flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs font-bold text-zinc-800 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={form.isPopular}
+                    onChange={(event) => updateField("isPopular", event.target.checked)}
+                    className="h-4 w-4 rounded border-zinc-300 text-rose-600 focus:ring-rose-500"
+                  />
+                  <span>Mark as Bestseller / Popular 🔥</span>
+                </label>
+              </div>
 
               <div className="flex justify-end gap-3 sm:col-span-2 pt-4 border-t border-zinc-100">
                 <Button

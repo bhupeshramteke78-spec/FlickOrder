@@ -18,10 +18,15 @@ export async function getDashboardOrders(): Promise<DashboardOrder[]> {
     return [];
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayIso = today.toISOString();
+
   const { data: orders } = await supabase
     .from("orders")
     .select("id,order_number,table_id,status,payment_status,total,guest_count,customer_name,kitchen_notes,created_at")
     .eq("restaurant_id", context.selected.restaurantId)
+    .gte("created_at", todayIso)
     .order("created_at", { ascending: false })
     .limit(100);
 

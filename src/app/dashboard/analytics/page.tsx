@@ -81,8 +81,7 @@ export default async function AnalyticsPage({
   const { access, role } = await getAnalyticsAccess();
   const canViewAnalytics = hasPermission(role, "viewAnalytics");
   const canUseAnalytics = hasPlanFeature(access, "analytics");
-  const canUseAdvancedReporting = hasPlanFeature(access, "advancedReporting");
-  const rangeDays = canUseAdvancedReporting ? requestedRangeDays : 30;
+  const rangeDays = requestedRangeDays;
   const analytics = canViewAnalytics && canUseAnalytics ? await getAnalyticsData(rangeDays) : { ...emptyAnalytics, rangeDays };
   const hasOrders = analytics.paidOrders > 0;
 
@@ -98,7 +97,7 @@ export default async function AnalyticsPage({
               {/* Header Controls */}
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex rounded-xl border border-zinc-200 bg-white p-1 shadow-sm">
+                  <div className="inline-flex rounded-2xl border border-zinc-200/90 bg-zinc-100/80 p-1 shadow-xs">
                     {analyticsRanges.map((range) => {
                       const isActive = range === analytics.rangeDays;
 
@@ -106,10 +105,11 @@ export default async function AnalyticsPage({
                         <Link
                           key={range}
                           href={`/dashboard/analytics?range=${range}`}
-                          className={`rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+                          prefetch={false}
+                          className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                             isActive
-                              ? "bg-zinc-900 text-white shadow-sm"
-                              : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                              ? "bg-white text-zinc-950 shadow-sm border border-zinc-200/80"
+                              : "text-zinc-600 hover:text-zinc-950 hover:bg-white/60"
                           }`}
                         >
                           Last {range} Days
