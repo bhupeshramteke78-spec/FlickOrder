@@ -12,9 +12,9 @@ export function DashboardHeaderSearch() {
     e.preventDefault();
     if (!query.trim()) return;
 
-    // Navigate to live orders or order history with search filter
+    // Navigate to dedicated dish & customer orders search page
     const trimmed = encodeURIComponent(query.trim());
-    router.push(`/dashboard/orders?q=${trimmed}`);
+    router.push(`/dashboard/search?q=${trimmed}`);
   }
 
   return (
