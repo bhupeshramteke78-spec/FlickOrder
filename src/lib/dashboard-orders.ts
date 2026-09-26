@@ -1,31 +1,10 @@
-import type { OrderStatus, PaymentStatus } from "@/lib/database.types";
 import { getSelectedDashboardRestaurant } from "@/lib/dashboard-restaurant";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import type { DashboardOrder } from "@/lib/orders-types";
 
-export type DashboardOrder = {
-  id: string;
-  orderNumber: string;
-  tableNumber: string;
-  status: OrderStatus;
-  paymentStatus: PaymentStatus;
-  total: number;
-  guestCount: number;
-  customerName: string | null;
-  kitchenNotes: string | null;
-  createdAt: string;
-  items: Array<{
-    id: string;
-    name: string;
-    quantity: number;
-    options: string[];
-  }>;
-  payment: {
-    id: string;
-    method: string;
-    status: PaymentStatus;
-  } | null;
-};
+export type { DashboardOrder } from "@/lib/orders-types";
+export { getOrderCustomerName } from "@/lib/orders-types";
 
 export async function getDashboardOrders(): Promise<DashboardOrder[]> {
   if (!isSupabaseConfigured()) {
@@ -107,18 +86,4 @@ export async function getDashboardOrders(): Promise<DashboardOrder[]> {
     items: itemsByOrderId.get(order.id) ?? [],
     payment: paymentByOrderId.get(order.id) ?? null,
   }));
-}
-
-export function getOrderCustomerName(order: Pick<DashboardOrder, "customerName" | "kitchenNotes">) {
-  if (order.customerName?.trim()) {
-    return order.customerName.trim();
-  }
-
-  if (!order.kitchenNotes) {
-    return "Customer";
-  }
-
-  const customerLine = order.kitchenNotes.split("\n").find((line) => line.toLowerCase().startsWith("customer:"));
-
-  return customerLine?.replace(/^customer:\s*/i, "").trim() || "Customer";
 }

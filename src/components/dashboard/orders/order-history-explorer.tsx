@@ -1,12 +1,18 @@
 "use client";
 
-import { CalendarDays, Clock, CreditCard, IndianRupee, Search, Table2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Filter,
+  Receipt,
+  Search,
+} from "lucide-react";
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import type { OrderStatus, PaymentStatus } from "@/lib/database.types";
+import { formatCurrency } from "@/lib/utils";
 
 type HistoryRange = "today" | "yesterday" | "7days" | "30days";
 
@@ -27,33 +33,32 @@ export type OrderHistoryExplorerRow = {
   }>;
 };
 
-const rangeOptions: Array<{ value: HistoryRange; label: string }> = [
-  { value: "today", label: "Today" },
-  { value: "yesterday", label: "Yesterday" },
-  { value: "7days", label: "7 days" },
-  { value: "30days", label: "30 days" },
-];
-
-const currency = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  maximumFractionDigits: 0,
-});
-
-export function OrderHistoryExplorer({ orders, canUseAdvancedSearch }: { orders: OrderHistoryExplorerRow[]; canUseAdvancedSearch: boolean }) {
+export function OrderHistoryExplorer({
+  orders,
+  canUseAdvancedSearch: _canUseAdvancedSearch,
+}: {
+  orders: OrderHistoryExplorerRow[];
+  canUseAdvancedSearch?: boolean;
+}) {
   const [range, setRange] = useState<HistoryRange>("today");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [query, setQuery] = useState("");
-  const availableRangeOptions = canUseAdvancedSearch ? rangeOptions : rangeOptions.filter((option) => option.value === "today");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const filteredOrders = useMemo(() => {
     const { start, end } = getRangeBounds(range);
-    const normalizedQuery = canUseAdvancedSearch ? query.trim().toLowerCase() : "";
+    const normalizedQuery = query.trim().toLowerCase();
 
     return orders.filter((order) => {
       const createdAt = new Date(order.createdAt);
       const isInRange = createdAt >= start && createdAt < end;
 
       if (!isInRange) {
+        return false;
+      }
+
+      if (statusFilter !== "ALL" && order.status !== statusFilter) {
         return false;
       }
 
@@ -69,178 +74,271 @@ export function OrderHistoryExplorer({ orders, canUseAdvancedSearch }: { orders:
         order.status,
         order.paymentStatus,
         String(order.total),
-        ...order.items.flatMap((item) => [item.name, String(item.quantity), ...item.options]),
+        ...order.items.flatMap((item) => [item.name, String(item.quantity)]),
       ]
         .join(" ")
         .toLowerCase();
 
       return searchableText.includes(normalizedQuery);
     });
-  }, [canUseAdvancedSearch, orders, query, range]);
+  }, [orders, query, range, statusFilter]);
 
-  const groupedOrders = useMemo(() => {
-    const groups = new Map<string, OrderHistoryExplorerRow[]>();
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / itemsPerPage));
+  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    for (const order of filteredOrders) {
-      const key = formatDateGroup(order.createdAt);
-      const groupOrders = groups.get(key) ?? [];
-      groupOrders.push(order);
-      groups.set(key, groupOrders);
-    }
+  function exportCsv() {
+    const headers = ["Order ID", "Table", "Date", "Items", "Amount", "Status", "Payment"];
+    const rows = filteredOrders.map((o) => [
+      `#DF-${o.orderNumber}`,
+      `Table ${o.tableNumber}`,
+      formatDateTime(o.createdAt),
+      o.items.map((i) => `${i.quantity}x ${i.name}`).join("; "),
+      o.total,
+      o.status,
+      o.paymentStatus,
+    ]);
 
-    return Array.from(groups.entries());
-  }, [filteredOrders]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.map((cell) => `"${cell}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `order-history-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.click();
+  }
 
   return (
-    <Card className="mt-4">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div className="space-y-6">
+      {/* Header Bar matching Page 8 */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-emerald-700">Searchable records</p>
-          <h2 className="text-xl font-semibold text-zinc-950">Order history</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            {canUseAdvancedSearch ? "Search by customer name, order ID, table, item, status, or amount." : "Growth includes today's order records. Upgrade to Pro for search and custom date ranges."}
+          <h2 className="text-xl font-black tracking-tight text-zinc-950">Order History</h2>
+          <p className="mt-0.5 text-xs font-medium text-zinc-500">
+            Review all past transactions and closed orders
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          {canUseAdvancedSearch ? <div className="relative min-w-0 sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-9 gap-1.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-700 shadow-sm hover:bg-zinc-50"
+          >
+            <Filter className="h-3.5 w-3.5 text-zinc-500" />
+            Filter
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={exportCsv}
+            className="h-9 gap-1.5 rounded-xl border border-zinc-200 bg-white text-xs font-bold text-zinc-700 shadow-sm hover:bg-zinc-50"
+          >
+            <Download className="h-3.5 w-3.5 text-zinc-500" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Table Card matching DineFlow Page 8 */}
+      <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
+        {/* Search & Filter Controls */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+            <input
+              type="text"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              className="pl-9"
-              placeholder="Search orders"
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by Order ID or Table..."
+              className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50/60 pl-9 pr-3 text-xs text-zinc-800 placeholder-zinc-400 transition focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-100"
             />
-          </div> : null}
-          <div className="grid grid-cols-2 gap-2 sm:flex">
-            {availableRangeOptions.map((option) => (
-              <Button
-                key={option.value}
-                type="button"
-                variant={range === option.value ? "primary" : "secondary"}
-                size="sm"
-                onClick={() => setRange(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-700 outline-none focus:border-rose-400"
+            >
+              <option value="ALL">Status: All</option>
+              <option value="SERVED">Status: Completed</option>
+              <option value="CANCELLED">Status: Cancelled</option>
+              <option value="PENDING">Status: Pending</option>
+            </select>
+
+            <select
+              value={range}
+              onChange={(e) => setRange(e.target.value as HistoryRange)}
+              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-700 outline-none focus:border-rose-400"
+            >
+              <option value="today">Date: Today</option>
+              <option value="yesterday">Date: Yesterday</option>
+              <option value="7days">Date: Last 7 Days</option>
+              <option value="30days">Date: Last 30 Days</option>
+            </select>
           </div>
         </div>
-      </div>
 
-      <div className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-700">
-            <CalendarDays className="h-4 w-4 text-emerald-700" />
-            {rangeOptions.find((option) => option.value === range)?.label}
-          </span>
-          <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-500">
-            {filteredOrders.length} order{filteredOrders.length === 1 ? "" : "s"}
-          </span>
+        {/* Table matching Page 8 */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-zinc-100 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                <th className="pb-3.5 font-semibold">ORDER ID</th>
+                <th className="pb-3.5 font-semibold">TABLE</th>
+                <th className="pb-3.5 font-semibold">DATE & TIME</th>
+                <th className="pb-3.5 font-semibold">ITEMS</th>
+                <th className="pb-3.5 font-semibold">AMOUNT</th>
+                <th className="pb-3.5 font-semibold">STATUS</th>
+                <th className="pb-3.5 text-right font-semibold">RECEIPT</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-50 font-medium">
+              {paginatedOrders.length > 0 ? (
+                paginatedOrders.map((order) => {
+                  const isCancelled = order.status === "CANCELLED";
+
+                  return (
+                    <tr key={order.id} className="hover:bg-zinc-50/60 transition-colors">
+                      <td className="py-4 font-bold text-zinc-950">#DF-{order.orderNumber}</td>
+                      <td className="py-4 text-zinc-700 font-semibold">Table {order.tableNumber}</td>
+                      <td className="py-4">
+                        <p className="font-semibold text-zinc-900 leading-tight">{formatDate(order.createdAt)}</p>
+                        <p className="text-[10px] text-zinc-400 font-medium">{formatTime(order.createdAt)}</p>
+                      </td>
+                      <td className="py-4 max-w-xs">
+                        <p className="font-bold text-zinc-900 leading-tight">
+                          {order.items.reduce((sum, it) => sum + it.quantity, 0)} Items
+                        </p>
+                        <p className="text-[11px] text-zinc-500 font-medium truncate mt-0.5">
+                          {order.items.map((it) => it.name).join(", ")}
+                        </p>
+                      </td>
+                      <td className="py-4 font-black text-zinc-950">{formatCurrency(order.total)}</td>
+                      <td className="py-4">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                            isCancelled
+                              ? "bg-rose-50 text-rose-600 border border-rose-200"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          }`}
+                        >
+                          {isCancelled ? "CANCELLED" : "COMPLETED"}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => window.print()}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition"
+                          title="Print Receipt"
+                        >
+                          <Receipt className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-xs font-medium text-zinc-400">
+                    No orders matching your selected date and search filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {groupedOrders.length > 0 ? (
-          <div className="mt-4 grid gap-4">
-            {groupedOrders.map(([dateLabel, groupOrders]) => (
-              <section key={dateLabel} className="grid gap-3">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{dateLabel}</h3>
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {groupOrders.map((order) => (
-                    <HistoryCard key={order.id} order={order} />
-                  ))}
-                </div>
-              </section>
-            ))}
+        {/* Pagination Footer matching Page 8 */}
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-zinc-100 pt-4 text-xs font-medium text-zinc-500">
+          <p>
+            Showing {filteredOrders.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to{" "}
+            {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-zinc-200 bg-white text-zinc-700 disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+
+            {Array.from({ length: Math.min(3, totalPages) }, (_, idx) => {
+              const pageNum = idx + 1;
+              const isActive = pageNum === currentPage;
+
+              return (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-bold transition ${
+                    isActive ? "bg-rose-600 text-white shadow-sm" : "border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="grid h-8 w-8 place-items-center rounded-lg border border-zinc-200 bg-white text-zinc-700 disabled:opacity-40"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-        ) : (
-          <div className="mt-4 rounded-lg border border-dashed border-zinc-200 bg-white p-8 text-center">
-            <p className="text-sm font-semibold text-zinc-950">No matching orders</p>
-            <p className="mt-1 text-sm text-zinc-500">Try another date range or search term.</p>
-          </div>
-        )}
-      </div>
-    </Card>
-  );
-}
-
-function HistoryCard({ order }: { order: OrderHistoryExplorerRow }) {
-  const itemSummary = order.items.map((item) => `${item.quantity} x ${item.name}`).join(", ");
-
-  return (
-    <article className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-zinc-950">{order.customerName}</p>
-          <p className="mt-1 truncate text-xs text-zinc-500">#{order.orderNumber}</p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Badge tone={order.status === "CANCELLED" ? "danger" : "success"}>{formatStatus(order.status)}</Badge>
-          <Badge tone={order.paymentStatus === "PAID" ? "success" : "warning"}>{formatStatus(order.paymentStatus)}</Badge>
-        </div>
-      </div>
-
-      <p className="mt-3 line-clamp-2 text-sm text-zinc-600">{itemSummary || "No items"}</p>
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-        <span className="inline-flex items-center gap-1">
-          <Table2 className="h-3.5 w-3.5" />
-          Table {order.tableNumber}
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          {formatTime(order.createdAt)}
-        </span>
-        <span className="inline-flex items-center gap-1 font-semibold text-zinc-950">
-          <IndianRupee className="h-3.5 w-3.5" />
-          {currency.format(order.total)}
-        </span>
-      </div>
-
-      <div className="mt-3 flex items-center gap-1 text-xs text-zinc-500">
-        <CreditCard className="h-3.5 w-3.5" />
-        {formatStatus(order.paymentStatus)}
-      </div>
-    </article>
+      </Card>
+    </div>
   );
 }
 
 function getRangeBounds(range: HistoryRange) {
   const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
+  const start = new Date(now);
+  const end = new Date(now);
+
+  if (range === "today") {
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }
 
   if (range === "yesterday") {
-    const yesterdayStart = new Date(todayStart);
-    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-
-    return { start: yesterdayStart, end: todayStart };
+    start.setDate(now.getDate() - 1);
+    start.setHours(0, 0, 0, 0);
+    end.setDate(now.getDate() - 1);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
   }
 
   if (range === "7days") {
-    const start = new Date(todayStart);
-    start.setDate(start.getDate() - 6);
-
-    return { start, end: new Date(now.getTime() + 1) };
+    start.setDate(now.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
   }
 
-  if (range === "30days") {
-    const start = new Date(todayStart);
-    start.setDate(start.getDate() - 29);
-
-    return { start, end: new Date(now.getTime() + 1) };
-  }
-
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
-  return { start: todayStart, end: tomorrowStart };
+  start.setDate(now.getDate() - 30);
+  start.setHours(0, 0, 0, 0);
+  return { start, end };
 }
 
-function formatDateGroup(value: string) {
+function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
-    weekday: "short",
-    day: "numeric",
     month: "short",
+    day: "numeric",
     year: "numeric",
+    timeZone: "Asia/Kolkata",
   }).format(new Date(value));
 }
 
@@ -252,9 +350,13 @@ function formatTime(value: string) {
   }).format(new Date(value));
 }
 
-function formatStatus(status: string) {
-  return status
-    .split("_")
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(" ");
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(value));
 }

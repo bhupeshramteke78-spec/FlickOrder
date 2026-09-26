@@ -1,11 +1,16 @@
 "use client";
 
-import { AlertTriangle, Loader2, MapPinned, Palette, Pencil, Save, Settings2, Store, Trash2, WalletCards } from "lucide-react";
+import {
+  Camera,
+  Loader2,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 type DefaultFoodTypeFilter = "ALL" | "VEG" | "NON_VEG" | "EGG";
@@ -57,7 +62,6 @@ export function SettingsForm({
 }) {
   const router = useRouter();
   const [form, setForm] = useState(initialState);
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteName, setDeleteName] = useState("");
   const [deleteReason, setDeleteReason] = useState("");
@@ -81,11 +85,6 @@ export function SettingsForm({
 
   async function submitSettings(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!isEditing) {
-      toast.info("Click edit settings before making changes.");
-      return;
-    }
 
     setIsSaving(true);
 
@@ -141,8 +140,7 @@ export function SettingsForm({
       return;
     }
 
-    toast.success("Settings saved.");
-    setIsEditing(false);
+    toast.success("Settings saved successfully.");
     router.refresh();
   }
 
@@ -178,443 +176,345 @@ export function SettingsForm({
   }
 
   return (
-    <form onSubmit={submitSettings} className="grid gap-5">
-      <Card className="overflow-hidden p-0">
-        <div
-          className="p-6 text-white"
-          style={{ background: `linear-gradient(135deg, #071117 0%, ${form.settings.brandColor} 160%)` }}
+    <form onSubmit={submitSettings} className="space-y-6">
+      {/* Header Bar matching DineFlow Page 6 */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-black tracking-tight text-zinc-950">General Settings</h2>
+          <p className="mt-0.5 text-xs font-medium text-zinc-500">
+            Customize your restaurant profile and system preferences
+          </p>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={!canEdit || isSaving}
+          className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-5 shadow-sm shadow-rose-600/20"
         >
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-100">Restaurant Control</p>
-          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2 className="text-3xl font-semibold">{form.restaurant.name || "Restaurant Name"}</h2>
-              <p className="mt-2 text-sm text-white/70">Guest-facing restaurant details stay connected to this profile.</p>
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Changes
+        </Button>
+      </div>
+
+      {/* Card 1: Restaurant Profile matching Page 6 */}
+      <Card className="rounded-2xl border border-zinc-200/80 bg-white p-7 shadow-sm">
+        <h3 className="text-base font-black text-zinc-950">Restaurant Profile</h3>
+        <p className="text-xs text-zinc-500 font-medium mt-0.5">
+          Public information shown on discovery and QR menu landing pages
+        </p>
+
+        {/* Logo Avatar Upload Box matching Page 6 */}
+        <div className="mt-6 flex flex-wrap items-center gap-5 pb-6 border-b border-zinc-100">
+          <div className="relative">
+            <div className="grid h-20 w-20 place-items-center rounded-2xl bg-rose-100 border border-rose-200 text-2xl font-black text-rose-700 shadow-sm overflow-hidden">
+              {form.restaurant.logoUrl ? (
+                <img src={form.restaurant.logoUrl} alt={form.restaurant.name} className="h-full w-full object-cover" />
+              ) : (
+                form.restaurant.name ? form.restaurant.name.slice(0, 2).toUpperCase() : "DF"
+              )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="glass"
+            <div className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-zinc-900 text-white shadow-sm">
+              <Camera className="h-3 w-3" />
+            </div>
+          </div>
+
+          <div>
+            <h4 className="text-xs font-bold text-zinc-900">Restaurant Logo</h4>
+            <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
+              Recommended size: 400x400px. JPG, PNG or WebP.
+            </p>
+            <div className="mt-2.5 flex items-center gap-2">
+              <Input
                 disabled={!canEdit}
-                onClick={() => setIsEditing((current) => !current)}
-              >
-                <Pencil className="h-4 w-4" />
-                {isEditing ? "Lock editing" : "Edit settings"}
-              </Button>
-              <Button type="submit" disabled={!isEditing || isSaving} variant="glass">
-                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save settings
-              </Button>
+                value={form.restaurant.logoUrl}
+                onChange={(event) => updateRestaurant("logoUrl", event.target.value)}
+                placeholder="Paste Logo Image URL..."
+                className="h-8 w-64 text-xs rounded-xl bg-zinc-50 border-zinc-200"
+              />
             </div>
+          </div>
+        </div>
+
+        {/* Form Inputs Grid matching Page 6 Uppercase Labels */}
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              RESTAURANT NAME
+            </label>
+            <Input
+              disabled={!canEdit}
+              required
+              value={form.restaurant.name}
+              onChange={(event) => updateRestaurant("name", event.target.value)}
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              CONTACT EMAIL
+            </label>
+            <Input
+              disabled={!canEdit}
+              required
+              type="email"
+              value={form.restaurant.email}
+              onChange={(event) => updateRestaurant("email", event.target.value)}
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              PHONE NUMBER
+            </label>
+            <Input
+              disabled={!canEdit}
+              required
+              value={form.restaurant.phone}
+              onChange={(event) => updateRestaurant("phone", event.target.value)}
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              RESTAURANT TYPE & CUISINE
+            </label>
+            <Input
+              disabled={!canEdit}
+              required
+              value={form.restaurant.type}
+              onChange={(event) => updateRestaurant("type", event.target.value)}
+              placeholder="Cafe, Fine Dining, Pizzeria"
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              ADDRESS
+            </label>
+            <Input
+              disabled={!canEdit}
+              required
+              value={form.restaurant.address}
+              onChange={(event) => updateRestaurant("address", event.target.value)}
+              placeholder="123 Culinary Ave, Food District, NY 10001"
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              CITY & STATE
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                disabled={!canEdit}
+                required
+                value={form.restaurant.city}
+                onChange={(event) => updateRestaurant("city", event.target.value)}
+                placeholder="City"
+                className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+              />
+              <Input
+                disabled={!canEdit}
+                required
+                value={form.restaurant.state}
+                onChange={(event) => updateRestaurant("state", event.target.value)}
+                placeholder="State"
+                className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+              DIRECT UPI PAYMENT ID (FOR SETTLEMENTS)
+            </label>
+            <Input
+              disabled={!canEdit}
+              value={form.settings.upiId}
+              onChange={(event) => updateSettings("upiId", event.target.value)}
+              placeholder="merchant@okhdfcbank"
+              className="h-10 text-xs font-semibold rounded-xl border-zinc-200"
+            />
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <SettingsSection
-          icon={Store}
-          title="Restaurant profile"
-            description="Control what guests see on discovery pages, QR menus, and restaurant detail screens."
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Restaurant name">
-              <Input disabled={!isEditing} required value={form.restaurant.name} onChange={(event) => updateRestaurant("name", event.target.value)} />
-            </Field>
-            <Field label="Restaurant type">
-              <Input disabled={!isEditing} required value={form.restaurant.type} onChange={(event) => updateRestaurant("type", event.target.value)} placeholder="Cafe, Fine Dining, Family Restaurant" />
-            </Field>
-            <Field label="Cuisine">
-              <Input disabled={!isEditing} required value={form.restaurant.cuisineText} onChange={(event) => updateRestaurant("cuisineText", event.target.value)} placeholder="Indian, Italian, Chinese" />
-            </Field>
-            <Field label="Phone">
-              <Input disabled={!isEditing} required value={isEditing ? form.restaurant.phone : maskPhone(form.restaurant.phone)} onChange={(event) => updateRestaurant("phone", event.target.value)} />
-            </Field>
-            <Field label="Email">
-              <Input disabled={!isEditing} required type={isEditing ? "email" : "text"} value={isEditing ? form.restaurant.email : maskEmail(form.restaurant.email)} onChange={(event) => updateRestaurant("email", event.target.value)} />
-            </Field>
-            <Field label="City">
-              <Input disabled={!isEditing} required value={form.restaurant.city} onChange={(event) => updateRestaurant("city", event.target.value)} />
-            </Field>
-            <Field label="State">
-              <Input disabled={!isEditing} required value={form.restaurant.state} onChange={(event) => updateRestaurant("state", event.target.value)} />
-            </Field>
-            <Field label="Open status">
-              <ToggleLabel
-                disabled={!isEditing}
-                checked={form.restaurant.isOpen}
-                label={form.restaurant.isOpen ? "Open now" : "Closed"}
-                onChange={(checked) => updateRestaurant("isOpen", checked)}
-              />
-            </Field>
-            <Field label="Address" className="md:col-span-2">
-              <textarea
-                disabled={!isEditing}
-                required
-                className="min-h-24 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 outline-none placeholder:text-zinc-400 focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
-                value={form.restaurant.address}
-                onChange={(event) => updateRestaurant("address", event.target.value)}
-              />
-            </Field>
-            <Field label="Google Maps location link" className="md:col-span-2">
-              <Input
-                disabled={!isEditing}
-                value={form.restaurant.googleMapsUrl}
-                onChange={(event) => updateRestaurant("googleMapsUrl", event.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-              />
-              <span className="mt-1 block text-xs text-zinc-500">
-                Customers use this for directions, and KhaoScan uses it during restaurant verification.
-              </span>
-            </Field>
-            <div className="md:col-span-2">
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700">
-                    <MapPinned className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-zinc-950">Nearby search coordinates</p>
-                    <p className="mt-1 text-sm leading-6 text-zinc-600">
-                      Add the restaurant&apos;s real latitude and longitude so customers can find nearby restaurants accurately. Full Google Maps links with embedded coordinates are detected automatically, but short links may need manual values.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <Field label="Latitude">
-                    <Input
-                      disabled={!isEditing}
-                      type="number"
-                      min={-90}
-                      max={90}
-                      step="0.0000001"
-                      value={form.restaurant.latitude}
-                      onChange={(event) => updateRestaurant("latitude", event.target.value)}
-                      placeholder="21.1458000"
-                    />
-                  </Field>
-                  <Field label="Longitude">
-                    <Input
-                      disabled={!isEditing}
-                      type="number"
-                      min={-180}
-                      max={180}
-                      step="0.0000001"
-                      value={form.restaurant.longitude}
-                      onChange={(event) => updateRestaurant("longitude", event.target.value)}
-                      placeholder="79.0882000"
-                    />
-                  </Field>
-                </div>
-                <p className="mt-3 text-xs text-zinc-500">
-                  Location source: {formatLocationSource(form.restaurant.locationSource)}
-                </p>
-              </div>
+      {/* Card 2: System Preferences matching Page 6 */}
+      <Card className="rounded-2xl border border-zinc-200/80 bg-white p-7 shadow-sm">
+        <h3 className="text-base font-black text-zinc-950">System Preferences</h3>
+        <p className="text-xs text-zinc-500 font-medium mt-0.5">
+          Automation toggles, live ordering, and operational controls
+        </p>
+
+        <div className="mt-6 divide-y divide-zinc-100">
+          {/* QR Ordering Toggle matching Page 6 */}
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold text-zinc-900">QR Ordering</p>
+              <p className="text-[11px] text-zinc-500 font-medium">
+                Allow customers to place orders directly via QR scan
+              </p>
             </div>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection
-          icon={WalletCards}
-          title="Payments and taxes"
-          description="UPI details are used to generate customer payment links. Payment status still needs restaurant verification."
-        >
-          <div className="grid gap-4">
-            <Field label="UPI ID">
-              <Input disabled={!isEditing} required value={isEditing ? form.settings.upiId : maskUpi(form.settings.upiId)} onChange={(event) => updateSettings("upiId", event.target.value)} placeholder="restaurant@oksbi" />
-            </Field>
-            <Field label="UPI display name">
-              <Input disabled={!isEditing} required value={form.settings.upiDisplayName} onChange={(event) => updateSettings("upiDisplayName", event.target.value)} />
-            </Field>
-            <Field label="Tax rate (%)">
-              <Input disabled={!isEditing} required min={0} max={50} step="0.01" type="number" value={form.settings.taxRate} onChange={(event) => updateSettings("taxRate", event.target.value)} />
-            </Field>
-          </div>
-        </SettingsSection>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <SettingsSection
-          icon={Palette}
-          title="Brand and media"
-          description="Use hosted image URLs from Supabase Storage or your CDN for logo and cover media."
-        >
-          <div className="grid gap-4">
-            <Field label="Brand color">
-              <div className="grid grid-cols-[56px_1fr] gap-3">
-                <input
-                  disabled={!isEditing}
-                  type="color"
-                  value={form.settings.brandColor}
-                  onChange={(event) => updateSettings("brandColor", event.target.value)}
-                  className="h-11 w-14 rounded-lg border border-zinc-200 bg-white p-1 disabled:cursor-not-allowed disabled:opacity-60"
-                  aria-label="Brand color"
-                />
-                <Input disabled={!isEditing} required value={form.settings.brandColor} onChange={(event) => updateSettings("brandColor", event.target.value)} />
-              </div>
-            </Field>
-            <Field label="Logo URL">
-              <Input disabled={!isEditing} value={form.restaurant.logoUrl} onChange={(event) => updateRestaurant("logoUrl", event.target.value)} placeholder="https://..." />
-            </Field>
-            <Field label="Cover URL">
-              <Input disabled={!isEditing} value={form.restaurant.coverUrl} onChange={(event) => updateRestaurant("coverUrl", event.target.value)} placeholder="https://..." />
-            </Field>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection
-          icon={Settings2}
-          title="QR ordering and menu"
-          description="Set operating hours and how the customer menu should behave."
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Opening time">
-              <Input disabled={!isEditing} required type="time" value={form.settings.openingOpen} onChange={(event) => updateSettings("openingOpen", event.target.value)} />
-            </Field>
-            <Field label="Closing time">
-              <Input disabled={!isEditing} required type="time" value={form.settings.openingClose} onChange={(event) => updateSettings("openingClose", event.target.value)} />
-            </Field>
-            <Field label="QR ordering" className="md:col-span-2">
-              <ToggleLabel
-                disabled={!isEditing}
-                checked={form.settings.qrOrderingEnabled}
-                label={form.settings.qrOrderingEnabled ? "Enabled" : "Disabled"}
-                onChange={(checked) => updateSettings("qrOrderingEnabled", checked)}
+            <button
+              type="button"
+              disabled={!canEdit}
+              onClick={() => updateSettings("qrOrderingEnabled", !form.settings.qrOrderingEnabled)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                form.settings.qrOrderingEnabled ? "bg-rose-600" : "bg-zinc-200"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${
+                  form.settings.qrOrderingEnabled ? "left-6" : "left-1"
+                }`}
               />
-            </Field>
-            <Field label="Default food filter">
-              <select
-                disabled={!isEditing}
-                className="h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-950 outline-none focus:border-emerald-700/50 focus:ring-4 focus:ring-emerald-700/10 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
-                value={form.settings.defaultFoodTypeFilter}
-                onChange={(event) => updateSettings("defaultFoodTypeFilter", event.target.value as DefaultFoodTypeFilter)}
-              >
-                <option value="ALL">All</option>
-                <option value="VEG">Veg</option>
-                <option value="NON_VEG">Non-veg</option>
-                <option value="EGG">Egg</option>
-              </select>
-            </Field>
-            <Field label="Menu display">
-              <div className="grid gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <ToggleLabel
-                  disabled={!isEditing}
-                  checked={form.settings.showPopularFirst}
-                  label="Show popular first"
-                  onChange={(checked) => updateSettings("showPopularFirst", checked)}
-                />
-                <ToggleLabel
-                  disabled={!isEditing}
-                  checked={form.settings.showUnavailableItems}
-                  label="Show unavailable items"
-                  onChange={(checked) => updateSettings("showUnavailableItems", checked)}
-                />
-              </div>
-            </Field>
+            </button>
           </div>
-        </SettingsSection>
-      </div>
 
-      <Card className="border-rose-200 bg-rose-50/60">
-        <CardHeader>
+          {/* Push Notifications Toggle matching Page 6 */}
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold text-zinc-900">Push Notifications</p>
+              <p className="text-[11px] text-zinc-500 font-medium">
+                Get alerted for new orders and kitchen updates
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={!canEdit}
+              onClick={() => updateRestaurant("isOpen", !form.restaurant.isOpen)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                form.restaurant.isOpen ? "bg-rose-600" : "bg-zinc-200"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${
+                  form.restaurant.isOpen ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Menu Preferences Toggle */}
+          <div className="flex items-center justify-between py-4">
+            <div>
+              <p className="text-xs font-bold text-zinc-900">Show Popular Dishes First</p>
+              <p className="text-[11px] text-zinc-500 font-medium">
+                Rank top ordered items at the top of guest mobile menus
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={!canEdit}
+              onClick={() => updateSettings("showPopularFirst", !form.settings.showPopularFirst)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${
+                form.settings.showPopularFirst ? "bg-rose-600" : "bg-zinc-200"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${
+                  form.settings.showPopularFirst ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Account Deletion Safety Card */}
+      <Card className="rounded-2xl border border-rose-200 bg-rose-50/40 p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Account Delete</CardTitle>
-            <CardDescription>
-              Request restaurant account deletion. KhaoScan hides the restaurant and pauses QR ordering immediately, then super admin reviews the request.
-            </CardDescription>
+            <h3 className="text-sm font-bold text-rose-950">Delete Restaurant Account</h3>
+            <p className="mt-1 text-xs text-zinc-600 leading-relaxed max-w-xl">
+              Request restaurant account deletion. This pauses QR ordering immediately, and KhaoScan super admin will securely process account removal.
+            </p>
           </div>
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700">
-            <AlertTriangle className="h-5 w-5" />
-          </div>
-        </CardHeader>
+
+          {!hasDeletionRequest && !isDeletePanelOpen && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!canRequestDeletion}
+              onClick={() => setIsDeletePanelOpen(true)}
+              className="text-xs font-bold text-rose-700 border-rose-300 hover:bg-rose-100 rounded-xl"
+            >
+              Request Deletion
+            </Button>
+          )}
+        </div>
 
         {hasDeletionRequest ? (
-          <div className="rounded-lg border border-rose-200 bg-white p-4 text-sm">
-            <p className="font-semibold text-rose-700">Deletion requested</p>
+          <div className="mt-4 rounded-xl border border-rose-200 bg-white p-4 text-xs">
+            <p className="font-bold text-rose-700">Deletion requested</p>
             <p className="mt-1 text-zinc-600">
-              Requested on {formatDate(form.restaurant.deletionRequestedAt)}. Customer discovery, QR menus, and operations are paused until super admin review.
+              Requested on {formatDate(form.restaurant.deletionRequestedAt)}. Operations are paused until super admin review.
             </p>
-            {form.restaurant.deletionReason ? <p className="mt-2 text-zinc-500">Reason: {form.restaurant.deletionReason}</p> : null}
           </div>
         ) : isDeletePanelOpen ? (
-          <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <Field label="Type restaurant name">
+          <div className="mt-4 grid gap-3 pt-3 border-t border-rose-200/80 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">
+                Type &quot;{form.restaurant.name}&quot; to confirm:
+              </label>
               <Input
                 disabled={!canRequestDeletion || isRequestingDeletion}
                 value={deleteName}
                 onChange={(event) => setDeleteName(event.target.value)}
                 placeholder={form.restaurant.name}
+                className="h-9 text-xs bg-white rounded-xl"
               />
-            </Field>
-            <Field label="Reason (optional)">
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">
+                Reason (optional):
+              </label>
               <Input
                 disabled={!canRequestDeletion || isRequestingDeletion}
                 value={deleteReason}
                 onChange={(event) => setDeleteReason(event.target.value)}
-                placeholder="Closing, switching system, duplicate account..."
+                placeholder="Reason for leaving..."
+                className="h-9 text-xs bg-white rounded-xl"
               />
-            </Field>
-            <Button
-              type="button"
-              variant="danger"
-              disabled={!canRequestDeletion || isRequestingDeletion || deleteName.trim() !== form.restaurant.name}
-              onClick={requestDeletion}
-            >
-              {isRequestingDeletion ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Request deletion
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={isRequestingDeletion}
-              onClick={() => {
-                setIsDeletePanelOpen(false);
-                setDeleteName("");
-                setDeleteReason("");
-              }}
-            >
-              Cancel
-            </Button>
+            </div>
+            <div className="sm:col-span-2 flex items-center gap-2 mt-1">
+              <Button
+                type="button"
+                size="sm"
+                disabled={!canRequestDeletion || isRequestingDeletion || deleteName.trim() !== form.restaurant.name}
+                onClick={requestDeletion}
+                className="h-8 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs"
+              >
+                {isRequestingDeletion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                Confirm Deletion Request
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsDeletePanelOpen(false)}
+                className="h-8 text-xs font-semibold text-zinc-600"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3 rounded-lg border border-rose-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-zinc-600">
-              Open this only if the restaurant wants KhaoScan to review account deletion.
-            </p>
-            <Button
-              type="button"
-              variant="danger"
-              disabled={!canRequestDeletion}
-              onClick={() => setIsDeletePanelOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Account
-            </Button>
-          </div>
-        )}
+        ) : null}
       </Card>
     </form>
   );
 }
 
 function formatDate(value: string | null) {
-  if (!value) {
-    return "now";
-  }
-
+  if (!value) return "now";
   return new Intl.DateTimeFormat("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function maskEmail(value: string) {
-  const [name, domain] = value.split("@");
-
-  if (!name || !domain) {
-    return value ? "••••••" : "";
-  }
-
-  return `${name.slice(0, 2)}••••@${domain}`;
-}
-
-function maskPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-
-  if (digits.length <= 4) {
-    return value ? "••••" : "";
-  }
-
-  return `••••••${digits.slice(-4)}`;
-}
-
-function maskUpi(value: string) {
-  const [name, provider] = value.split("@");
-
-  if (!name || !provider) {
-    return value ? "••••••" : "";
-  }
-
-  return `${name.slice(0, 3)}••••@${provider}`;
-}
-
-function formatLocationSource(value: SettingsFormState["restaurant"]["locationSource"]) {
-  if (value === "GOOGLE_MAPS_LINK") {
-    return "Google Maps link";
-  }
-
-  if (value === "OWNER_MANUAL") {
-    return "Manual coordinates";
-  }
-
-  if (value === "PIN_PICKER") {
-    return "Map pin";
-  }
-
-  if (value === "GEOCODED_ADDRESS") {
-    return "Address geocoding";
-  }
-
-  return "Not set";
-}
-
-function SettingsSection({
-  icon: Icon,
-  title,
-  description,
-  children,
-}: {
-  icon: typeof Store;
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </div>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-          <Icon className="h-5 w-5" />
-        </div>
-      </CardHeader>
-      {children}
-    </Card>
-  );
-}
-
-function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
-  return (
-    <label className={className}>
-      <span className="mb-2 block text-sm font-medium text-zinc-700">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function ToggleLabel({
-  checked,
-  disabled = false,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className="inline-flex h-11 items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500 disabled:hover:border-zinc-200"
-      aria-pressed={checked}
-    >
-      <span>{label}</span>
-      <span className={`relative h-6 w-11 rounded-full transition ${checked ? "bg-emerald-500" : "bg-zinc-300"}`}>
-        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${checked ? "left-6" : "left-1"}`} />
-      </span>
-    </button>
-  );
 }

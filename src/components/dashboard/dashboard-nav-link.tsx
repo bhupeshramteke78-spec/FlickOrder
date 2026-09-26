@@ -47,12 +47,14 @@ export function DashboardNavLink({
   href,
   label,
   iconKey,
+  badge,
   onNavigate,
   className,
 }: {
   href: string;
   label: string;
   iconKey: DashboardNavIconKey;
+  badge?: string;
   onNavigate?: () => void;
   className?: string;
 }) {
@@ -65,17 +67,26 @@ export function DashboardNavLink({
       href={href}
       onClick={onNavigate}
       className={cn(
-        "dashboard-nav-link group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-2.5 text-xs font-semibold tracking-wide transition-all duration-200 active:scale-[0.98]",
+        "dashboard-nav-link group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium tracking-wide transition-all duration-150",
         isActive
-          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] backdrop-blur"
-          : "text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.06] border border-transparent",
+          ? "bg-rose-50/90 text-rose-600 font-bold shadow-none after:absolute after:right-0 after:top-1 after:bottom-1 after:w-1 after:bg-rose-500 after:rounded-l-full"
+          : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100/70",
         className,
       )}
     >
-      <Icon className={cn("relative h-4 w-4 shrink-0 transition-transform group-hover:scale-110", isActive ? "text-emerald-400" : "text-zinc-400 group-hover:text-zinc-200")} />
+      <Icon
+        className={cn(
+          "relative h-4 w-4 shrink-0 transition-transform group-hover:scale-105",
+          isActive ? "text-rose-600" : "text-zinc-500 group-hover:text-zinc-800",
+        )}
+      />
       <span className="relative min-w-0 flex-1 truncate">{label}</span>
-      {isActive ? (
-        <span className="relative h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
+      {badge ? (
+        <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-600">
+          {badge}
+        </span>
+      ) : isActive ? (
+        <span className="relative h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
       ) : (
         <DashboardNavPendingHint />
       )}
@@ -90,8 +101,8 @@ function DashboardNavPendingHint() {
     <span
       aria-hidden
       className={cn(
-        "relative h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300 transition",
-        pending ? "opacity-100 shadow-[0_0_18px_rgba(110,231,183,0.9)]" : "opacity-0",
+        "relative h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400 transition",
+        pending ? "opacity-100 shadow-[0_0_12px_rgba(244,63,94,0.9)]" : "opacity-0",
       )}
     />
   );

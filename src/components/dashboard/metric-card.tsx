@@ -18,73 +18,76 @@ export function MetricCard({
   icon: LucideIcon;
   subcaption?: string;
   trend?: string;
-  tone?: "emerald" | "amber" | "blue" | "rose" | "zinc";
+  tone?: "emerald" | "amber" | "blue" | "rose" | "zinc" | "purple";
   href?: string;
   className?: string;
 }) {
   const toneMap = {
     emerald: {
-      icon: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
-      trend: "text-emerald-400",
-      accent: "hover:border-emerald-500/40 hover:shadow-emerald-500/5",
+      icon: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+      trendBadge: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+      accent: "hover:border-emerald-200",
     },
     amber: {
-      icon: "bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)]",
-      trend: "text-amber-400",
-      accent: "hover:border-amber-500/40 hover:shadow-amber-500/5",
+      icon: "bg-amber-50 text-amber-600 border border-amber-100",
+      trendBadge: "bg-amber-50 text-amber-700 border-amber-200/80",
+      accent: "hover:border-amber-200",
     },
     blue: {
-      icon: "bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.15)]",
-      trend: "text-blue-400",
-      accent: "hover:border-blue-500/40 hover:shadow-blue-500/5",
+      icon: "bg-blue-50 text-blue-600 border border-blue-100",
+      trendBadge: "bg-blue-50 text-blue-700 border-blue-200/80",
+      accent: "hover:border-blue-200",
     },
     rose: {
-      icon: "bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-[0_0_12px_rgba(244,63,94,0.15)]",
-      trend: "text-rose-400",
-      accent: "hover:border-rose-500/40 hover:shadow-rose-500/5",
+      icon: "bg-rose-50 text-rose-600 border border-rose-100",
+      trendBadge: "bg-rose-50 text-rose-700 border-rose-200/80",
+      accent: "hover:border-rose-200",
+    },
+    purple: {
+      icon: "bg-purple-50 text-purple-600 border border-purple-100",
+      trendBadge: "bg-purple-50 text-purple-700 border-purple-200/80",
+      accent: "hover:border-purple-200",
     },
     zinc: {
-      icon: "bg-white/10 text-zinc-300 border border-white/10",
-      trend: "text-zinc-400",
-      accent: "hover:border-white/20",
+      icon: "bg-zinc-100 text-zinc-600 border border-zinc-200",
+      trendBadge: "bg-zinc-100 text-zinc-700 border-zinc-200",
+      accent: "hover:border-zinc-300",
     },
   }[tone];
 
   const content = (
     <Card
       className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-md",
+        "relative rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
         href ? "cursor-pointer active:scale-[0.99]" : "",
         toneMap.accent,
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">{label}</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="truncate text-3xl font-black tracking-tight text-zinc-950">{value}</p>
-            {trend ? (
-              <span className={cn("text-xs font-bold", toneMap.trend)}>
-                {trend}
-              </span>
-            ) : null}
-          </div>
-          {subcaption ? (
-            <p className="mt-1 text-xs text-zinc-500 line-clamp-1">{subcaption}</p>
-          ) : null}
-        </div>
-
-        <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110", toneMap.icon)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className={cn("grid h-10 w-10 place-items-center rounded-xl", toneMap.icon)}>
           <Icon className="h-5 w-5" />
         </div>
+        {trend ? (
+          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-bold", toneMap.trendBadge)}>
+            {trend}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="mt-4">
+        <p className="text-xs font-medium text-zinc-500">{label}</p>
+        <p className="mt-1 truncate text-2xl font-black tracking-tight text-zinc-950">{value}</p>
+        {subcaption ? (
+          <p className="mt-1 text-[11px] font-medium text-zinc-400 line-clamp-1">{subcaption}</p>
+        ) : null}
       </div>
     </Card>
   );
 
   if (href) {
     return (
-      <Link href={href} className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-xl">
+      <Link href={href} className="block group focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded-2xl">
         {content}
       </Link>
     );

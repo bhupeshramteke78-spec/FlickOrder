@@ -4,8 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BellRing, ChefHat, CreditCard, History, LayoutDashboard, ListOrdered, LogOut, Menu, QrCode, Settings, Utensils, X } from "lucide-react";
-import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
+import {
+  BarChart3,
+  BellRing,
+  ChefHat,
+  CreditCard,
+  History,
+  LayoutDashboard,
+  ListOrdered,
+  LogOut,
+  Menu,
+  QrCode,
+  Settings,
+  Utensils,
+  X,
+} from "lucide-react";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
 import type { DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
@@ -65,27 +78,22 @@ export function MobileDashboardNav({
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-[#071117]/95 px-4 py-3 text-white shadow-2xl shadow-zinc-950/20 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-zinc-200 bg-white/95 px-4 py-3 text-zinc-900 shadow-sm backdrop-blur lg:hidden">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link
-              href="/"
-              prefetch={false}
-              className="inline-flex shrink-0"
-              aria-label="Go to KhaoScan homepage"
-            >
-              <KhaoScanLogo className="h-9 w-9 rounded-xl" priority />
-            </Link>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm shadow-rose-600/20">
+              <Utensils className="h-4 w-4" />
+            </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{restaurantName}</p>
-              <p className="truncate text-xs text-zinc-400">{formatRole(memberRole)}</p>
+              <p className="truncate text-xs font-bold text-zinc-950">{restaurantName}</p>
+              <p className="truncate text-[10px] text-zinc-500 font-medium">{formatRole(memberRole)}</p>
             </div>
           </div>
           <button
             ref={openButtonRef}
             type="button"
             onClick={() => setIsOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-white transition active:scale-95"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-800 transition active:scale-95"
             aria-label="Open dashboard menu"
             aria-expanded={isOpen}
           >
@@ -104,98 +112,98 @@ export function MobileDashboardNav({
         aria-label="Dashboard navigation"
         inert={!isOpen}
       >
-          <button
-            type="button"
-            className={cn(
-              "absolute inset-0 bg-zinc-950/60 backdrop-blur-sm transition-opacity duration-300 ease-out",
-              isOpen ? "opacity-100" : "opacity-0",
-            )}
-            onClick={closeMenu}
-            aria-label="Close dashboard menu"
-            tabIndex={isOpen ? 0 : -1}
-          />
-          <aside
-            className={cn(
-              "relative flex h-full w-[min(22rem,86vw)] flex-col overflow-y-auto bg-[#071117] p-4 text-white shadow-2xl transition-transform duration-300 ease-out will-change-transform",
-              isOpen ? "translate-x-0" : "-translate-x-full",
-            )}
-          >
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <Link
-                href="/"
-                prefetch={false}
-                onClick={closeMenu}
-                className="inline-flex shrink-0"
-                aria-label="Go to KhaoScan homepage"
-              >
-                <KhaoScanLogo className="h-9 w-9 rounded-xl" />
-              </Link>
-              <button
-                type="button"
-                onClick={closeMenu}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-white transition active:scale-95"
-                aria-label="Close dashboard menu"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-5 rounded-lg border border-white/10 bg-white/[0.04] p-3">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-white text-xs font-bold text-emerald-900">
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold">{restaurantName}</p>
-                  <p className="text-xs text-zinc-400">{formatRole(memberRole)}</p>
-                </div>
+        <button
+          type="button"
+          className={cn(
+            "absolute inset-0 bg-zinc-950/40 backdrop-blur-sm transition-opacity duration-300 ease-out",
+            isOpen ? "opacity-100" : "opacity-0",
+          )}
+          onClick={closeMenu}
+          aria-label="Close dashboard menu"
+          tabIndex={isOpen ? 0 : -1}
+        />
+        <aside
+          className={cn(
+            "relative flex h-full w-[min(20rem,84vw)] flex-col overflow-y-auto bg-white p-4 text-zinc-900 shadow-2xl transition-transform duration-300 ease-out will-change-transform",
+            isOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm">
+                <Utensils className="h-4 w-4" />
               </div>
-              <RestaurantSwitcher
-                restaurants={restaurants}
-                selectedRestaurantId={selectedRestaurantId}
-                className="mt-3"
-              />
-              {navItems.some((item) => item.iconKey === "orders") ? (
-                <div className="mt-3">
-                  <DeviceNotificationToggle restaurantId={selectedRestaurantId} />
-                </div>
-              ) : null}
+              <span className="text-base font-black tracking-tight text-zinc-950">DineFlow</span>
             </div>
+            <button
+              type="button"
+              onClick={closeMenu}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-600 transition active:scale-95"
+              aria-label="Close dashboard menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-            <nav className="grid gap-1">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                const Icon = mobileNavIcons[item.iconKey];
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={closeMenu}
-                    className={cn(
-                      "dashboard-nav-link flex items-center gap-3 rounded-md px-3 py-3 text-sm transition",
-                      isActive ? "bg-white/10 text-white" : "text-zinc-300 hover:text-white",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <div className="mt-auto grid gap-1 border-t border-white/10 pt-4">
-              <Link
-                href="/"
-                onClick={closeMenu}
-                className="flex items-center gap-3 rounded-md px-3 py-3 text-sm text-zinc-300 transition hover:bg-red-500/10 hover:text-red-400"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Link>
+          <div className="mb-4 rounded-xl border border-zinc-200/80 bg-zinc-50 p-3">
+            <div className="flex items-center gap-2.5">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-rose-100 text-xs font-bold text-rose-700">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-zinc-950">{restaurantName}</p>
+                <p className="text-[10px] text-zinc-500 font-medium">{formatRole(memberRole)}</p>
+              </div>
             </div>
-          </aside>
-        </div>
+            <RestaurantSwitcher
+              restaurants={restaurants}
+              selectedRestaurantId={selectedRestaurantId}
+              className="mt-2.5 text-xs"
+            />
+            {navItems.some((item) => item.iconKey === "orders") ? (
+              <div className="mt-2.5">
+                <DeviceNotificationToggle restaurantId={selectedRestaurantId} />
+              </div>
+            ) : null}
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              const Icon = mobileNavIcons[item.iconKey];
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={closeMenu}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all duration-150",
+                    isActive
+                      ? "bg-rose-50 text-rose-600 font-bold border-r-2 border-rose-500"
+                      : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100",
+                  )}
+                >
+                  <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-rose-600" : "text-zinc-500")} />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto shrink-0 border-t border-zinc-100 pt-3">
+            <Link
+              href="/"
+              prefetch={false}
+              onClick={closeMenu}
+              className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium text-zinc-600 transition hover:bg-rose-50 hover:text-rose-600"
+            >
+              <LogOut className="h-4 w-4 text-zinc-400" />
+              <span>Logout</span>
+            </Link>
+          </div>
+        </aside>
+      </div>
     </>
   );
 }
