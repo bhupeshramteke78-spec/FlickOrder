@@ -16,7 +16,7 @@ export default async function OrdersPage() {
   const canAcceptOrders = canUseLiveOrders && hasPermission(memberRole, "acceptOrders");
   const canConfirmPayments = canUseLiveOrders && hasPermission(memberRole, "confirmPayments");
   const canPrepareOrders = hasPermission(memberRole, "prepareOrders");
-  const canServeOrders = hasPermission(memberRole, "deliverOrders");
+  const canServeOrders = hasPermission(memberRole, "serveOrders");
 
   return (
     <DashboardShell title="Live Orders Kanban" eyebrow="Real-time Stream" showClock>
