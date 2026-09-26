@@ -9,14 +9,14 @@ export function FlickOrderLogo({
   priority?: boolean;
 }) {
   return (
-    <span className={cn("relative inline-flex shrink-0 overflow-hidden rounded-xl bg-white shadow-sm", className)}>
+    <span className={cn("relative inline-flex shrink-0 overflow-hidden rounded-xl", className)}>
       <Image
         src="/khaoscan-logo.png"
         alt="KhaoScan"
         fill
         sizes="64px"
         priority={priority}
-        className="object-contain p-0.5"
+        className="object-contain"
       />
     </span>
   );
