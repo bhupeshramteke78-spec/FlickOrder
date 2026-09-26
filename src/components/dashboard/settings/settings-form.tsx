@@ -439,7 +439,7 @@ export function SettingsForm({
           {!hasDeletionRequest && !isDeletePanelOpen && (
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={!canRequestDeletion}
               onClick={() => setIsDeletePanelOpen(true)}

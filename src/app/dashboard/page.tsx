@@ -355,7 +355,7 @@ export default async function DashboardPage() {
                 </div>
 
                 <Link href="/dashboard/kitchen" className="mt-5 block">
-                  <Button variant="outline" size="sm" className="w-full text-xs font-bold text-zinc-800 border-zinc-200 hover:bg-zinc-50 rounded-xl">
+                  <Button variant="secondary" size="sm" className="w-full text-xs font-bold text-zinc-800 border-zinc-200 hover:bg-zinc-50 rounded-xl">
                     Manage Kitchen
                   </Button>
                 </Link>
