@@ -62,7 +62,7 @@ export function RestaurantProfileMenu({
       return;
     }
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const url = `${origin}/r/${restaurantSlug}`;
+    const url = `${origin}/restaurants/${restaurantSlug}`;
     navigator.clipboard.writeText(url);
     toast.success("📋 Customer QR Menu link copied to clipboard!");
     setIsOpen(false);
@@ -110,7 +110,7 @@ export function RestaurantProfileMenu({
           <div className="space-y-0.5 py-1 text-xs">
             {restaurantSlug && (
               <a
-                href={`/r/${restaurantSlug}`}
+                href={`/restaurants/${restaurantSlug}`}
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setIsOpen(false)}
