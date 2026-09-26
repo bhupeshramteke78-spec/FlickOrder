@@ -9,7 +9,7 @@ import {
   Table2,
   TrendingUp,
   Users,
-  Zap,
+  UtensilsCrossed,
 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -33,6 +33,7 @@ type DashboardMetrics = {
   availableTables: number;
   occupiedTables: number;
   totalTables: number;
+  activeWaitersCount: number;
   subscriptionPlan: "trial" | "basic" | "growth" | "pro" | null;
   subscriptionStatus: "TRIALING" | "ACTIVE" | "EXPIRED" | "CANCELLED" | null;
   trialEndsAt: string | null;
@@ -53,6 +54,12 @@ type LiveOrder = {
   }>;
 };
 
+type TopDishSummary = {
+  name: string;
+  quantity: number;
+  totalRevenue: number;
+};
+
 type TableSummary = {
   id: string;
   tableNumber: string;
@@ -68,13 +75,14 @@ const emptyMetrics: DashboardMetrics = {
   availableTables: 0,
   occupiedTables: 0,
   totalTables: 0,
+  activeWaitersCount: 0,
   subscriptionPlan: null,
   subscriptionStatus: null,
   trialEndsAt: null,
 };
 
 export default async function DashboardPage() {
-  const { metrics, liveOrders, role, access } = await getOverviewData();
+  const { metrics, liveOrders, topDishes, role, access } = await getOverviewData();
   const trial = getTrialStatus(metrics.trialEndsAt);
   const shouldShowTrialBadge = metrics.subscriptionPlan === "trial" || metrics.subscriptionStatus === "TRIALING";
 
@@ -121,7 +129,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* 4 KPI Metric Cards matching Page 7 */}
+          {/* 4 KPI Metric Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <MetricCard
               label="Total Revenue"
@@ -151,93 +159,93 @@ export default async function DashboardPage() {
               href="/dashboard/tables"
             />
             <MetricCard
-              label="Avg. Prep Time"
-              value={metrics.preparingOrders > 0 ? `${Math.max(10, metrics.preparingOrders * 4)} min` : "14.5 min"}
-              icon={Zap}
-              subcaption="Average order to serve speed"
-              trend="-2.4m"
-              tone="purple"
-              href="/dashboard/kitchen"
+              label="Active Waiters"
+              value={String(metrics.activeWaitersCount)}
+              icon={Users}
+              subcaption="Floor staff on duty"
+              trend={metrics.activeWaitersCount > 0 ? "On Duty" : "No Staff"}
+              tone="rose"
+              href="/dashboard/waiter"
             />
           </div>
 
-          {/* Main Grid matching DineFlow Page 7 */}
-          <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-            {/* Left Column: Live QR Orders + Sales Analytics Chart */}
+          {/* 2-Column Main Section */}
+          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+            {/* Left Column: Live QR Orders + Analytics Preview */}
             <div className="space-y-6">
-              {/* Live QR Orders Table Card */}
+              {/* Live QR Orders Table */}
               <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
                   <div className="flex items-center gap-2.5">
-                    <h2 className="text-base font-black text-zinc-950">Live QR Orders</h2>
-                    <span className="rounded-full bg-rose-50 border border-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-600">
-                      {liveOrders.length} Active
-                    </span>
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-rose-600 animate-ping" />
+                    <div>
+                      <h2 className="text-base font-bold text-zinc-950">Live QR Orders</h2>
+                      <p className="text-xs text-zinc-500">Real-time incoming customer orders stream</p>
+                    </div>
                   </div>
-                  <Link
-                    href="/dashboard/orders"
-                    className="text-xs font-bold text-rose-600 hover:text-rose-700 transition"
-                  >
-                    View All
+                  <Link href="/dashboard/orders">
+                    <Button variant="secondary" size="sm" className="text-xs font-bold text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-100/80 rounded-xl">
+                      View All
+                    </Button>
                   </Link>
                 </div>
 
                 {liveOrders.length > 0 ? (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-left text-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs mt-3">
                       <thead>
-                        <tr className="border-b border-zinc-100 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                          <th className="pb-3 font-semibold">Table</th>
-                          <th className="pb-3 font-semibold">Items</th>
-                          <th className="pb-3 font-semibold">Status</th>
-                          <th className="pb-3 text-right font-semibold">Action</th>
+                        <tr className="border-b border-zinc-100 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                          <th className="pb-3 font-semibold">ORDER ID</th>
+                          <th className="pb-3 font-semibold">TABLE</th>
+                          <th className="pb-3 font-semibold">ITEMS</th>
+                          <th className="pb-3 font-semibold">TOTAL</th>
+                          <th className="pb-3 font-semibold">STATUS</th>
+                          <th className="pb-3 text-right font-semibold">ACTION</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-50">
-                        {liveOrders.map((order, idx) => {
-                          const tableBadgeTones = ["bg-rose-50 text-rose-700 border-rose-200", "bg-blue-50 text-blue-700 border-blue-200", "bg-emerald-50 text-emerald-700 border-emerald-200", "bg-amber-50 text-amber-700 border-amber-200"];
-                          const badgeTone = tableBadgeTones[idx % tableBadgeTones.length];
+                      <tbody className="divide-y divide-zinc-50 font-medium">
+                        {liveOrders.map((order) => {
+                          const isPending = order.status === "PENDING";
+                          const isPreparing = order.status === "PREPARING" || order.status === "ACCEPTED";
+                          const isReady = order.status === "READY";
 
                           return (
-                            <tr key={order.id} className="transition-colors hover:bg-zinc-50/60">
-                              <td className="py-3.5 pr-3 align-top">
-                                <div className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center justify-center rounded-lg border px-2 py-1 text-xs font-mono font-bold ${badgeTone}`}>
-                                    T-{order.tableNumber}
-                                  </span>
-                                  <div>
-                                    <p className="font-bold text-zinc-900 leading-tight">Table {order.tableNumber}</p>
-                                    <p className="text-[10px] text-zinc-400 font-medium">QR {formatTime(order.createdAt)}</p>
-                                  </div>
-                                </div>
+                            <tr key={order.id} className="hover:bg-zinc-50/70 transition-colors">
+                              <td className="py-3.5 font-bold text-zinc-950">
+                                #{order.orderNumber}
                               </td>
 
-                              <td className="py-3.5 pr-3 align-top">
-                                <p className="font-medium text-zinc-800 line-clamp-1">
-                                  {order.items.length > 0
-                                    ? order.items.map((it) => `${it.quantity}x ${it.name}`).join(", ")
-                                    : "Food order"}
-                                </p>
-                                <p className="text-[11px] font-bold text-zinc-900 mt-0.5">
-                                  {formatCurrency(order.total)}
-                                </p>
+                              <td className="py-3.5">
+                                <span className="inline-block rounded-lg bg-zinc-900 px-2 py-0.5 text-xs font-bold text-white">
+                                  T-{order.tableNumber.padStart(2, "0")}
+                                </span>
                               </td>
 
-                              <td className="py-3.5 pr-3 align-top">
+                              <td className="py-3.5 max-w-[180px] truncate text-zinc-700 font-medium">
+                                {order.items.map((i) => `${i.quantity}x ${i.name}`).join(", ") || "Order Items"}
+                              </td>
+
+                              <td className="py-3.5 font-black text-rose-600">
+                                {formatCurrency(order.total)}
+                              </td>
+
+                              <td className="py-3.5">
                                 <span
-                                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                                    order.status === "PENDING"
-                                      ? "bg-rose-50 text-rose-700 border border-rose-200"
-                                      : order.status === "PREPARING"
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                                    isPending
+                                      ? "bg-rose-50 text-rose-700 border border-rose-200 animate-pulse"
+                                      : isPreparing
                                         ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                        : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                        : isReady
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                          : "bg-zinc-100 text-zinc-700"
                                   }`}
                                 >
                                   {formatStatus(order.status)}
                                 </span>
                               </td>
 
-                              <td className="py-3.5 text-right align-top">
+                              <td className="py-3.5 text-right align-middle">
                                 <Link href="/dashboard/orders">
                                   <Button
                                     size="sm"
@@ -259,88 +267,82 @@ export default async function DashboardPage() {
                     </table>
                   </div>
                 ) : (
-                  <div className="py-8 text-center text-xs text-zinc-500">
-                    No active QR orders right now. Orders placed via table QR codes will appear here in real-time.
+                  <div className="py-10 text-center">
+                    <UtensilsCrossed className="mx-auto h-8 w-8 text-zinc-300" />
+                    <p className="mt-2 text-xs font-bold text-zinc-900">No active orders right now</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-400">Customer table QR orders will appear here automatically in real time.</p>
                   </div>
                 )}
               </Card>
 
-              {/* Sales Analytics Preview Card matching Page 7 */}
+              {/* 7-Day Sales Analytics Graph Preview */}
               <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
-                <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
+                <div className="flex items-center justify-between pb-4">
                   <div>
-                    <h2 className="text-base font-black text-zinc-950">Sales Analytics</h2>
-                    <p className="text-xs text-zinc-500">Weekly revenue trends</p>
+                    <h2 className="text-base font-bold text-zinc-950">Sales Analytics</h2>
+                    <p className="text-xs text-zinc-500">Weekly order revenue performance</p>
                   </div>
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-bold text-zinc-700">
-                    Last 7 Days
-                  </div>
+                  <Link href="/dashboard/analytics">
+                    <Button variant="secondary" size="sm" className="text-xs font-bold text-zinc-700 border-zinc-200 hover:bg-zinc-50 rounded-xl">
+                      View Report
+                    </Button>
+                  </Link>
                 </div>
 
-                <div className="mt-6 h-48 w-full flex items-end justify-between gap-3 pt-6 pb-2 px-2">
+                {/* Styled CSS Bar Chart */}
+                <div className="mt-4 flex items-end justify-between gap-2 h-44 pt-6 pb-2 px-2 border-b border-zinc-100">
                   {[
-                    { day: "Mon", val: 45, rev: "₹2,200" },
-                    { day: "Tue", val: 38, rev: "₹1,850" },
-                    { day: "Wed", val: 58, rev: "₹2,900" },
-                    { day: "Thu", val: 65, rev: "₹3,400" },
-                    { day: "Fri", val: 78, rev: "₹4,100" },
-                    { day: "Sat", val: 95, rev: "₹5,200" },
-                    { day: "Sun", val: 88, rev: "₹4,800" },
+                    { day: "Mon", height: "45%", value: "₹4.2k" },
+                    { day: "Tue", height: "65%", value: "₹6.8k" },
+                    { day: "Wed", height: "55%", value: "₹5.4k" },
+                    { day: "Thu", height: "80%", value: "₹8.9k" },
+                    { day: "Fri", height: "95%", value: "₹11.2k" },
+                    { day: "Sat", height: "100%", value: "₹14.5k", active: true },
+                    { day: "Sun", height: "85%", value: "₹9.8k" },
                   ].map((bar) => (
-                    <div key={bar.day} className="flex-1 flex flex-col items-center gap-2 group relative">
-                      <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity rounded bg-zinc-900 text-white text-[10px] font-bold px-1.5 py-0.5 whitespace-nowrap pointer-events-none">
-                        {bar.rev}
-                      </div>
-                      <div className="w-full bg-rose-50 rounded-t-lg relative overflow-hidden flex items-end h-32">
-                        <div
-                          className="w-full bg-rose-500 rounded-t-lg transition-all duration-500 group-hover:bg-rose-600"
-                          style={{ height: `${bar.val}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] font-bold text-zinc-500">{bar.day}</span>
+                    <div key={bar.day} className="flex flex-col items-center gap-2 flex-1 h-full justify-end group">
+                      <span className="text-[10px] font-bold text-zinc-400 group-hover:text-rose-600 transition-colors opacity-0 group-hover:opacity-100">
+                        {bar.value}
+                      </span>
+                      <div
+                        className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 ${
+                          bar.active
+                            ? "bg-rose-600 shadow-sm shadow-rose-500/30"
+                            : "bg-zinc-100 group-hover:bg-rose-200"
+                        }`}
+                        style={{ height: bar.height }}
+                      />
+                      <span className="text-[11px] font-bold text-zinc-600">{bar.day}</span>
                     </div>
                   ))}
                 </div>
               </Card>
             </div>
 
-            {/* Right Column: Kitchen Load + Top QR Orders + Waiter Status */}
+            {/* Right Column: Kitchen Load + REAL Top QR Orders + REAL Waiter Status */}
             <div className="space-y-6">
-              {/* Kitchen Load Progress Card */}
+              {/* Kitchen Load Card */}
               <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between pb-3">
-                  <h2 className="text-sm font-black text-zinc-950">Kitchen Load</h2>
-                  <ChefHat className="h-4 w-4 text-rose-600" />
+                  <h2 className="text-sm font-black text-zinc-950 flex items-center gap-2">
+                    <ChefHat className="h-4 w-4 text-rose-600" /> Kitchen Load
+                  </h2>
+                  <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200">
+                    {metrics.preparingOrders} Cooking
+                  </span>
                 </div>
 
                 <div className="space-y-4 mt-3">
                   <div>
                     <div className="flex justify-between text-xs font-bold text-zinc-800 mb-1.5">
-                      <span>Main Course</span>
-                      <span className="text-rose-600 font-extrabold">85%</span>
+                      <span>Queue Utilization</span>
+                      <span className="text-rose-600 font-extrabold">{metrics.preparingOrders > 0 ? "Active" : "Clear"}</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
-                      <div className="h-full bg-rose-500 rounded-full" style={{ width: "85%" }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold text-zinc-800 mb-1.5">
-                      <span>Desserts</span>
-                      <span className="text-emerald-600 font-extrabold">30%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
-                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: "30%" }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-bold text-zinc-800 mb-1.5">
-                      <span>Appetizers</span>
-                      <span className="text-blue-600 font-extrabold">50%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
-                      <div className="h-full bg-blue-500 rounded-full" style={{ width: "50%" }} />
+                      <div
+                        className="h-full bg-rose-600 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(10, metrics.preparingOrders * 20))}%` }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -352,76 +354,72 @@ export default async function DashboardPage() {
                 </Link>
               </Card>
 
-              {/* Top QR Orders Card */}
+              {/* REAL Top QR Orders Card */}
               <Card className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between pb-3">
                   <h2 className="text-sm font-black text-zinc-950">Top QR Orders</h2>
                   <TrendingUp className="h-4 w-4 text-rose-600" />
                 </div>
 
-                <div className="divide-y divide-zinc-50 mt-1">
-                  {[
-                    { name: "Classic Beef Burger", orders: "45 orders today", price: "₹280.00", initial: "🍔" },
-                    { name: "Pasta Carbonara", orders: "32 orders today", price: "₹340.00", initial: "🍝" },
-                    { name: "Garden Fresh Salad", orders: "28 orders today", price: "₹180.00", initial: "🥗" },
-                  ].map((item) => (
-                    <div key={item.name} className="flex items-center justify-between py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-zinc-100 text-base shadow-sm">
-                          {item.initial}
+                {topDishes.length > 0 ? (
+                  <div className="divide-y divide-zinc-50 mt-1">
+                    {topDishes.map((item, index) => (
+                      <div key={item.name} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-8 w-8 place-items-center rounded-xl bg-rose-50 text-rose-600 text-xs font-black shadow-xs">
+                            #{index + 1}
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-zinc-900 leading-tight truncate max-w-[150px]">{item.name}</p>
+                            <p className="text-[10px] font-medium text-zinc-400">{item.quantity} order{item.quantity === 1 ? "" : "s"}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-zinc-900 leading-tight">{item.name}</p>
-                          <p className="text-[10px] font-medium text-zinc-400">{item.orders}</p>
-                        </div>
+                        <span className="text-xs font-black text-zinc-950">{formatCurrency(item.totalRevenue)}</span>
                       </div>
-                      <span className="text-xs font-black text-zinc-950">{item.price}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center text-xs text-zinc-400">
+                    <p className="font-semibold text-zinc-600">No dish sales recorded yet today</p>
+                    <p className="text-[11px] mt-0.5">Top performing dishes will appear here as QR orders arrive.</p>
+                  </div>
+                )}
               </Card>
 
-              {/* Waiter Status Sleek Dark Card */}
+              {/* REAL Waiter Status Card */}
               <div className="rounded-2xl bg-[#090e17] p-5 text-white shadow-sm">
                 <div className="flex items-center justify-between pb-3 border-b border-white/10">
                   <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Users className="h-4 w-4 text-rose-400" /> Waiter Status
+                    <Users className="h-4 w-4 text-rose-400" /> Waiter Staff Status
                   </h2>
                   <Link href="/dashboard/waiter" className="text-[11px] font-bold text-rose-400 hover:underline">
-                    View
+                    Manage
                   </Link>
                 </div>
 
-                <div className="space-y-3 mt-3.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-white/10 grid place-items-center text-[10px] font-bold">
-                        SJ
-                      </div>
-                      <span className="font-semibold text-zinc-200">Sarah J.</span>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-2xl font-black text-white">{metrics.activeWaitersCount}</p>
+                      <p className="text-xs text-zinc-400 font-medium mt-0.5">
+                        {metrics.activeWaitersCount === 1 ? "Waiter registered on floor" : "Waiters registered on floor"}
+                      </p>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-400">Active (T-04)</span>
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      metrics.activeWaitersCount > 0 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-zinc-800 text-zinc-400"
+                    }`}>
+                      {metrics.activeWaitersCount > 0 ? "● Floor Active" : "No Staff"}
+                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-white/10 grid place-items-center text-[10px] font-bold">
-                        MR
-                      </div>
-                      <span className="font-semibold text-zinc-200">Mark R.</span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-zinc-400">Break</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-7 w-7 rounded-full bg-white/10 grid place-items-center text-[10px] font-bold">
-                        EK
-                      </div>
-                      <span className="font-semibold text-zinc-200">Elena K.</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-emerald-400">Active (T-12)</span>
-                  </div>
+                  <Link href="/dashboard/waiter" className="block pt-2">
+                    <button
+                      type="button"
+                      className="w-full rounded-xl bg-white/10 hover:bg-white/15 py-2 text-xs font-bold text-zinc-200 transition"
+                    >
+                      Open Waiter Duty Console →
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -429,7 +427,7 @@ export default async function DashboardPage() {
 
           {/* Footer Note */}
           <div className="pt-8 text-center text-xs font-medium text-zinc-400">
-            © {new Date().getFullYear()} DineFlow SaaS. All Rights Reserved. Powered by QR-Quick Technology.
+            © {new Date().getFullYear()} KhaoScan. All Rights Reserved. Smart Restaurant QR SaaS.
           </div>
         </div>
       )}
@@ -440,25 +438,25 @@ export default async function DashboardPage() {
 async function getOverviewData(): Promise<{
   metrics: DashboardMetrics;
   liveOrders: LiveOrder[];
-  tables: TableSummary[];
+  topDishes: TopDishSummary[];
   role: string | null;
   access: SubscriptionAccess | null;
 }> {
   if (!isSupabaseConfigured()) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null, access: null };
+    return { metrics: emptyMetrics, liveOrders: [], topDishes: [], role: null, access: null };
   }
 
   const supabase = await createClient();
   const context = await getSelectedDashboardRestaurant(supabase);
 
   if (!context) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role: null, access: null };
+    return { metrics: emptyMetrics, liveOrders: [], topDishes: [], role: null, access: null };
   }
 
   const role = context.selected.memberRole;
 
   if (!hasPermission(role, "viewOverview")) {
-    return { metrics: emptyMetrics, liveOrders: [], tables: [], role, access: null };
+    return { metrics: emptyMetrics, liveOrders: [], topDishes: [], role, access: null };
   }
 
   const restaurantId = context.selected.restaurantId;
@@ -471,9 +469,11 @@ async function getOverviewData(): Promise<{
     preparingOrders,
     unpaidOrders,
     allTables,
+    waitersResult,
     subscription,
     liveOrders,
     access,
+    realOrderItems,
   ] = await Promise.all([
     supabase
       .from("orders")
@@ -502,12 +502,18 @@ async function getOverviewData(): Promise<{
       .eq("restaurant_id", restaurantId)
       .order("table_number", { ascending: true }),
     supabase
+      .from("restaurant_members")
+      .select("profile_id", { count: "exact", head: true })
+      .eq("restaurant_id", restaurantId)
+      .eq("role", "WAITER"),
+    supabase
       .from("subscriptions")
       .select("plan,status,trial_ends_at")
       .eq("restaurant_id", restaurantId)
       .maybeSingle(),
     getLiveOrdersForRestaurant(supabase, restaurantId),
     getSubscriptionAccessForRestaurantId(supabase, restaurantId),
+    getTopDishesForRestaurant(supabase, restaurantId, startOfToday.toISOString()),
   ]);
 
   const tablesList: TableSummary[] = (allTables.data ?? []).map((t) => ({
@@ -523,7 +529,7 @@ async function getOverviewData(): Promise<{
   return {
     role,
     liveOrders,
-    tables: tablesList,
+    topDishes: realOrderItems,
     access,
     metrics: {
       todaysRevenue: paidOrders.data?.reduce((sum, order) => sum + Number(order.total), 0) ?? 0,
@@ -533,11 +539,57 @@ async function getOverviewData(): Promise<{
       availableTables: availableCount,
       occupiedTables: occupiedCount,
       totalTables: tablesList.length,
+      activeWaitersCount: waitersResult.count ?? 0,
       subscriptionPlan: subscription.data?.plan ?? null,
       subscriptionStatus: subscription.data?.status ?? null,
       trialEndsAt: subscription.data?.trial_ends_at ?? null,
     },
   };
+}
+
+async function getTopDishesForRestaurant(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  restaurantId: string,
+  todayIso: string,
+): Promise<TopDishSummary[]> {
+  const { data: orders } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("restaurant_id", restaurantId)
+    .gte("created_at", todayIso)
+    .limit(100);
+
+  if (!orders || orders.length === 0) {
+    return [];
+  }
+
+  const orderIds = orders.map((o) => o.id);
+  const { data: items } = await supabase
+    .from("order_items")
+    .select("name_snapshot,quantity,price_snapshot")
+    .in("order_id", orderIds);
+
+  if (!items || items.length === 0) {
+    return [];
+  }
+
+  const dishMap = new Map<string, { quantity: number; totalRevenue: number }>();
+  for (const item of items) {
+    const name = item.name_snapshot || "Item";
+    const existing = dishMap.get(name) ?? { quantity: 0, totalRevenue: 0 };
+    existing.quantity += item.quantity;
+    existing.totalRevenue += Number(item.price_snapshot || 0) * item.quantity;
+    dishMap.set(name, existing);
+  }
+
+  return Array.from(dishMap.entries())
+    .map(([name, stat]) => ({
+      name,
+      quantity: stat.quantity,
+      totalRevenue: stat.totalRevenue,
+    }))
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 5);
 }
 
 async function getLiveOrdersForRestaurant(
@@ -600,12 +652,4 @@ function formatStatus(status: string) {
     .split("_")
     .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
     .join(" ");
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "Asia/Kolkata",
-  }).format(new Date(value));
 }

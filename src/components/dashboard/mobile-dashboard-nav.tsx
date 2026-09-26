@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { DeviceNotificationToggle } from "@/components/dashboard/device-notification-toggle";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import type { DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 import type { DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
@@ -130,10 +131,8 @@ export function MobileDashboardNav({
         >
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm">
-                <Utensils className="h-4 w-4" />
-              </div>
-              <span className="text-base font-black tracking-tight text-zinc-950">DineFlow</span>
+              <KhaoScanLogo size="sm" />
+              <span className="text-base font-black tracking-tight text-zinc-950">KhaoScan</span>
             </div>
             <button
               type="button"

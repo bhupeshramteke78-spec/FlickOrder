@@ -8,6 +8,7 @@ export const DASHBOARD_RESTAURANT_COOKIE = "flickorder_restaurant_id";
 export type DashboardRestaurantOption = {
   restaurantId: string;
   restaurantName: string;
+  restaurantSlug?: string;
   memberRole: string;
   initials: string;
 };
@@ -40,16 +41,19 @@ export const getSelectedDashboardRestaurant = cache(async function getSelectedDa
   const restaurantIds = memberships.map((membership) => membership.restaurant_id);
   const { data: restaurants } = await supabase
     .from("restaurants")
-    .select("id,name")
+    .select("id,name,slug")
     .in("id", restaurantIds);
 
-  const restaurantById = new Map((restaurants ?? []).map((restaurant) => [restaurant.id, restaurant.name]));
+  const restaurantById = new Map((restaurants ?? []).map((restaurant) => [restaurant.id, { name: restaurant.name, slug: restaurant.slug }]));
   const options = memberships.map((membership) => {
-    const restaurantName = restaurantById.get(membership.restaurant_id)?.trim() || "Restaurant";
+    const info = restaurantById.get(membership.restaurant_id);
+    const restaurantName = info?.name?.trim() || "Restaurant";
+    const restaurantSlug = info?.slug;
 
     return {
       restaurantId: membership.restaurant_id,
       restaurantName,
+      restaurantSlug,
       memberRole: membership.role,
       initials: getInitials(restaurantName),
     };

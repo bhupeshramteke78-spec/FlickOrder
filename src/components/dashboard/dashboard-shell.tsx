@@ -1,14 +1,11 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import {
-  Crown,
-  LogOut,
-  Search,
-  UtensilsCrossed,
-} from "lucide-react";
+import { Crown, LogOut } from "lucide-react";
+import { KhaoScanLogo } from "@/components/brand/khaoscan-logo";
 import { DashboardNavLink, type DashboardNavIconKey } from "@/components/dashboard/dashboard-nav-link";
 import { MobileDashboardNav } from "@/components/dashboard/mobile-dashboard-nav";
-import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
+import { DashboardHeaderSearch } from "@/components/dashboard/dashboard-header-search";
+import { RestaurantProfileMenu } from "@/components/dashboard/restaurant-profile-menu";
 import { DashboardRealtimeRefresh } from "@/components/realtime/dashboard-realtime-refresh";
 import { getInitials, getSelectedDashboardRestaurant, type DashboardRestaurantOption } from "@/lib/dashboard-restaurant";
 import { hasPermission, type Permission } from "@/lib/permissions";
@@ -46,6 +43,7 @@ const navItems: NavItemConfig[] = [
 type DashboardIdentity = {
   restaurantId: string | null;
   restaurantName: string;
+  restaurantSlug?: string;
   memberRole: string;
   initials: string;
   restaurants: DashboardRestaurantOption[];
@@ -107,36 +105,19 @@ export async function DashboardShell({
         navItems={visibleMobileNavItems}
       />
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[240px_1fr]">
-        {/* Modern Crisp White Sidebar matching DineFlow */}
+        {/* Modern Crisp White Sidebar with Official KhaoScan Brand */}
         <aside className="hidden bg-white border-r border-zinc-200/80 p-4 text-zinc-900 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:overflow-hidden shadow-sm">
-          {/* Logo Header */}
-          <Link href="/" prefetch={false} className="mb-6 flex items-center gap-2.5 px-2" aria-label="Go to DineFlow homepage">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-600 text-white shadow-sm shadow-rose-600/30">
-              <UtensilsCrossed className="h-5 w-5" />
+          {/* Platform Logo Header */}
+          <Link href="/" prefetch={false} className="mb-6 flex items-center gap-2.5 px-2 group" aria-label="Go to KhaoScan homepage">
+            <KhaoScanLogo size="sm" />
+            <div className="min-w-0">
+              <span className="text-lg font-black tracking-tight text-zinc-950 block leading-tight">KhaoScan</span>
+              <span className="text-[10px] font-bold text-rose-600 tracking-wider uppercase block">Smart Dining</span>
             </div>
-            <span className="text-lg font-black tracking-tight text-zinc-950">DineFlow</span>
           </Link>
 
-          {/* Restaurant Switcher Chip */}
-          <div className="mb-4 shrink-0 rounded-xl border border-zinc-200/70 bg-zinc-50 p-2.5">
-            <div className="flex items-center gap-2.5">
-              <div className="grid h-8 w-8 place-items-center rounded-lg bg-rose-100 text-xs font-bold text-rose-700">
-                {identity.initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-bold text-zinc-900">{identity.restaurantName}</p>
-                <p className="text-[11px] font-medium text-zinc-500">{formatRole(identity.memberRole)}</p>
-              </div>
-            </div>
-            <RestaurantSwitcher
-              restaurants={identity.restaurants}
-              selectedRestaurantId={identity.restaurantId}
-              className="mt-2 text-xs"
-            />
-          </div>
-
           {/* Navigation Items */}
-          <nav className="flex-1 space-y-1 overflow-y-auto pr-0.5">
+          <nav className="flex-1 space-y-1 overflow-y-auto pr-0.5 scrollbar-none">
             <div className="space-y-0.5">
               {mainNav.map((item) => (
                 <DashboardNavLink
@@ -178,7 +159,7 @@ export async function DashboardShell({
 
           {/* Bottom Upgrade Card */}
           <div className="mt-auto shrink-0 pt-3">
-            <div className="rounded-xl bg-[#090e17] p-3.5 text-white">
+            <div className="rounded-xl bg-[#090e17] p-3.5 text-white shadow-sm">
               <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
                 <Crown className="h-3.5 w-3.5" />
                 <span>Pro Plan</span>
@@ -187,7 +168,7 @@ export async function DashboardShell({
               <Link href="/dashboard/billing">
                 <button
                   type="button"
-                  className="mt-2.5 w-full rounded-lg bg-rose-500 py-1.5 text-xs font-bold text-white transition hover:bg-rose-600 active:scale-98"
+                  className="mt-2.5 w-full rounded-lg bg-rose-600 py-1.5 text-xs font-bold text-white transition hover:bg-rose-700 active:scale-98 shadow-xs"
                 >
                   View Plans
                 </button>
@@ -208,34 +189,26 @@ export async function DashboardShell({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Search Bar matching mockup */}
-              <div className="relative hidden md:flex items-center">
-                <Search className="absolute left-3 h-3.5 w-3.5 text-zinc-400" />
-                <input
-                  type="text"
-                  placeholder="Search orders, menu..."
-                  className="h-9 w-60 rounded-xl border border-zinc-200 bg-white pl-9 pr-3 text-xs text-zinc-800 placeholder-zinc-400 transition focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-100"
-                />
-              </div>
+              {/* Header Search with Submit Button */}
+              <DashboardHeaderSearch />
 
-              {/* Notification Toggle */}
+              {/* Notification Toggle (always interactive) */}
               {hasPermission(identity.memberRole, "viewOrders") ? (
                 <DeviceNotificationToggle
                   restaurantId={identity.restaurantId}
-                  className="h-9 border border-zinc-200 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-50 rounded-xl"
+                  className="h-9 border border-zinc-200/90 bg-white text-xs font-bold text-zinc-700 hover:bg-zinc-50 rounded-xl"
                 />
               ) : null}
 
-              {/* Manager User Chip */}
-              <div className="flex items-center gap-2.5 rounded-xl border border-zinc-200/80 bg-white px-3 py-1.5 shadow-sm">
-                <div className="grid h-7 w-7 place-items-center rounded-lg bg-rose-600 text-xs font-bold text-white">
-                  {identity.initials}
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-bold leading-tight text-zinc-900">{identity.restaurantName}</p>
-                  <p className="text-[10px] font-medium text-zinc-500">{formatRole(identity.memberRole)}</p>
-                </div>
-              </div>
+              {/* Interactive Restaurant Profile Chip (Right Side Only) */}
+              <RestaurantProfileMenu
+                restaurantId={identity.restaurantId}
+                restaurantName={identity.restaurantName}
+                restaurantSlug={identity.restaurantSlug}
+                memberRole={identity.memberRole}
+                initials={identity.initials}
+                restaurants={identity.restaurants}
+              />
             </div>
           </header>
 
@@ -299,15 +272,9 @@ async function getDashboardIdentity(): Promise<DashboardIdentity> {
   return {
     restaurantId: context.selected.restaurantId,
     restaurantName: context.selected.restaurantName,
+    restaurantSlug: context.selected.restaurantSlug,
     memberRole: context.selected.memberRole,
     initials: getInitials(context.selected.restaurantName),
     restaurants: context.restaurants,
   };
-}
-
-function formatRole(role: string) {
-  return role
-    .split("_")
-    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
-    .join(" ");
 }
